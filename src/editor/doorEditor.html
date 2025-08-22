@@ -1,50 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Edit Door</title>
-  <link rel="stylesheet" href="doorEditor.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8">
+    <title>Edit Door</title>
+    <link rel="stylesheet" href="doorEditor.css">
+  </head>
+  <body>
+    <!-- =====================================================
+       Header: Shows current location context and door direction
+       ===================================================== -->
     <div id="header">
-        <span id="sector"></span> /
-        <span id="region"></span> /
-        <span id="roomName"></span> /
-        <span id="doorDir"></span>
+      <span id="sector"></span> /
+      <!-- Current sector -->
+      <span id="region"></span> /
+      <!-- Current region -->
+      <span id="roomName"></span> /
+      <!-- Current room -->
+      <span id="doorDir"></span>
+      <!-- Door direction -->
+    </div>
+    <hr>
+    <!-- Separator line -->
+    <!-- =====================================================
+       Form container: scrollable main content
+       ===================================================== -->
+    <div id="form">
+      <!-- Door type selection -->
+      <h3>Door Type</h3>
+      <div id="doorType"></div>
+      <!-- Direction selection -->
+      <h3>Direction</h3>
+      <div id="directionType"></div>
+      <!-- Optional door title -->
+      <h3>Title</h3>
+      <input type="text" id="doorTitle" placeholder="Door title (optional)">
+      <!-- Entrance condition -->
+      <h3>Conditions</h3>
+      <div class="conditions">
+        <label>Entrance Condition</label>
+        <div id="entranceCondition"></div>
       </div>
-      
-  <hr>
-
-  <div id="form">
-    <h3>Door Type</h3>
-    <div id="doorType"></div>
-
-    <h3>Direction</h3>
-    <div id="directionType"></div>
-
-    <h3>Title</h3>
-    <input type="text" id="doorTitle" placeholder="Door title (optional)">
-    
-    <h3>Conditions</h3>
-    <div class="conditions">
-      <label>Entrance Condition</label>
-      <div id="entranceCondition"></div>
+      <!-- Exit condition -->
+      <div class="conditions">
+        <label>Exit Condition</label>
+        <div id="exitCondition"></div>
+      </div>
     </div>
-    <div class="conditions">
-      <label>Exit Condition</label>
-      <div id="exitCondition"></div>
+    <!-- =====================================================
+       Footer buttons: Save / Close actions
+       ===================================================== -->
+    <div id="footer">
+      <button id="closeBtn">Close without Saving</button>
+      <button id="saveBtn">Save & Close</button>
     </div>
-  </div>
-
-  <div id="footer">
-    <button id="closeBtn">Close without Saving</button>
-    <button id="saveBtn">Save & Close</button>
-  </div>
-
-<script src="doorConditions.js"></script>
-<script src="conditionItems.js"></script>
-<script src="conditionEvents.js"></script>
-<script src="conditionEditor.js"></script>
-<script src="doorEditor.js"></script>
-</body>
+    <!-- =====================================================
+       Load supporting scripts for condition editing
+       ===================================================== -->
+    <script src="doorConditions.js"></script>
+    <script src="conditionItems.js"></script>
+    <script src="conditionEvents.js"></script>
+    <script src="conditionEditor.js"></script>
+    <script src="doorEditor.js"></script>
+  </body>
 </html>

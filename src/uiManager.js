@@ -129,7 +129,6 @@ export class UIManager {
         });
     }
 
-
     /**
      * Show an alert message
      * @param {string} message - The message to display

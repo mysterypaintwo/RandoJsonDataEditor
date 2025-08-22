@@ -111,7 +111,6 @@ export class CanvasRenderer {
 		}
 	}
 	
-
 	/**
 	 * Update canvas size and styling based on image and scale
 	 * @param {HTMLImageElement} image - The room image
