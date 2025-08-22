@@ -90,13 +90,17 @@ export function fileNameToRoomName(fileName) {
  * @returns {Object} {x, y} coordinates
  */
 export function getMousePos(e, canvas, container, scale) {
-	const rect = canvas.getBoundingClientRect();
-	const x = (e.clientX - rect.left + container.scrollLeft) / scale;
-	const y = (e.clientY - rect.top + container.scrollTop) / scale;
-	return {
-		x,
-		y
-	};
+    const rect = canvas.getBoundingClientRect();
+
+    // Mouse position relative to the canvas element (CSS pixels)
+    const cssX = e.clientX - rect.left;
+    const cssY = e.clientY - rect.top;
+
+    // Convert to image-pixel coordinates
+    const x = cssX / scale;
+    const y = cssY / scale;
+
+    return { x, y };
 }
 
 /**

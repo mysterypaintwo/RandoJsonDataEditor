@@ -111,8 +111,6 @@ body {
 /* JSON editor */
 #json-editor {
   height: 200px;
-  display: flex;
-  flex-direction: column;
 }
 
 #jsonTextArea {
@@ -121,17 +119,20 @@ body {
   width: 100%;
 }
 
-/* Scrollable map */
+/* Scrollable map container */
 #map-container {
-  flex: 1 1 auto; /* allow to shrink/grow */
-  overflow-x: auto;
-  overflow-y: auto;
-  min-width: 0; /* important for flex containers to allow scrolling */
-  min-height: 0;
+  flex: 1 1 auto;          /* fill remaining space in right pane */
+  overflow: auto;          /* scrollbars appear when needed */
+  min-width: 0;            /* allow flex shrink */
+  min-height: 0;           /* allow flex shrink */
+  background: #f0f0f0;     /* optional: visual background */
 }
 
+/* Canvas inside container */
 #roomCanvas {
-  display: block; /* removes inline padding/margin */
+  display: block;          /* remove inline spacing */
+  width: auto;             /* use intrinsic pixel width */
+  height: auto;            /* use intrinsic pixel height */
 }
 
 #map {

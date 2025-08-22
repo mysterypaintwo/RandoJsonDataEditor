@@ -416,21 +416,21 @@ export class InteractionHandler {
 	 */
 	handleZoom(e, centerX, centerY) {
 		if (!this.state.currentRoomImage) return;
-
+	
 		const oldScale = this.state.scale;
 		const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
 		const newScale = this.state.scale * zoomFactor;
-
+	
 		this.state.setScale(newScale);
-
-		// Update canvas display size
-		this.renderer.updateCanvasSize(this.state.currentRoomImage, this.state.scale);
-
-		// Adjust scroll position to center zoom
-		this.renderer.updateScrollForZoom(oldScale, this.state.scale, centerX, centerY);
-
+	
+		// Update canvas size according to new scale
+		this.renderer.updateCanvasSize(this.state.currentRoomImage, newScale);
+	
+		// Adjust scroll to center zoom
+		this.renderer.updateScrollForZoom(oldScale, newScale, centerX, centerY);
+	
 		this.redraw();
-	}
+	}	
 
 	/**
 	 * Trigger a complete redraw

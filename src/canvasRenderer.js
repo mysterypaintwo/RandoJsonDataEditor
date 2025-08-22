@@ -76,42 +76,64 @@ export class CanvasRenderer {
 	 * @param {number} scale - Current zoom scale
 	 */
 	redraw(roomImage, nodes, selectedNode, currentRect, scale) {
-		// Early exit if no room image loaded
 		if (!roomImage) return;
-
-		// Clear canvas and reset transforms
-		this.clear();
-
-		// Draw the background room image
-		this.drawRoomImage(roomImage);
-
-		// Draw all nodes
+	
+		// Clear canvas
+		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+	
+		// Draw background image at scaled size
+		this.ctx.drawImage(
+			roomImage,
+			0, 0,
+			roomImage.width * scale,
+			roomImage.height * scale
+		);
+	
 		nodes.forEach(node => {
-			this.renderNode(node, selectedNode === node, scale);
+			const scaledNode = {
+				x: node.x * scale,
+				y: node.y * scale,
+				w: node.w * scale,
+				h: node.h * scale
+			};
+			this.renderNode(scaledNode, selectedNode === node, 1); // pass 1 for scale inside drawRect
 		});
-
-		// Draw current rectangle being created (if any)
+	
 		if (currentRect) {
-			this.renderCurrentRect(currentRect, scale);
+			const scaledRect = {
+				x: currentRect.x * scale,
+				y: currentRect.y * scale,
+				w: currentRect.w * scale,
+				h: currentRect.h * scale
+			};
+			this.renderCurrentRect(scaledRect, 1);
 		}
 	}
+	
 
 	/**
 	 * Update canvas size and styling based on image and scale
 	 * @param {HTMLImageElement} image - The room image
 	 * @param {number} scale - Current zoom scale
 	 */
-	updateCanvasSize(image, scale) {
+	updateCanvasSize(image, scale = 1) {
 		if (!image) return;
-
-		// Set actual canvas dimensions
-		this.canvas.width = image.width;
-		this.canvas.height = image.height;
-
-		// Set display size based on scale
-		this.canvas.style.width = image.width * scale + "px";
-		this.canvas.style.height = image.height * scale + "px";
-	}
+	
+		// Adjust canvas intrinsic size to match current scale
+		this.canvas.width = image.width * scale;
+		this.canvas.height = image.height * scale;
+	
+		// CSS size stays 1:1 with intrinsic canvas (optional)
+		this.canvas.style.width = this.canvas.width + "px";
+		this.canvas.style.height = this.canvas.height + "px";
+	
+		// Disable smoothing for pixel-perfect visuals
+		this.ctx.imageSmoothingEnabled = false;
+	
+		// Reset scroll to top-left
+		this.resetScrollPosition();
+	}	
 
 	/**
 	 * Reset scroll position to top-left
