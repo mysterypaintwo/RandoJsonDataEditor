@@ -6,16 +6,23 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <!-- Toolbar -->
+    <!-- =====================================================
+         Top toolbar for general actions
+         ===================================================== -->
     <div id="toolbar">
+      <!-- Working directory selector -->
       <button id="setDirBtn" class="tool-btn">Set Working Directory</button>
+      <!-- Tool mode buttons -->
       <button id="drawModeBtn" class="tool-btn">Draw Node</button>
       <button id="selectModeBtn" class="tool-btn">Select Node</button>
       <button id="moveModeBtn" class="tool-btn">Move Node</button>
       <button id="resizeModeBtn" class="tool-btn">Resize Node</button>
+      <!-- Display currently selected directory -->
       <span id="currentDir"></span>
     </div>
-    <!-- Sector buttons (fixed at top) -->
+    <!-- =====================================================
+         Sector selection buttons (fixed under toolbar)
+         ===================================================== -->
     <div id="sector-buttons">
       <button class="sector-btn" data-sector="L-X">L-X</button>
       <button class="sector-btn" data-sector="MDK">MDK</button>
@@ -27,10 +34,13 @@
       <button class="sector-btn" data-sector="NOC">NOC</button>
       <button class="sector-btn" data-sector="DMX">DMX</button>
     </div>
-    <!-- Main content -->
+    <!-- =====================================================
+         Main container with left (door nav) + right (JSON/map)
+         ===================================================== -->
     <div id="main-container">
-      <!-- Left pane: navigation squares -->
+      <!-- ================= Left pane ===================== -->
       <div id="left-pane">
+        <!-- Door navigation grid -->
         <div id="doorButtons" class="door-grid">
           <button class="door-btn" data-dir="westnorth">WN</button>
           <br>
@@ -52,31 +62,35 @@
           <button class="door-btn" data-dir="eastsouth">ES</button>
         </div>
       </div>
-      <!-- Right pane: JSON editor + scrollable map -->
+      <!-- ================= Right pane ==================== -->
       <div id="right-pane">
+        <!-- JSON editor area -->
         <div id="json-editor">
           <textarea id="jsonTextArea" spellcheck="false"></textarea>
           <button id="saveBtn">Save JSON</button>
         </div>
+        <!-- Scrollable map container -->
         <div id="map-container">
           <canvas id="roomCanvas"></canvas>
         </div>
       </div>
     </div>
-    
-    <!-- Load modules as ES6 modules -->
+    <!-- =====================================================
+         Load main JS application as ES6 module
+         ===================================================== -->
     <script type="module" src="app.js"></script>
-    
-    <!-- Tooltip for node hover -->
+    <!-- =====================================================
+         Tooltip for showing node info on hover
+         ===================================================== -->
     <div id="tooltip" style="
-  position:absolute;
-  display:none;
-  background:#222;
-  color:#fff;
-  padding:2px 6px;
-  border-radius:4px;
-  font-size:12px;
-  pointer-events:none;
-"></div>
+      position:absolute;
+      display:none;
+      background:#222;
+      color:#fff;
+      padding:2px 6px;
+      border-radius:4px;
+      font-size:12px;
+      pointer-events:none;
+    "></div>
   </body>
 </html>
