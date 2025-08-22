@@ -1,0 +1,58 @@
+{
+    "name": "rando-json-data-visual-editor",
+    "version": "1.0.0",
+    "description": "RandoJsonDataVisualEditor",
+    "author": "mysterypaint",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "build-win": "electron-builder --win portable --x64 --publish never",
+        "build-linux": "electron-builder --linux --x64 --publish never",
+        "build-mac": "electron-builder --mac --x64 --arm64 --publish never",
+        "build-all": "electron-builder --win portable --linux --x64 --publish never",
+        "build-all-with-mac": "electron-builder --mac --x64 --arm64 --win portable --linux --x64 --publish never"
+    },
+    "dependencies": {
+        "ajv": "^6.12.6"
+    },
+    "devDependencies": {
+        "electron": "^26.0.0",
+        "electron-builder": "^24.13.3"
+    },
+    "build": {
+        "asar": true,
+        "appId": "com.castierook.xfusion",
+        "productName": "RandoJsonDataVisualEditor",
+        "files": [
+            "index.html",
+            "main.js",
+            "preload.js",
+            "app.js",
+            "canvasRenderer.js",
+            "interactionHandler.js",
+            "roomManager.js",
+            "state.js",
+            "uiManager.js",
+            "utils.js",
+            "styles.css",
+            "editor/**/*"
+        ],
+        "directories": {
+            "buildResources": "assets",
+            "output": "dist"
+        },
+        "win": {
+            "target": [
+                {
+                    "target": "portable",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ]
+        },
+        "portable": {
+            "artifactName": "${productName}-portable.${ext}"
+        }
+    }
+}

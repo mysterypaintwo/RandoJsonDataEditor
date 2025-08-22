@@ -1,0 +1,141 @@
+/* General layout */
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden; /* disable overall scrolling */
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toolbar */
+#toolbar {
+  padding: 5px;
+  background: #eee;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Toolbar buttons */
+.tool-btn {
+  padding: 5px 10px;
+  border: none;
+  cursor: pointer;
+  background-color: #ccc;
+  color: black;
+  border-radius: 4px;
+  transition: background 0.1s;
+}
+
+.tool-btn:hover {
+  background-color: #bbb;
+}
+
+/* Active/pressed state */
+.tool-btn.active {
+  background-color: #666;
+  color: white;
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Sector buttons fixed at top */
+#sector-buttons {
+  display: flex;
+  gap: 10px;
+  padding: 5px;
+  background: #ddd;
+}
+
+.sector-btn {
+  padding: 5px 10px;
+  background-color: #444;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.sector-btn:hover {
+  background-color: #666;
+}
+
+/* Main container: left + right panes */
+#main-container {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  height: 80vh; /* or whatever you want */
+}
+
+/* Left pane: navigation squares (door buttons) */
+#left-pane {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0; /* never shrink */
+}
+
+#doorButtons {
+  display: grid;
+  grid-template-columns: repeat(3, 50px);
+  grid-template-rows: repeat(5, 50px);
+  gap: 5px;
+  justify-content: center;
+}
+
+.door-btn {
+  width: 50px;
+  height: 50px;
+  background-color: grey; /* default */
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.door-btn.active {
+  background-color: green;
+}
+
+/* Right pane: JSON editor + map */
+#right-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* JSON editor */
+#json-editor {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+#jsonTextArea {
+  flex: 1;
+  resize: none;
+  width: 100%;
+}
+
+/* Scrollable map */
+#map-container {
+  flex: 1 1 auto; /* allow to shrink/grow */
+  overflow-x: auto;
+  overflow-y: auto;
+  min-width: 0; /* important for flex containers to allow scrolling */
+  min-height: 0;
+}
+
+#roomCanvas {
+  display: block; /* removes inline padding/margin */
+}
+
+#map {
+  width: 1000px;
+  height: 1000px;
+  background: #f0f0f0;
+}
