@@ -17,7 +17,7 @@ export function connectionContainsDirection(connectionType, direction) {
  * @param {boolean} isMorphBall - true if morph ball door
  * @returns {string} formatted door name (like "North-West Door")
  */
-export function formatOriginalDoorName(originalDirection, isMorphBall) {
+export function formatDirection(originalDirection) {
 	const map = {
 		up: "North",
 		down: "South",
@@ -42,7 +42,7 @@ export function formatOriginalDoorName(originalDirection, isMorphBall) {
 	const directionName = map[originalDirection.toLowerCase()] ||
 		(originalDirection.charAt(0).toUpperCase() + originalDirection.slice(1));
 
-	return directionName + (isMorphBall ? " Morph Ball Hole" : " Door");
+	return directionName;
 }
 
 /**

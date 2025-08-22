@@ -5,7 +5,7 @@
 
 import {
 	parseRoomPath,
-	formatOriginalDoorName
+	formatDirection
 } from './utils.js';
 
 export class RoomManager {
@@ -52,10 +52,7 @@ export class RoomManager {
 
 		// Update state with loaded data
 		this.state.loadRoomData(jsonPath, data);
-
-		// Load door connections
-		const doorConnections = await this.state.getDoorConnections();
-
+		
 		// Update UI
 		this.uiManager.updateJsonDisplay(this.state.currentRoomData);
 		await this.uiManager.updateDoorButtons(this.state.currentRoomData);
@@ -337,7 +334,7 @@ export class RoomManager {
 			return null;
 		}
 
-		const expectedName = formatOriginalDoorName(direction, false);
+		const expectedName = formatDirection(direction);
 
 		// Find the first node that is a door and whose name includes the expected direction name
 		const doorNode = this.state.currentRoomData.nodes.find(node =>

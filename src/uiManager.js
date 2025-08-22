@@ -4,146 +4,160 @@
  */
 
 import {
-	updateToolButtonStates,
-	showTooltip,
-	hideTooltip,
-	highlightNodeInJSON,
-	formatOriginalDoorName,
-	connectionContainsDirection
+    updateToolButtonStates,
+    showTooltip,
+    hideTooltip,
+    highlightNodeInJSON,
+    formatDirection,
+    connectionContainsDirection
 } from './utils.js';
 
 export class UIManager {
-	constructor(state) {
-		this.tooltipDiv = document.getElementById("tooltip");
-		this.jsonTextArea = document.getElementById("jsonTextArea");
-		this.currentDirSpan = document.getElementById('currentDir');
-		this.state = state;
-	}
+    constructor(state) {
+        this.tooltipDiv = document.getElementById("tooltip");
+        this.jsonTextArea = document.getElementById("jsonTextArea");
+        this.currentDirSpan = document.getElementById('currentDir');
+        this.state = state;
+    }
 
-	/**
-	 * Update the JSON textarea with formatted data
-	 * @param {Object} jsonData - The JSON data to display
-	 */
-	updateJsonDisplay(jsonData) {
-		if (jsonData) {
-			this.jsonTextArea.value = JSON.stringify(jsonData, null, 2);
-		}
-	}
+    /**
+     * Update the JSON textarea with formatted data
+     * @param {Object} jsonData - The JSON data to display
+     */
+    updateJsonDisplay(jsonData) {
+        if (jsonData) {
+            this.jsonTextArea.value = JSON.stringify(jsonData, null, 2);
+        }
+    }
 
-	/**
-	 * Highlight a specific node in the JSON textarea
-	 * @param {Object} node - The node to highlight
-	 * @param {Object} jsonData - The complete JSON data
-	 */
-	highlightNodeInJSON(node, jsonData) {
-		highlightNodeInJSON(this.jsonTextArea, node, jsonData);
-	}
+    /**
+     * Highlight a specific node in the JSON textarea
+     * @param {Object} node - The node to highlight
+     * @param {Object} jsonData - The complete JSON data
+     */
+    highlightNodeInJSON(node, jsonData) {
+        highlightNodeInJSON(this.jsonTextArea, node, jsonData);
+    }
 
-	/**
-	 * Update the tooltip display
-	 * @param {Object|null} hoverNode - Node being hovered, if any
-	 * @param {number} clientX - Mouse client X position
-	 * @param {number} clientY - Mouse client Y position
-	 */
-	updateTooltip(hoverNode, clientX, clientY) {
-		if (hoverNode) {
-			showTooltip(this.tooltipDiv, hoverNode.name, clientX, clientY);
-		} else {
-			hideTooltip(this.tooltipDiv);
-		}
-	}
+    /**
+     * Update the tooltip display
+     * @param {Object|null} hoverNode - Node being hovered, if any
+     * @param {number} clientX - Mouse client X position
+     * @param {number} clientY - Mouse client Y position
+     */
+    updateTooltip(hoverNode, clientX, clientY) {
+        if (hoverNode) {
+            showTooltip(this.tooltipDiv, hoverNode.name, clientX, clientY);
+        } else {
+            hideTooltip(this.tooltipDiv);
+        }
+    }
 
-	/**
-	 * Update the active tool button styling
-	 * @param {string} toolId - ID of the active tool button
-	 */
-	updateActiveTool(toolId) {
-		updateToolButtonStates(toolId);
-	}
+    /**
+     * Update the active tool button styling
+     * @param {string} toolId - ID of the active tool button
+     */
+    updateActiveTool(toolId) {
+        updateToolButtonStates(toolId);
+    }
 
-	/**
-	 * Update the working directory display
-	 * @param {string} dirPath - Path to the working directory
-	 */
-	updateWorkingDirectory(dirPath) {
-		this.currentDirSpan.textContent = `Working Directory: ${dirPath}`;
-	}
+    /**
+     * Update the working directory display
+     * @param {string} dirPath - Path to the working directory
+     */
+    updateWorkingDirectory(dirPath) {
+        this.currentDirSpan.textContent = `Working Directory: ${dirPath}`;
+    }
 
-	/**
-	 * Update door buttons based on room data
-	 * @param {Object} roomData - The room JSON data
-	 */
-	async updateDoorButtons(roomData) {
-		if (!roomData) {
-			document.querySelectorAll('.door-btn').forEach(btn => {
-				btn.classList.remove('active');
-				btn._doorConnection = null;
-			});
-			return;
-		}
+    /**
+     * Update door buttons based on room data
+     * @param {Object} roomData - The room JSON data
+     */
+    async updateDoorButtons(roomData) {
+        if (!roomData) {
+            document.querySelectorAll('.door-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn._doorConnection = null;
+            });
+            return;
+        }
 
-		// Pre-fetch all door connections for the room
-		const doorConnections = await this.state.getDoorConnections();
+        // Pre-fetch all door connections for the room
+        const doorConnections = await this.state.getDoorConnections();
 
-		document.querySelectorAll('.door-btn').forEach(btn => {
-			const dir = btn.dataset.dir;
-			const expectedName = formatOriginalDoorName(dir, false);
+        document.querySelectorAll('.door-btn').forEach(btn => {
+            const dir = btn.dataset.dir;
+            const formattedDir = formatDirection(dir);
 
-			// Try to get connection directly by node name
-			let connection = doorConnections[expectedName] || null;
+            // Find the closest key match in doorConnections
+            const matchingKey = Object.keys(doorConnections).find(
+                key => key.toLowerCase().includes(formattedDir.toLowerCase())
+            );
 
-			// If no connection, fallback: see if any roomData.connection matches direction
-			if (!connection && roomData.connections) {
-				const match = roomData.connections.find(conn => connectionContainsDirection(conn.connectionType || '', dir));
-				if (match) {
-					connection = {
-						targetRoom: match.targetNode?.roomName,
-						targetArea: match.targetNode?.area,
-						targetSubarea: match.targetNode?.subarea,
-						connectionType: match.connectionType,
-						direction: match.targetNode?.position
-					};
-				}
-			}
+            // Decide if it's a Morph Ball hole based on the key itself
+            const isMorphBall = matchingKey?.toLowerCase().includes("morph ball hole") || false;
 
-			// Update active state
-			btn.classList.toggle('active', !!connection);
+            // Expected name (either "... Door" or "... Morph Ball Hole")
+            const expectedName = formattedDir + (isMorphBall ? " Morph Ball Hole" : " Door");
 
-			// Store the connection (not node)
-			btn._doorConnection = connection;
+            // Try to get connection directly by node name
+            let connection = doorConnections[expectedName] || null;
 
-			console.log(`Door ${dir}: active=${!!connection}, connection:`, connection);
-		});
-	}
+            // If no connection, fallback: look in roomData.connections
+            if (!connection && roomData.connections) {
+                const match = roomData.connections.find(conn =>
+                    connectionContainsDirection(conn.connectionType || '', dir)
+                );
+                if (match) {
+                    connection = {
+                        targetRoom: match.targetNode?.roomName,
+                        targetArea: match.targetNode?.area,
+                        targetSubarea: match.targetNode?.subarea,
+                        connectionType: match.connectionType,
+                        direction: match.targetNode?.position
+                    };
+                }
+            }
 
-	/**
-	 * Show an alert message
-	 * @param {string} message - The message to display
-	 */
-	showAlert(message) {
-		alert(message);
-	}
+            // Update active state
+            btn.classList.toggle('active', !!connection);
 
-	/**
-	 * Get the current JSON text from the textarea
-	 * @returns {string} The JSON text
-	 */
-	getJsonText() {
-		return this.jsonTextArea.value;
-	}
+            // Store the connection (not node)
+            btn._doorConnection = connection;
 
-	/**
-	 * Set up JSON textarea event listeners
-	 * @param {Function} onJsonChange - Callback when JSON content changes
-	 */
-	setupJsonEditor(onJsonChange) {
-		this.jsonTextArea.addEventListener("input", () => {
-			try {
-				const parsed = JSON.parse(this.jsonTextArea.value);
-				onJsonChange(parsed);
-			} catch (err) {
-				// Invalid JSON - ignore until valid
-			}
-		});
-	}
+            //console.log(`Door ${dir}: active=${!!connection}, connection:`, connection);
+        });
+    }
+
+
+    /**
+     * Show an alert message
+     * @param {string} message - The message to display
+     */
+    showAlert(message) {
+        alert(message);
+    }
+
+    /**
+     * Get the current JSON text from the textarea
+     * @returns {string} The JSON text
+     */
+    getJsonText() {
+        return this.jsonTextArea.value;
+    }
+
+    /**
+     * Set up JSON textarea event listeners
+     * @param {Function} onJsonChange - Callback when JSON content changes
+     */
+    setupJsonEditor(onJsonChange) {
+        this.jsonTextArea.addEventListener("input", () => {
+            try {
+                const parsed = JSON.parse(this.jsonTextArea.value);
+                onJsonChange(parsed);
+            } catch (err) {
+                // Invalid JSON - ignore until valid
+            }
+        });
+    }
 }
