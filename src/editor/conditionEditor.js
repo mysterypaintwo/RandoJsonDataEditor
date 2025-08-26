@@ -27,10 +27,15 @@ function makeConditionEditor(container, initial, indentLevel = 0) {
 	};
 
 	const root = document.createElement('div');
-	root.classList.add('condition-block');
+	root.classList.add('condition-block', 'editor-card'); // add editor-card base
+	// optionally add type-specific class for obstacle/strat
+	if (initial?.typeClass) {
+		root.classList.add(initial.typeClass);
+	}
 	root.style.marginLeft = `${indentLevel * 15}px`;
 	root.style.padding = '4px 6px';
 	root.style.borderRadius = '4px';
+	
 
 	// Type dropdown with icon
 	const typeContainer = document.createElement('div');

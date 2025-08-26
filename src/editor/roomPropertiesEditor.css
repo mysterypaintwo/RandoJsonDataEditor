@@ -1,0 +1,263 @@
+/* -----------------------------
+   Base / Body
+----------------------------- */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    color: #222;
+}
+
+/* -----------------------------
+   Header
+----------------------------- */
+#header {
+    padding: 12px 16px;
+    background-color: #444;
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* -----------------------------
+   Main form container
+----------------------------- */
+#form {
+    padding: 12px;
+    overflow-y: auto;
+    min-height: calc(100% - 48px); /* header + footer space */
+    box-sizing: border-box;
+    background-color: #f9f9f9;
+}
+
+/* -----------------------------
+   Headings
+----------------------------- */
+h3 {
+    margin-top: 20px;
+    margin-bottom: 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #222;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 4px;
+}
+
+/* -----------------------------
+   Inputs & Buttons
+----------------------------- */
+input, select, textarea, button {
+    font-size: 14px;
+    background-color: #fdfdfd;
+    color: #222;
+}
+
+textarea { 
+    resize: vertical; 
+    width: 100%; 
+}
+
+button {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 4px 8px;
+    border: none;
+    background-color: #ddd;
+}
+
+button:hover { 
+    background-color: #ccc; 
+}
+
+/* -----------------------------
+   Block styling
+----------------------------- */
+.enemy-block, .notable-block, .obstacle-block, .unlocksDoors-block, .strat-block,
+.container-block {
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    padding: 6px;
+    margin-bottom: 6px;
+    background-color: #fff;
+}
+
+.container-block {
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 8px 12px;
+    margin-bottom: 10px;
+}
+
+.container-block input,
+.container-block select,
+.container-block textarea {
+    font-size: 14px;
+    margin-bottom: 4px;
+    background-color: #fdfdfd;
+}
+
+.container-block button {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 4px 8px;
+    border: none;
+    background-color: #eee;
+}
+
+.container-block button:hover { background-color: #ddd; }
+
+/* -----------------------------
+   Scrollable lists
+----------------------------- */
+.scroll-checkbox-list,
+.scrollable-checkbox-list {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 4px;
+    margin-top: 4px;
+    border-radius: 3px;
+    background-color: #f9f9f9;
+}
+
+.scroll-checkbox-list label,
+.scrollable-checkbox-list label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+    font-size: 13px;
+    background-color: transparent;
+}
+
+.node-id {
+    color: #666;
+    font-size: 12px;
+    margin-left: 4px;
+}
+
+/* -----------------------------
+   Editor cards
+----------------------------- */
+.editor-card {
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+    background-color: #fff;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.editor-card > div {
+    background-color: transparent; /* ensure child content doesn't override */
+}
+
+.editor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.editor-card-header {
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-size: 1.05em;
+    cursor: grab;
+    user-select: none;
+}
+
+/* Dragging state */
+.editor-card.dragging {
+    opacity: 0.8;
+    transform: scale(1.02);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+/* Card type backgrounds */
+.enemy-card { background-color: #ffeaea; border-color: #ff5555; }
+.obstacle-card { background-color: #fff4e6; border-color: #ffb74d; color: #333; }
+.strat-card { background-color: #e8f0ff; border-color: #3399ff; }
+.notable-card { background-color: #fff8e1; border-color: #ffcc00; }
+.unlocks-doors-card { background-color: #e8ffe8; border-color: #33cc33; }
+
+/* Card buttons */
+.editor-card button {
+    font-weight: 700;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    margin: 2px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.editor-card button.add-btn { background-color: #4CAF50; color: white; }
+.editor-card button.add-btn:hover { background-color: #3e8e41; transform: translateY(-1px); }
+.editor-card button.remove-btn { background-color: #ff4444; color: white; }
+.editor-card button.remove-btn:hover { background-color: #cc0000; transform: translateY(-1px); }
+
+/* HTML Add/Remove buttons */
+button.add-btn { background-color: #4CAF50; color: white; font-weight: 700; }
+button.add-btn:hover { background-color: #3e8e41; transform: translateY(-1px); }
+button.remove-btn { background-color: #E57373; color: white; font-weight: 700; }
+button.remove-btn:hover { background-color: #d32f2f; transform: translateY(-1px); }
+
+/* Inputs inside editor */
+.editor-input,
+.editor-textarea,
+select {
+    background-color: #fdfdfd;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 14px;
+    color: #222;
+}
+
+.editor-input:focus,
+.editor-textarea:focus,
+select:focus {
+    border-color: #3399ff;
+    outline: none;
+    box-shadow: 0 0 4px rgba(51,153,255,0.4);
+}
+
+/* Labels */
+.conditions label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.condition-block {
+    background-color: #fdfdfd; /* fallback default */
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 6px;
+    margin-bottom: 4px;
+}
+
+.condition-block .children {
+    padding-left: 15px;
+}
+
+.condition-block.event {
+    background-color: #ffe6f0;
+}
+
+/* Door entry */
+.door-entry {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 8px;
+    background-color: #fdfdfd;
+}
+
+/* Drag placeholders */
+.card-placeholder {
+    background-color: #fafafa;
+    border: 1px dashed #ccc;
+}
