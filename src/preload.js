@@ -29,5 +29,9 @@ contextBridge.exposeInMainWorld('api', {
 
 	// --- Door editor API ---
 	openDoorEditor: (doorData) => ipcRenderer.send('open-door-editor', doorData),
-	onUpdateDoorData: (callback) => ipcRenderer.on('update-door-data', (event, payload) => callback(payload))
+	onUpdateDoorData: (callback) => ipcRenderer.on('update-door-data', (event, payload) => callback(payload)),
+	
+	// --- Room Properties editor API ---
+	openRoomPropertiesEditor: (roomData) => ipcRenderer.send('open-room-properties-editor', roomData),
+	onUpdateRoomProperties: (callback) => ipcRenderer.on('update-room-properties', (event, payload) => callback(payload))
 });

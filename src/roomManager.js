@@ -353,4 +353,18 @@ export class RoomManager {
 		this.uiManager.updateJsonDisplay(this.state.currentRoomData);
 		await this.uiManager.updateDoorButtons(this.state.currentRoomData);
 	}
+
+	/**
+	 * Handle Door Updates
+	 */
+	async handleDoorUpdate(payload) {
+		
+	}
+
+	/**
+	 * Handle Room Properties Editor Updates
+	 */
+	async handleRoomPropertiesUpdate(payload) {
+		
+	}
 }

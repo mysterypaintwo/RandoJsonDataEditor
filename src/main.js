@@ -246,3 +246,36 @@ ipcMain.on('save-door-data', (event, payload) => {
 		mainWindow.webContents.send('update-door-data', payload);
 	}
 });
+
+// Handle request to open Room Properties Editor
+ipcMain.on('open-room-properties-editor', (event, roomPropertiesData) => {
+	console.log('Opening Room Properties Editor with data:', roomPropertiesData);
+
+	const roomPropertiesWin = new BrowserWindow({
+		width: 700,
+		height: 800,
+		modal: true,
+		parent: mainWindow,
+		webPreferences: {
+			nodeIntegration: true,
+			contextIsolation: false
+		}
+	});
+
+	// Load Room Properties Editor files from editor subdirectory
+	roomPropertiesWin.loadFile(path.join(__dirname, 'editor/roomPropertiesEditor.html'));
+
+	// Send data once the window is ready
+	roomPropertiesWin.webContents.once('did-finish-load', () => {
+		console.log('Sending Room Properties Editor data:', roomPropertiesData);
+		roomPropertiesWin.webContents.send('init-room-properties-data', roomPropertiesData);
+	});
+});
+
+// Handle requests to save Room Properties Editor changes
+ipcMain.on('save-room-properties-data', (event, payload) => {
+	console.log('Received door data save request:', payload);
+	if (mainWindow && mainWindow.webContents) {
+		mainWindow.webContents.send('update-room-properties', payload);
+	}
+});

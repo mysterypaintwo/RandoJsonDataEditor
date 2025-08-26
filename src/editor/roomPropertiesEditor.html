@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Edit Room Properties</title>
+    <link rel="stylesheet" href="roomPropertiesEditor.css">
+  </head>
+  <body>
+    <!-- =====================================================
+       Header: Shows current location context and door direction
+       ===================================================== -->
+       <div id="header">
+        <span id="sector"></span> /
+        <!-- Current sector -->
+        <span id="region"></span> /
+        <!-- Current region -->
+        <span id="roomName"></span>
+        <!-- Current room -->
+      </div>
+      <hr>
+      <!-- Separator line -->
+            <!-- Entrance condition -->
+            <h3>Conditions</h3>
+            <div class="conditions">
+              <label>Entrance Condition</label>
+              <div id="entranceCondition"></div>
+            </div>
+            <!-- Exit condition -->
+            <div class="conditions">
+              <label>Exit Condition</label>
+              <div id="exitCondition"></div>
+            </div>
+          </div>
+    <!-- =====================================================
+       Footer buttons: Save / Close actions
+       ===================================================== -->
+    <div id="footer">
+        <button id="closeBtn">Close without Saving</button>
+        <button id="saveBtn">Save & Close</button>
+      </div>
+    <!-- =====================================================
+       Load supporting scripts for condition editing
+       ===================================================== -->
+    <script src="conditionItems.js"></script>
+    <script src="conditionEvents.js"></script>
+    <script src="conditionEditor.js"></script>
+    <script src="roomPropertiesEditor.js"></script>
+  </body>
+</html>

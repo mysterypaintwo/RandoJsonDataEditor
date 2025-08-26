@@ -47,8 +47,8 @@ class RandoJsonDataEditor {
 		);
 
 		this.setupEventListeners();
-		this.initializeCanvas();
-		this.initializeDoorButtons();
+		this.initCanvas();
+		this.initDoorButtons();
 	}
 
 	/**
@@ -82,7 +82,7 @@ class RandoJsonDataEditor {
 		document.getElementById('saveBtn').addEventListener('click', () => {
 			this.roomManager.saveCurrentRoom();
 		});
-
+		
 		// JSON editor live sync
 		this.uiManager.setupJsonEditor((parsedData) => {
 			state.currentRoomData = parsedData;
@@ -96,16 +96,21 @@ class RandoJsonDataEditor {
 			);
 		});
 
-		// Door editor updates
+		// Door Editor updates
 		window.api.onUpdateDoorData((payload) => {
-			this.handleDoorUpdate(payload);
+			this.roomManager.handleDoorUpdate(payload);
+		});
+
+		// Room Properties Editor updates
+		window.api.onUpdateRoomProperties((payload) => {
+			this.roomManager.handleRoomPropertiesUpdate(payload);
 		});
 	}
 
 	/**
 	 * Initialize canvas with default size
 	 */
-	initializeCanvas() {
+	initCanvas() {
 		this.canvas.width = 640;
 		this.canvas.height = 360;
 		this.uiManager.updateActiveTool('selectModeBtn'); // Default to select mode
@@ -141,9 +146,9 @@ class RandoJsonDataEditor {
 	}
 
 	/**
-	 * Initialize door buttons on app startup
+	 * Initialize editor buttons (Doors, Room Properties) on app startup
 	 */
-	initializeDoorButtons() {
+	initDoorButtons() {
 		console.log('Initializing door buttons...');
 		// Set up initial door button states (all inactive)
 		document.querySelectorAll('.door-btn').forEach(btn => {
@@ -172,6 +177,19 @@ class RandoJsonDataEditor {
 			});
 		});
 		console.log('Door buttons initialized');
+
+		// Room Properties button
+		console.log('Initializing Room Properties button...');
+		let rpBtn = document.getElementById('roomPropertiesBtn');
+		rpBtn.classList.remove('active');
+		rpBtn.addEventListener('click', () => {
+			if (!this.roomManager.state.currentRoomPath || !this.roomManager.state.currentRoomData) {
+				this.uiManager.showAlert('No room data to edit properties!');
+				return false;
+			}
+			window.api.openRoomPropertiesEditor(this.roomManager.state.currentRoomData);
+		});
+		console.log('Room Properties button initialized');
 	}
 }
 
