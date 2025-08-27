@@ -1,263 +1,463 @@
+/* =============================================================================
+   Super Metroid: X-Fusion Room Properties Editor Styles
+   
+   This stylesheet provides styling for the room properties editor interface,
+   allowing users to edit obstacles, enemies, strategies, and notable features
+   within Super Metroid rooms for the X-Fusion romhack project.
+   ============================================================================= */
+
 /* -----------------------------
-   Base / Body
+   Base Layout & Typography
 ----------------------------- */
 html, body {
     height: 100%;
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f9f9f9;
-    color: #222;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
 }
 
 /* -----------------------------
-   Header
+   Header - Location Context
 ----------------------------- */
 #header {
-    padding: 12px 16px;
-    background-color: #444;
-    color: #fff;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
     font-size: 14px;
-    font-weight: bold;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* -----------------------------
-   Main form container
+   Main Form Container
 ----------------------------- */
 #form {
-    padding: 12px;
+    padding: 20px;
     overflow-y: auto;
-    min-height: calc(100% - 48px); /* header + footer space */
+    min-height: calc(100vh - 120px); /* Account for header + footer */
     box-sizing: border-box;
-    background-color: #f9f9f9;
 }
 
 /* -----------------------------
-   Headings
+   Section Headings
 ----------------------------- */
 h3 {
-    margin-top: 20px;
-    margin-bottom: 8px;
-    font-size: 20px;
+    margin: 30px 0 15px 0;
+    font-size: 22px;
     font-weight: 700;
-    color: #222;
-    border-bottom: 2px solid #ccc;
-    padding-bottom: 4px;
+    color: #2c3e50;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 /* -----------------------------
-   Inputs & Buttons
+   Form Controls
 ----------------------------- */
-input, select, textarea, button {
+input, select, textarea {
     font-size: 14px;
-    background-color: #fdfdfd;
-    color: #222;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-family: inherit;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 textarea { 
     resize: vertical; 
-    width: 100%; 
+    width: 100%;
+    min-height: 80px;
 }
 
+/* -----------------------------
+   Buttons
+----------------------------- */
 button {
     cursor: pointer;
-    border-radius: 4px;
-    padding: 4px 8px;
-    border: none;
-    background-color: #ddd;
-}
-
-button:hover { 
-    background-color: #ccc; 
-}
-
-/* -----------------------------
-   Block styling
------------------------------ */
-.enemy-block, .notable-block, .obstacle-block, .unlocksDoors-block, .strat-block,
-.container-block {
-    border: 1px solid #aaa;
-    border-radius: 4px;
-    padding: 6px;
-    margin-bottom: 6px;
-    background-color: #fff;
-}
-
-.container-block {
     border-radius: 6px;
-    border: 1px solid #ccc;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    padding: 8px 12px;
-    margin-bottom: 10px;
-}
-
-.container-block input,
-.container-block select,
-.container-block textarea {
-    font-size: 14px;
-    margin-bottom: 4px;
-    background-color: #fdfdfd;
-}
-
-.container-block button {
-    cursor: pointer;
-    border-radius: 4px;
-    padding: 4px 8px;
+    padding: 8px 16px;
     border: none;
-    background-color: #eee;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    font-family: inherit;
 }
 
-.container-block button:hover { background-color: #ddd; }
-
-/* -----------------------------
-   Scrollable lists
------------------------------ */
-.scroll-checkbox-list,
-.scrollable-checkbox-list {
-    max-height: 150px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 4px;
-    margin-top: 4px;
-    border-radius: 3px;
-    background-color: #f9f9f9;
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-.scroll-checkbox-list label,
-.scrollable-checkbox-list label {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 2px;
-    font-size: 13px;
-    background-color: transparent;
+/* Add/Remove Button Styling */
+.add-btn {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    color: white;
+    margin: 10px 5px;
 }
 
-.node-id {
-    color: #666;
-    font-size: 12px;
-    margin-left: 4px;
+.add-btn:hover {
+    background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
+}
+
+.remove-btn {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    margin: 5px;
+}
+
+.remove-btn:hover {
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
 }
 
 /* -----------------------------
-   Editor cards
+   Editor Card System
 ----------------------------- */
 .editor-card {
-    border: 1px solid #aaa;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 12px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.06);
-    background-color: #fff;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.editor-card > div {
-    background-color: transparent; /* ensure child content doesn't override */
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 .editor-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
 
 .editor-card-header {
     font-weight: 700;
-    margin-bottom: 8px;
-    font-size: 1.05em;
+    margin-bottom: 12px;
+    font-size: 16px;
     cursor: grab;
     user-select: none;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
 }
 
-/* Dragging state */
+/* Card Type Specific Styling */
+.enemy-card { 
+    background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
+    border-color: #f48fb1;
+}
+
+.obstacle-card { 
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border-color: #ffb74d;
+}
+
+.strat-card { 
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-color: #64b5f6;
+}
+
+.notable-card { 
+    background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);
+    border-color: #fff176;
+}
+
+.unlocks-doors-card { 
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+    border-color: #81c784;
+}
+
+/* Dragging State */
 .editor-card.dragging {
-    opacity: 0.8;
-    transform: scale(1.02);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    opacity: 0.85;
+    transform: scale(1.02) rotate(1deg);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    z-index: 1000;
 }
 
-/* Card type backgrounds */
-.enemy-card { background-color: #ffeaea; border-color: #ff5555; }
-.obstacle-card { background-color: #fff4e6; border-color: #ffb74d; color: #333; }
-.strat-card { background-color: #e8f0ff; border-color: #3399ff; }
-.notable-card { background-color: #fff8e1; border-color: #ffcc00; }
-.unlocks-doors-card { background-color: #e8ffe8; border-color: #33cc33; }
+/* -----------------------------
+   Form Elements within Cards
+----------------------------- */
+.editor-card input,
+.editor-card select,
+.editor-card textarea {
+    background-color: rgba(255,255,255,0.9);
+    margin-bottom: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
 
-/* Card buttons */
-.editor-card button {
-    font-weight: 700;
-    border: none;
+.editor-card input:focus,
+.editor-card select:focus,
+.editor-card textarea:focus {
+    background-color: white;
+}
+
+/* -----------------------------
+   Scrollable Checkbox Lists
+----------------------------- */
+.scrollable-checkbox-list,
+.scroll-checkbox-list {
+    max-height: 180px;
+    overflow-y: auto;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px;
+    margin-top: 8px;
+    background: rgba(255,255,255,0.95);
+}
+
+.scrollable-checkbox-list label,
+.scroll-checkbox-list label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    margin-bottom: 4px;
     border-radius: 4px;
-    padding: 4px 10px;
-    margin: 2px;
-    cursor: pointer;
-    transition: background 0.15s ease, transform 0.1s ease;
+    font-size: 13px;
+    background: rgba(255,255,255,0.8);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
 }
 
-.editor-card button.add-btn { background-color: #4CAF50; color: white; }
-.editor-card button.add-btn:hover { background-color: #3e8e41; transform: translateY(-1px); }
-.editor-card button.remove-btn { background-color: #ff4444; color: white; }
-.editor-card button.remove-btn:hover { background-color: #cc0000; transform: translateY(-1px); }
+.scrollable-checkbox-list label:hover,
+.scroll-checkbox-list label:hover {
+    background: rgba(52, 152, 219, 0.1);
+    border-color: #3498db;
+}
 
-/* HTML Add/Remove buttons */
-button.add-btn { background-color: #4CAF50; color: white; font-weight: 700; }
-button.add-btn:hover { background-color: #3e8e41; transform: translateY(-1px); }
-button.remove-btn { background-color: #E57373; color: white; font-weight: 700; }
-button.remove-btn:hover { background-color: #d32f2f; transform: translateY(-1px); }
+.node-id {
+    color: #7f8c8d;
+    font-size: 11px;
+    font-weight: 500;
+}
 
-/* Inputs inside editor */
-.editor-input,
-.editor-textarea,
-select {
-    background-color: #fdfdfd;
+.node-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+}
+
+.node-table th,
+.node-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid #ddd;
+    font-size: 13px;
+}
+
+.node-table th {
+    text-align: left;
+    font-weight: 600;
+    background: #f8f8f8;
+}
+
+.node-table td:first-child {
+    text-align: center; /* checkbox column */
+    width: 40px;
+}
+
+.node-table td:nth-child(2),
+.node-table td:nth-child(3) {
+    text-align: left;
+    white-space: nowrap;
+}
+
+.node-row:last-child td {
+    border-bottom: none;
+}
+
+.node-search-input {
+    margin-bottom: 4px;
+    padding: 6px 10px;
+    border-radius: 6px;
     border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 14px;
-    color: #222;
+    font-size: 13px;
 }
 
-.editor-input:focus,
-.editor-textarea:focus,
-select:focus {
-    border-color: #3399ff;
-    outline: none;
-    box-shadow: 0 0 4px rgba(51,153,255,0.4);
-}
-
-/* Labels */
-.conditions label {
-    font-weight: bold;
-    display: block;
+.node-toggle-btn {
+    font-weight: 600;
     margin-bottom: 4px;
 }
 
+/* -----------------------------
+   Condition System Blocks
+----------------------------- */
 .condition-block {
-    background-color: #fdfdfd; /* fallback default */
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px 6px;
-    margin-bottom: 4px;
+    position: relative;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    transition: background-color 0.3s ease;
 }
 
-.condition-block .children {
-    padding-left: 15px;
+/* Left vertical bar for type */
+.condition-block::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
 }
+
+/* Logical conditions */
+.condition-block.and {
+    background: #dbeafe;
+    border: 1px solid #60a5fa;
+}
+.condition-block.and::before { background: #3b82f6; }
+
+.condition-block.or {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+}
+.condition-block.or::before { background: #f59e0b; }
+
+/* Item / Event / Environment */
+.condition-block.item {
+    background: #e6ffe6;
+    border: 1px solid #34d399;
+}
+.condition-block.item::before { background: #10b981; }
 
 .condition-block.event {
-    background-color: #ffe6f0;
+    background: #ffe6f0;
+    border: 1px solid #f472b6;
+}
+.condition-block.event::before { background: #ec4899; }
+
+.condition-block.environment {
+    background: #f0f0f0;
+    border: 1px solid #a3a3a3;
+}
+.condition-block.environment::before { background: #525252; }
+
+/* Indentation */
+.condition-block {
+    --indent-level: 0;
+    margin-left: calc(var(--indent-level) * 15px);
 }
 
-/* Door entry */
+/* Add/Sub-condition button */
+.add-btn {
+    margin-top: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background: #3b82f6;
+    color: white;
+}
+
+/* -----------------------------
+   Door Entry Components
+----------------------------- */
 .door-entry {
     display: flex;
     align-items: center;
-    margin-bottom: 6px;
-    gap: 8px;
-    background-color: #fdfdfd;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
 }
 
-/* Drag placeholders */
+.door-entry select {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* -----------------------------
+   Drag & Drop Placeholders
+----------------------------- */
 .card-placeholder {
-    background-color: #fafafa;
-    border: 1px dashed #ccc;
+    background: repeating-linear-gradient(
+        45deg,
+        #f8f9fa,
+        #f8f9fa 10px,
+        #e9ecef 10px,
+        #e9ecef 20px
+    );
+    border: 2px dashed #adb5bd;
+    border-radius: 12px;
+    min-height: 80px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.card-placeholder::after {
+    content: "Drop here";
+}
+
+/* -----------------------------
+   Container Blocks (Legacy Support)
+----------------------------- */
+.container-block {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    background: white;
+}
+
+/* -----------------------------
+   Footer
+----------------------------- */
+#footer {
+    padding: 16px 20px;
+    background: #f8f9fa;
+    border-top: 2px solid #e9ecef;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+#footer button {
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#closeBtn {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+}
+
+#saveBtn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+/* -----------------------------
+   Responsive Design
+----------------------------- */
+@media (max-width: 768px) {
+    #form {
+        padding: 12px;
+    }
+    
+    .editor-card {
+        margin-bottom: 12px;
+        padding: 12px;
+    }
+    
+    h3 {
+        font-size: 18px;
+    }
 }

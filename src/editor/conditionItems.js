@@ -1,6 +1,6 @@
 window.CONDITION_ITEMS = [
 	"Power Beam",
-	"Morph Bombs",
+	"Morph Ball",
 	"Morph Bombs",
 	"Power Suit",
 	"Space Jump",

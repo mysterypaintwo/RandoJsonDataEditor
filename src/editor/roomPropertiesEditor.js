@@ -1,740 +1,939 @@
-// roomPropertiesEditor.js
-const { ipcRenderer } = require('electron');
+/* =============================================================================
+   Super Metroid: X-Fusion Room Properties Editor
+   
+   This module handles the room properties editor interface for the X-Fusion
+   romhack, allowing users to edit obstacles, enemies, strategies, and notable
+   features within Super Metroid rooms. It provides a drag-and-drop interface
+   with auto-ID assignment and data validation.
+   
+   Dependencies:
+   - Electron IPC for communication with main process
+   - conditionEditor.js for strat condition editing
+   - Various data files (conditionItems.js, conditionEvents.js)
+   ============================================================================= */
 
-let entranceEditor = null;
-let exitEditor = null;
-let validRoomNodes = [];
-let currentRoomData = null;
+   const { ipcRenderer } = require('electron');
 
-// ---- DOM ready + IPC init --------------------------------
-window.addEventListener('DOMContentLoaded', () => {
-    // containers - ensure these exist in your HTML
-    const obstaclesContainer = document.getElementById('obstaclesContainer');
-    const enemiesContainer = document.getElementById('enemiesContainer');
-    const stratsContainer = document.getElementById('stratsContainer');
-    const notablesContainer = document.getElementById('notablesContainer');
-
-    // listen for room data from main
-    ipcRenderer.on('init-room-properties-data', (event, data) => {
-        console.log('Room Properties Editor received data:', data);
-        currentRoomData = data || {};
-
-        // prepare nodes list for checkboxes (id/name pairs)
-        validRoomNodes = (currentRoomData.nodes || []).map(n => ({ id: n.id, name: n.name }));
-
-        // Header info
-        document.getElementById('sector').innerText = currentRoomData.area || 'Unknown';
-        document.getElementById('region').innerText = currentRoomData.subarea || 'Unknown';
-        document.getElementById('roomName').innerText = currentRoomData.name || 'Unknown';
-        
-        // Obstacles
-        if (obstaclesContainer) {
-            obstaclesContainer.innerHTML = "";
-            (currentRoomData.obstacles || []).forEach(obs => {
-                obstaclesContainer.appendChild(makeObstacleEditor(obs, validRoomNodes));
-            });
+   // ---- Module State --------------------------------
+   let currentRoomData = null;
+   let validRoomNodes = [];
+   
+   // Container references for easier access
+   const containers = {
+       obstacles: null,
+       enemies: null,
+       strats: null,
+       notables: null
+   };
+   
+   // Configuration for different editor types
+   const EDITOR_CONFIG = {
+       obstacles: {
+           idPrefix: '',
+           idStyle: 'letter', // A, B, C...
+           emoji: '🪨',
+           className: 'obstacle'
+       },
+       enemies: {
+           idPrefix: 'e',
+           idStyle: 'numeric', // e1, e2, e3...
+           emoji: '👾',
+           className: 'enemy'
+       },
+       strats: {
+           idPrefix: '',
+           idStyle: 'numeric', // 1, 2, 3...
+           emoji: '📘',
+           className: 'strat'
+       },
+       notables: {
+           idPrefix: '',
+           idStyle: 'numeric', // 1, 2, 3...
+           emoji: '⭐',
+           className: 'notable'
+       }
+   };
+   
+   // ---- Initialization --------------------------------
+   window.addEventListener('DOMContentLoaded', initializeEditor);
+   
+   function initializeEditor() {
+       // Cache container references
+       containers.obstacles = document.getElementById('obstaclesContainer');
+       containers.enemies = document.getElementById('enemiesContainer');
+       containers.strats = document.getElementById('stratsContainer');
+       containers.notables = document.getElementById('notablesContainer');
+   
+       // Set up IPC listeners
+       setupIPCListeners();
+       
+       // Set up event handlers
+       setupEventHandlers();
+   }
+   
+   function setupIPCListeners() {
+       ipcRenderer.on('init-room-properties-data', handleRoomDataReceived);
+   }
+   
+   function setupEventHandlers() {
+       // Save/close buttons
+       document.getElementById('saveBtn').addEventListener('click', handleSave);
+       document.getElementById('closeBtn').addEventListener('click', () => window.close());
+       
+       // Keyboard shortcuts
+       document.addEventListener('keydown', handleKeydown);
+       
+       // Add buttons for each editor type
+       const ADD_BTN_IDS = {
+        obstacles: 'addObstacleBtn',
+        enemies: 'addEnemyBtn',
+        strats: 'addStratBtn',
+        notables: 'addNotableBtn'
+    };
+    Object.keys(EDITOR_CONFIG).forEach(type => {
+        const addBtn = document.getElementById(ADD_BTN_IDS[type]);
+        if (addBtn) {
+            addBtn.addEventListener('click', () => addNewEditor(type));
         }
-
-        // Enemies
-        if (enemiesContainer) {
-            enemiesContainer.innerHTML = "";
-            (currentRoomData.enemies || []).forEach(e => {
-                enemiesContainer.appendChild(makeEnemyEditor(e, validRoomNodes));
-            });
-        }
-
-        // Strats
-        if (stratsContainer) {
-            stratsContainer.innerHTML = "";
-            (currentRoomData.strats || []).forEach(s => {
-                stratsContainer.appendChild(makeStratEditor(s, validRoomNodes));
-            });
-        }
-
-        // Notables
-        if (notablesContainer) {
-            notablesContainer.innerHTML = "";
-            (currentRoomData.strats || []).forEach(n => {
-                notablesContainer.appendChild(makeNotableEditor(n, validRoomNodes));
-            });
-        }
-    });
-
-    // Save / Close
-    document.getElementById('saveBtn').addEventListener('click', () => {
-        const data = currentRoomData || {};
-
-        // helper to map children -> values (only if getValue exists)
-        const collect = (container) => {
-            return Array.from(container.children)
-                .map((c, idx) => {
-                    if (typeof c.getValue === 'function') {
-                        return c.getValue();
-                    } else {
-                        return null;
-                    }
-                })
-                .filter(Boolean);
-        };
-
-        // Collect and assign automated IDs as requested
-        const obstacles = collect(obstaclesContainer).map((val, idx) => {
-            if (val) val.id = String.fromCharCode(65 + idx); // A, B, C...
-            return val;
-        });
-
-        const enemies = collect(enemiesContainer).map((val, idx) => {
-            if (val) val.id = `e${idx + 1}`;
-            return val;
-        });
-
-        const notables = collect(notablesContainer).map((val, idx) => {
-            if (val) val.id = idx + 1;
-            return val;
-        });
-
-        const strats = collect(stratsContainer).map((val, idx) => {
-            if (val) val.id = idx + 1;
-            return val;
-        });
-
-        const payload = {
-            // preserve identifying top-level fields where possible
-            id: data.id,
-            area: data.area,
-            subarea: data.subarea,
-            name: data.name,
-
-            obstacles,
-            enemies,
-            notables,
-            strats,
-
-            entranceCondition: entranceEditor ? entranceEditor.getValue() : undefined,
-            exitCondition: exitEditor ? exitEditor.getValue() : undefined
-        };
-
-        console.log('Saving Room Properties data:', payload);
-        ipcRenderer.send('save-room-properties-data', payload);
-        window.close();
-    });
-
-    // Close without saving
-    document.getElementById('closeBtn').addEventListener('click', () => window.close());
-
-    // keyboard: Escape closes
-    document.addEventListener('keydown', e => {
-        if (e.key === "Escape") window.close();
-    });
-
-    // Add buttons (use the outer validRoomNodes variable that will be populated on init)
-    document.getElementById('addObstacleBtn').addEventListener('click', () => {
-        const newCard = makeObstacleEditor(undefined, validRoomNodes);
-        obstaclesContainer.appendChild(newCard);
-        renumberContainer(obstaclesContainer);
     });
     
-    document.getElementById('addEnemyBtn').addEventListener('click', () => {
-        const newCard = makeEnemyEditor(undefined, validRoomNodes);
-        enemiesContainer.appendChild(newCard);
-        renumberContainer(enemiesContainer, { prefix: "e" }); 
+   }
+   
+   // ---- Data Handling --------------------------------
+   function handleRoomDataReceived(event, data) {
+       console.log('Room Properties Editor received data:', data);
+       currentRoomData = data || {};
+   
+       // Prepare node list for dropdowns
+       validRoomNodes = (currentRoomData.nodes || []).map(node => ({
+           id: node.id,
+           name: node.name || `Node ${node.id}`
+       }));
+   
+       // Update header information
+       updateHeaderInfo();
+       
+       // Populate editor containers
+       populateEditors();
+   }
+   
+   function updateHeaderInfo() {
+       const elements = {
+           sector: currentRoomData.area || 'Unknown Sector',
+           region: currentRoomData.subarea || 'Unknown Region',
+           roomName: currentRoomData.name || 'Unknown Room'
+       };
+   
+       Object.entries(elements).forEach(([id, value]) => {
+           const element = document.getElementById(id);
+           if (element) element.textContent = value;
+       });
+   }
+   
+   function populateEditors() {
+       // Clear existing content
+       Object.values(containers).forEach(container => {
+           if (container) container.innerHTML = '';
+       });
+   
+       // Populate each editor type
+       if (containers.obstacles) {
+           (currentRoomData.obstacles || []).forEach(obstacle => {
+               containers.obstacles.appendChild(createObstacleEditor(obstacle));
+           });
+       }
+   
+       if (containers.enemies) {
+           (currentRoomData.enemies || []).forEach(enemy => {
+               containers.enemies.appendChild(createEnemyEditor(enemy));
+           });
+       }
+   
+       if (containers.strats) {
+           (currentRoomData.strats || []).forEach(strat => {
+               containers.strats.appendChild(createStratEditor(strat));
+           });
+       }
+   
+       if (containers.notables) {
+           (currentRoomData.notables || []).forEach(notable => {
+               containers.notables.appendChild(createNotableEditor(notable));
+           });
+       }
+   }
+   
+   // ---- Save/Load Logic --------------------------------
+   function handleSave() {
+       const data = currentRoomData || {};
+   
+       // Collect data from all containers with auto-assigned IDs
+       const collectedData = {
+           obstacles: collectAndAssignIDs(containers.obstacles, 'obstacles'),
+           enemies: collectAndAssignIDs(containers.enemies, 'enemies'),
+           strats: collectAndAssignIDs(containers.strats, 'strats'),
+           notables: collectAndAssignIDs(containers.notables, 'notables')
+       };
+   
+       const payload = {
+           // Preserve room identification
+           id: data.id,
+           area: data.area,
+           subarea: data.subarea,
+           name: data.name,
+           ...collectedData
+       };
+   
+       console.log('Saving Room Properties data:', payload);
+       ipcRenderer.send('save-room-properties-data', payload);
+       window.close();
+   }
+   
+   function collectAndAssignIDs(container, type) {
+       if (!container) return [];
+   
+       const config = EDITOR_CONFIG[type];
+       return Array.from(container.children)
+           .map((element, index) => {
+               if (typeof element.getValue !== 'function') return null;
+               
+               const value = element.getValue();
+               if (!value) return null;
+   
+               // Assign ID based on configuration
+               value.id = generateID(index, config);
+               return value;
+           })
+           .filter(Boolean);
+   }
+   
+   function generateID(index, config) {
+       if (config.idStyle === 'letter') {
+           return String.fromCharCode(65 + index); // A, B, C...
+       } else if (config.idStyle === 'numeric') {
+           const base = index + 1;
+           return config.idPrefix ? `${config.idPrefix}${base}` : base.toString();
+       }
+       return (index + 1).toString();
+   }
+   
+   // ---- Editor Creation Functions --------------------------------
+   function createObstacleEditor(initialData = {}) {
+       const data = normalizeObstacleData(initialData);
+       const card = createEditorCard('Obstacle', data.id, EDITOR_CONFIG.obstacles);
+   
+       // Create form elements
+       const nameInput = createInput('text', 'Obstacle name', data.name);
+       const typeSelect = createObstacleTypeSelect(data.obstacleType);
+       const noteArea = createTextarea('Note (optional)', data.note);
+       const devNoteInput = createInput('text', 'Developer Note', data.devNote);
+
+       // Assemble card content
+       const content = createDiv([
+           nameInput,
+           typeSelect,
+           noteArea,
+           devNoteInput,
+           createRemoveButton('Remove Obstacle', () => removeAndRenumber(card, containers.obstacles, 'obstacles'))
+       ]);
+   
+       card.appendChild(content);
+       makeCardDraggable(card, containers.obstacles, 'obstacles');
+   
+       // Expose getValue method
+       card.getValue = () => {
+           if (!nameInput.value.trim()) return null;
+           
+           return {
+               name: nameInput.value.trim(),
+               obstacleType: typeSelect.value,
+               note: noteArea.value.trim(),
+               nodes: getSelectedCheckboxValues(nodesList)
+           };
+       };
+   
+       return card;
+   }
+   
+   function createEnemyEditor(initialData = {}) {
+       const data = normalizeEnemyData(initialData);
+       const card = createEditorCard('Enemy', data.id, EDITOR_CONFIG.enemies);
+   
+       // Create form elements
+       const groupInput = createInput('text', 'Group Name (e.g., "Top Pirates")', data.groupName);
+       const enemySelect = createEnemySelect(data.enemyName);
+       const quantityInput = createInput('number', 'Quantity', data.quantity, { min: 1 });
+       const homeNodesList = createNodeCheckboxList(data.homeNodes, 'Home Nodes');
+       const betweenNodesList = createNodeCheckboxList(data.betweenNodes, 'Between Nodes');
+       const spawnCondition = createConditionSection('Spawn Condition', data.spawnCondition);
+       const stopSpawnCondition = createConditionSection('Stop Spawn Condition', data.stopSpawnCondition);
+       const noteArea = createTextarea('Note (optional)', data.note);
+       const devNoteInput = createInput('text', 'Developer Note', data.devNote);
+       
+       // Assemble card content
+       const topRow = createDiv([enemySelect, quantityInput], 'enemy-top-row');
+       const content = createDiv([
+           groupInput,
+           topRow,
+           createLabel('Home Nodes:', homeNodesList),
+           createLabel('Between Nodes:', betweenNodesList),
+           spawnCondition,
+           stopSpawnCondition,
+           noteArea,
+           devNoteInput,
+           createRemoveButton('Remove Enemy', () => removeAndRenumber(card, containers.enemies, 'enemies'))
+       ]);
+   
+       card.appendChild(content);
+       makeCardDraggable(card, containers.enemies, 'enemies');
+   
+       card.getValue = () => {
+           if (!groupInput.value.trim() && !enemySelect.value) return null;
+           
+           return {
+               groupName: groupInput.value.trim(),
+               enemyName: enemySelect.value,
+               quantity: parseInt(quantityInput.value) || 1,
+               homeNodes: getSelectedCheckboxValues(homeNodesList),
+               betweenNodes: getSelectedCheckboxValues(betweenNodesList)
+           };
+       };
+   
+       return card;
+   }
+   
+   function createStratEditor(initialData = {}) {
+    const data = normalizeStratData(initialData);
+    const card = createEditorCard('Strat', data.id, EDITOR_CONFIG.strats);
+
+    // --- Core fields ---
+    const nameInput = createInput('text', 'Strat Name', data.name);
+    const devNoteInput = createInput('text', 'Dev Note', data.devNote);
+
+    // --- Condition editors ---
+    const conditionEditors = {
+        entrance: createConditionSection('Entrance Condition', data.entranceCondition),
+        exit: createConditionSection('Exit Condition', data.exitCondition),
+        requires: createConditionSection('Requirements', data.requires)
+    };
+
+    // --- Node-based editors ---
+    const clearsObstaclesList = createNodeCheckboxList(data.clearsObstacles, 'Clears Obstacles');
+    const resetsObstaclesList = createNodeCheckboxList(data.resetsObstacles, 'Resets Obstacles');
+    const unlocksEditor = createUnlocksDoorsEditor(data.unlocksDoors);
+
+    // Filter nodes by type
+    const itemNodes = validRoomNodes.filter(n => n.nodeType === "item");
+    const collectsItemsList = createNodeCheckboxList(data.collectsItems, 'Collects Items', itemNodes);
+
+    // --- Flags dropdown (from CONDITION_EVENTS) ---
+    const setsFlagsSelect = createSelect(
+        (window.CONDITION_EVENTS || []).map(flag => ({ value: flag, text: flag })),
+        data.setsFlags,
+        true
+    );
+
+    // --- Boolean checkboxes ---
+    const boolOptions = [
+        { label: 'Comes Through Toilet', key: 'comesThroughToilet' },
+        { label: 'G-Mode Regain Mobility', key: 'gModeRegainMobility' },
+        { label: 'Bypasses Door Shell', key: 'bypassesDoorShell' },
+        { label: 'Wall Jump Avoid', key: 'wallJumpAvoid' },
+        { label: 'Flash Suit Checked', key: 'flashSuitChecked' }
+    ];
+    const boolCheckboxes = {};
+    boolOptions.forEach(opt => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = data[opt.key];
+        boolCheckboxes[opt.key] = checkbox;
+
+        const label = document.createElement('label');
+        label.textContent = opt.label;
+        label.style.display = 'block';
+        label.prepend(checkbox);
+        card.appendChild(label);
     });
-    
-    document.getElementById('addStratBtn').addEventListener('click', () => {
-        const newCard = makeStratEditor(undefined, validRoomNodes);
-        stratsContainer.appendChild(newCard);
-        renumberContainer(stratsContainer, { numeric: true });
+
+    // --- Assemble ---
+    const content = createDiv([
+        nameInput,
+        devNoteInput,
+        ...Object.values(conditionEditors),
+        createLabel('Clears Obstacles:', clearsObstaclesList),
+        createLabel('Resets Obstacles:', resetsObstaclesList),
+        unlocksEditor,
+        createLabel('Collects Items:', collectsItemsList),
+        createLabel('Sets Flags:', setsFlagsSelect),
+        createRemoveButton('Remove Strat', () => removeAndRenumber(card, containers.strats, 'strats'))
+    ]);
+    card.appendChild(content);
+
+    // --- Draggable ---
+    makeCardDraggable(card, containers.strats, 'strats');
+
+    // --- getValue ---
+    card.getValue = () => ({
+        name: nameInput.value.trim(),
+        devNote: devNoteInput.value.trim(),
+        entranceCondition: conditionEditors.entrance.getValue(),
+        exitCondition: conditionEditors.exit.getValue(),
+        requires: conditionEditors.requires.getValue(),
+        clearsObstacles: getSelectedCheckboxValues(clearsObstaclesList),
+        resetsObstacles: getSelectedCheckboxValues(resetsObstaclesList),
+        unlocksDoors: unlocksEditor.getValue(),
+        collectsItems: getSelectedCheckboxValues(collectsItemsList),
+        setsFlags: Array.from(setsFlagsSelect.selectedOptions).map(opt => opt.value),
+        ...Object.fromEntries(Object.entries(boolCheckboxes).map(([k, el]) => [k, el.checked]))
     });
 
-    document.getElementById('addNotableBtn').addEventListener('click', () => {
-        const newCard = makeNotableEditor(undefined, validRoomNodes);
-        notablesContainer.appendChild(newCard);
-        renumberContainer(notablesContainer, { numeric: true });
+    return card;
+}
+
+   
+   function createNotableEditor(initialData = {}) {
+       const data = normalizeNotableData(initialData);
+       const card = createEditorCard('Notable', data.id, EDITOR_CONFIG.notables);
+   
+       // Create form elements
+       const nameInput = createInput('text', 'Notable Name', data.name);
+       const noteArea = createTextarea('Description (multi-line)', data.note);
+   
+       // Assemble card content
+       const content = createDiv([
+           nameInput,
+           noteArea,
+           createRemoveButton('Remove Notable', () => removeAndRenumber(card, containers.notables, 'notables'))
+       ]);
+   
+       card.appendChild(content);
+       makeCardDraggable(card, containers.notables, 'notables');
+   
+       card.getValue = () => {
+           if (!nameInput.value.trim()) return null;
+           
+           const noteText = noteArea.value.trim();
+           const noteLines = noteText.split('\n').map(line => line.trim()).filter(Boolean);
+           
+           return {
+               name: nameInput.value.trim(),
+               note: noteLines.length === 1 ? noteLines[0] : noteLines
+           };
+       };
+   
+       return card;
+   }
+   
+   // ---- UI Creation Helpers --------------------------------
+   function createEditorCard(title, id, config) {
+       const card = document.createElement('div');
+       card.className = `editor-card ${config.className}-card`;
+       
+       const header = document.createElement('div');
+       header.className = 'editor-card-header';
+       header.textContent = `${config.emoji} ${title} ${id != null ? `(ID: ${id})` : '(new)'}`;
+       
+       card.appendChild(header);
+       return card;
+   }
+   
+   function createInput(type, placeholder, value = '', attributes = {}) {
+       const input = document.createElement('input');
+       input.type = type;
+       input.placeholder = placeholder;
+       input.value = value;
+       input.className = 'editor-input';
+       
+       Object.entries(attributes).forEach(([key, val]) => {
+           input.setAttribute(key, val);
+       });
+       
+       return input;
+   }
+   
+   function createTextarea(placeholder, value = '') {
+       const textarea = document.createElement('textarea');
+       textarea.placeholder = placeholder;
+       textarea.value = Array.isArray(value) ? value.join('\n') : value;
+       textarea.className = 'editor-textarea';
+       return textarea;
+   }
+   
+   function createSelect(options, selectedValue = '', multiple = false) {
+       const select = document.createElement('select');
+       if (multiple) select.multiple = true;
+       
+       options.forEach(option => {
+           const opt = document.createElement('option');
+           opt.value = option.value;
+           opt.textContent = option.text;
+           if (option.value === selectedValue || (Array.isArray(selectedValue) && selectedValue.includes(option.value))) {
+               opt.selected = true;
+           }
+           select.appendChild(opt);
+       });
+       
+       return select;
+   }
+   
+   function createDiv(children = [], className = '') {
+       const div = document.createElement('div');
+       if (className) div.className = className;
+       
+       children.forEach(child => {
+           if (child) div.appendChild(child);
+       });
+       
+       return div;
+   }
+   
+   function createLabel(text, associatedElement) {
+       const container = createDiv([]);
+       
+       const label = document.createElement('label');
+       label.textContent = text;
+       label.style.fontWeight = '600';
+       label.style.marginTop = '8px';
+       label.style.display = 'block';
+       
+       container.appendChild(label);
+       if (associatedElement) container.appendChild(associatedElement);
+       
+       return container;
+   }
+   
+   function createRemoveButton(text, onClick) {
+       const button = document.createElement('button');
+       button.textContent = `- ${text}`;
+       button.className = 'remove-btn';
+       button.style.marginTop = '8px';
+       button.addEventListener('click', onClick);
+       return button;
+   }
+   
+   // ---- Specialized Creation Functions --------------------------------
+   function createObstacleTypeSelect(selectedType = 'abstract') {
+       const types = [
+           { value: 'abstract', text: 'Abstract' },
+           { value: 'enemies', text: 'Enemies' },
+           { value: 'inanimate', text: 'Inanimate' }
+       ];
+       
+       return createSelect(types, selectedType);
+   }
+   
+   function createEnemySelect(selectedEnemy = '') {
+       const enemies = window.ENEMY_LIST || [
+           'Kihunter', 'Zoro', 'Yellow Space Pirate', 'Red Space Pirate',
+           'Green Space Pirate', 'Silver Space Pirate', 'Metroid', 'Rinka'
+       ];
+       
+       const options = enemies.map(enemy => ({ value: enemy, text: enemy }));
+       return createSelect(options, selectedEnemy);
+   }
+
+   function createNodeCheckboxList(selectedNodes = [], title = '') {
+    const container = document.createElement('div');
+    container.className = 'node-checkbox-container';
+
+    // Toggle button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'node-toggle-btn';
+    toggleBtn.textContent = '▼ Hide Unchecked Nodes';
+    container.appendChild(toggleBtn);
+
+    // Wrapper for search + table
+    const listWrapper = document.createElement('div');
+    listWrapper.className = 'node-list-wrapper';
+    container.appendChild(listWrapper);
+
+    // Search input
+    const searchInput = createInput('text', 'Filter nodes...');
+    searchInput.className = 'node-search-input';
+    listWrapper.appendChild(searchInput);
+
+    // Table
+    const table = document.createElement('table');
+    table.className = 'node-table';
+    listWrapper.appendChild(table);
+
+    // Header row
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    ['Enabled', 'ID', 'Name'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
     });
-});
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
 
-// -------------------------------
-// Reusable helpers
-// -------------------------------
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
 
-// Scrollable checkbox list (onChange optional)
-function makeScrollableCheckboxList(items = [], selectedItems = [], onChange = null) {
-    const container = document.createElement("div");
-    container.classList.add("scrollable-checkbox-list");    
-    container.style.backgroundColor = "#f9f9f9";
-    
-    const selectedSet = new Set((selectedItems || []).map(String));
-
-    if (!items || items.length === 0) {
-        const none = document.createElement('div');
-        none.style.fontStyle = 'italic';
-        none.style.color = '#666';
-        none.textContent = '(none)';
-        container.appendChild(none);
+    if (!validRoomNodes.length) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 3;
+        emptyCell.textContent = '(no nodes available)';
+        emptyCell.style.fontStyle = 'italic';
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
         return container;
     }
 
+    const selectedSet = new Set(selectedNodes.map(String));
 
-    items.forEach(item => {
-        const label = document.createElement("label");
-        label.style.backgroundColor = "#fdfdfd";  // ensures visible background
-        label.style.display = "flex";
-        label.style.justifyContent = "space-between";
-        label.style.alignItems = "center";
-        label.style.marginBottom = "4px";
-        label.style.fontSize = "13px";
+    validRoomNodes.forEach(node => {
+        const row = document.createElement('tr');
+        row.className = 'node-row';
 
-        const left = document.createElement('div');
-        left.style.display = 'flex';
-        left.style.alignItems = 'center';
-        left.style.gap = '8px';
+        const checkboxCell = document.createElement('td');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = selectedSet.has(String(node.id));
+        checkboxCell.appendChild(checkbox);
 
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.value = String(item.id);
-        if (selectedSet.has(String(item.id))) cb.checked = true;
+        const idCell = document.createElement('td');
+        idCell.textContent = node.id;
 
-        // only attach change listener if callback provided
-        if (typeof onChange === 'function') {
-            cb.addEventListener("change", () => onChange(cb.value, cb.checked));
-        }
+        const nameCell = document.createElement('td');
+        nameCell.textContent = node.name;
 
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = item.name || '';
+        row.appendChild(checkboxCell);
+        row.appendChild(idCell);
+        row.appendChild(nameCell);
 
-        left.appendChild(cb);
-        left.appendChild(nameSpan);
+        tbody.appendChild(row);
 
-        const idSpan = document.createElement('span');
-        idSpan.style.color = '#666';
-        idSpan.style.fontSize = '12px';
-        idSpan.textContent = `ID: ${item.id}`;
-
-        label.appendChild(left);
-        label.appendChild(idSpan);
-
-        container.appendChild(label);
+        // --- Watch checkbox change ---
+        checkbox.addEventListener('change', updateRowVisibility);
     });
+
+    // --- Helper to update row + table visibility ---
+    function updateRowVisibility() {
+        let anyVisible = false;
+
+        tbody.querySelectorAll('tr.node-row').forEach(row => {
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            if (toggleBtn.dataset.hidden === 'true' && !checkbox.checked) {
+                row.style.display = 'none';
+            } else {
+                row.style.display = '';
+                anyVisible = true;
+            }
+        });
+
+        // Hide table + search bar if nothing visible
+        table.style.display = anyVisible ? 'table' : 'none';
+        searchInput.style.display = (anyVisible && toggleBtn.dataset.hidden === 'true') ? '' : (anyVisible ? '' : 'none');
+    }
+
+    // Search filter
+    searchInput.addEventListener('input', () => {
+        const filter = searchInput.value.toLowerCase();
+        tbody.querySelectorAll('tr.node-row').forEach(row => {
+            const nameCell = row.querySelector('td:nth-child(3)');
+            if (!nameCell) return;
+            row.style.display = nameCell.textContent.toLowerCase().includes(filter) ? '' : 'none';
+        });
+    });
+
+    // Toggle unchecked rows
+    toggleBtn.addEventListener('click', () => {
+        const currentlyHidden = toggleBtn.dataset.hidden === 'true';
+        toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
+        toggleBtn.textContent = currentlyHidden ? '▼ Hide Unchecked Nodes' : '▶ Show All Nodes';
+        updateRowVisibility();
+    });
+
+    toggleBtn.dataset.hidden = 'false';
+    updateRowVisibility();
 
     return container;
 }
-
-// Card wrapper: shows ID only if present; else "new"
-function makeCard(title, id, bodyContent) {
-    const typeMap = { Enemy: 'enemy', Obstacle: 'obstacle', Strat: 'strat', Notable: 'notable', 'Unlocks Doors': 'unlocks-doors' };
-    const emojiMap = { enemy: "👾", obstacle: "🪨", strat: "📘", notable: "⭐", 'unlocks-doors': "🔑" };
-
-    const type = typeMap[title] || title.toLowerCase().replace(/\s+/g, '-');
-    const emoji = emojiMap[type] || "";
-
-    const container = document.createElement('div');
-    container.className = `editor-card ${type}-card`;
-
-    // Ensure background applied
-    container.style.backgroundColor = getComputedStyle(container).backgroundColor || "#fff";
-
-    const header = document.createElement('div');
-    header.className = 'editor-card-header';
-    header.textContent = `${emoji} ${title} ${id != null ? `(ID: ${id})` : "(new)"}`;
-    container.appendChild(header);
-
-    function appendBody(el) {
-        if (!el) return;
-        if (el.tagName === "BUTTON") {
-            const txt = el.textContent.toLowerCase();
-            if (txt.includes("add")) el.classList.add("add-btn");
-            if (txt.includes("remove")) el.classList.add("remove-btn");
-        }
-        // Force body children background
-        if (el.tagName !== "BUTTON" && el.style) {
-            el.style.backgroundColor = "#fff";
-        }
-        container.appendChild(el);
-    }
-
-    if (Array.isArray(bodyContent)) bodyContent.forEach(appendBody);
-    else appendBody(bodyContent);
-
-    return container;
-}
-
-// -------------------------------
-// Enemy Editor
-// -------------------------------
-function makeEnemyEditor(initial = {}, nodes = []) {
-    // normalize initial
-    const init = {
-        groupName: initial?.groupName || "",
-        enemyName: initial?.enemyName || "",
-        quantity: initial?.quantity ?? 1,
-        homeNodes: (initial?.homeNodes || []).map(String),
-        betweenNodes: (initial?.betweenNodes || []).map(String),
-        id: initial?.id ?? null
+   
+   function createConditionSection(title, initialCondition) {
+       const container = createDiv([]);
+       const label = createLabel(`${title}:`, null);
+       container.appendChild(label);
+       
+       const conditionDiv = createDiv([]);
+       const conditionEditor = makeConditionEditor(conditionDiv, initialCondition);
+       container.appendChild(conditionDiv);
+       
+       container.getValue = () => conditionEditor.getValue();
+       
+       return container;
+   }
+   
+   function createUnlocksDoorsEditor(initialDoors = []) {
+       const card = createEditorCard('Unlocks Doors', null, { className: 'unlocks-doors', emoji: '🔑' });
+       const itemsContainer = createDiv([], 'door-entries');
+   
+       function addDoorEntry(entry = null) {
+           const entryDiv = createDiv([], 'door-entry');
+   
+           // Door types (multiple selection)
+           const typesSelect = createSelect([
+               { value: 'super', text: 'Super Missiles' },
+               { value: 'missiles', text: 'Missiles' },
+               { value: 'powerbomb', text: 'Power Bombs' },
+               { value: 'ammo', text: 'Ammo' }
+           ], entry?.types || [], true);
+   
+           // Requirements (multiple selection)
+           const requiresSelect = createSelect([
+               { value: 'never', text: 'Never' },
+               { value: 'canPrepareForNextRoom', text: 'Can Prepare for Next Room' },
+               { value: 'SpaceJump', text: 'Space Jump' },
+               { value: 'canWalljump', text: 'Can Walljump' }
+           ], entry?.requires || [], true);
+   
+           const removeBtn = createRemoveButton('Remove Door Unlock', () => entryDiv.remove());
+   
+           entryDiv.appendChild(typesSelect);
+           entryDiv.appendChild(requiresSelect);
+           entryDiv.appendChild(removeBtn);
+           itemsContainer.appendChild(entryDiv);
+       }
+   
+       // Add existing doors
+       initialDoors.forEach(door => addDoorEntry(door));
+   
+       const addBtn = document.createElement('button');
+       addBtn.textContent = '+ Add Door Unlock';
+       addBtn.className = 'add-btn';
+       addBtn.addEventListener('click', () => addDoorEntry());
+   
+       const content = createDiv([itemsContainer, addBtn]);
+       card.appendChild(content);
+   
+       card.getValue = () => {
+           return Array.from(itemsContainer.children).map(entryDiv => {
+               const selects = entryDiv.querySelectorAll('select');
+               if (selects.length < 2) return null;
+   
+               const types = Array.from(selects[0].selectedOptions).map(opt => opt.value);
+               const requires = Array.from(selects[1].selectedOptions).map(opt => opt.value);
+   
+               return types.length > 0 ? { types, requires } : null;
+           }).filter(Boolean);
+       };
+   
+       return card;
+   }
+   
+   // ---- Data Normalization Functions --------------------------------
+   function normalizeObstacleData(data) {
+       return {
+           name: data?.name || '',
+           obstacleType: data?.obstacleType || 'abstract',
+           note: data?.note || '',
+           nodes: Array.isArray(data?.nodes) ? data.nodes.map(String) : [],
+           id: data?.id
+       };
+   }
+   
+   function normalizeEnemyData(data) {
+       return {
+           groupName: data?.groupName || '',
+           enemyName: data?.enemyName || '',
+           quantity: data?.quantity ?? 1,
+           homeNodes: Array.isArray(data?.homeNodes) ? data.homeNodes.map(String) : [],
+           betweenNodes: Array.isArray(data?.betweenNodes) ? data.betweenNodes.map(String) : [],
+           id: data?.id
+       };
+   }
+   
+   function normalizeStratData(data) {
+    return {
+        name: data?.name || '',
+        devNote: data?.devNote || '',
+        entranceCondition: data?.entranceCondition || null,
+        exitCondition: data?.exitCondition || null,
+        requires: data?.requires || null,
+        clearsObstacles: Array.isArray(data?.clearsObstacles) ? data.clearsObstacles.map(String) : [],
+        resetsObstacles: Array.isArray(data?.resetsObstacles) ? data.resetsObstacles.map(String) : [],
+        comesThroughToilet: !!data?.comesThroughToilet,
+        gModeRegainMobility: !!data?.gModeRegainMobility,
+        bypassesDoorShell: !!data?.bypassesDoorShell,
+        unlocksDoors: Array.isArray(data?.unlocksDoors) ? data.unlocksDoors : [],
+        collectsItems: Array.isArray(data?.collectsItems) ? data.collectsItems.map(String) : [],
+        setsFlags: Array.isArray(data?.setsFlags) ? data.setsFlags.map(String) : [],
+        wallJumpAvoid: !!data?.wallJumpAvoid,
+        flashSuitChecked: !!data?.flashSuitChecked,
+        id: data?.id
     };
-
-    // inputs
-    const groupInput = document.createElement('input');
-    groupInput.type = 'text';
-    groupInput.placeholder = "Group Name (e.g. 'Top Pirates')";
-    groupInput.value = init.groupName;
-    groupInput.classList.add("editor-input");
-    groupInput.style.width = "80%";
-
-    // enemy picker (use global list if provided; fallback to examples)
-    const enemyList = window.ENEMY_LIST || ["Kihunter", "Zoro", "Yellow Space Pirate", "Red Space Pirate"];
-    const enemySelect = document.createElement('select');
-    enemySelect.style.display = 'inline-block';
-    enemySelect.style.marginRight = '8px';
-    enemyList.forEach(nm => {
-        const opt = document.createElement('option');
-        opt.value = nm;
-        opt.innerText = nm;
-        if (nm === init.enemyName) opt.selected = true;
-        enemySelect.appendChild(opt);
-    });
-
-    const qtyInput = document.createElement('input');
-    qtyInput.type = 'number';
-    qtyInput.min = 1;
-    qtyInput.value = init.quantity;
-    qtyInput.classList.add("editor-input");
-
-    // scrollable Home & Between lists (no onChange necessary; we'll read them in getValue)
-    const homeList = makeScrollableCheckboxList(nodes, init.homeNodes);
-    const betweenList = makeScrollableCheckboxList(nodes, init.betweenNodes);
-
-    // remove button (we'll attach event after card created)
-    const removeBtn = document.createElement('button');
-    removeBtn.innerText = '- Remove Enemy';
-    removeBtn.classList.add('remove-btn');
-    removeBtn.style.marginTop = '6px';    
-
-    // assemble body
-    const topRow = document.createElement('div');
-    topRow.appendChild(enemySelect);
-    topRow.appendChild(qtyInput);
-
-    const body = document.createElement('div');
-    body.appendChild(groupInput);
-    body.appendChild(topRow);
-
-    const homeHeading = document.createElement('div');
-    homeHeading.style.fontWeight = '600';
-    homeHeading.style.marginTop = '8px';
-    homeHeading.textContent = 'Home Nodes';
-    body.appendChild(homeHeading);
-    body.appendChild(homeList);
-
-    const betweenHeading = document.createElement('div');
-    betweenHeading.style.fontWeight = '600';
-    betweenHeading.style.marginTop = '6px';
-    betweenHeading.textContent = 'Between Nodes';
-    body.appendChild(betweenHeading);
-    body.appendChild(betweenList);
-
-    body.appendChild(removeBtn);
-
-    const card = makeCard('Enemy', init.id, body);
-    makeCardDraggable(card);
-
-    // attach remove action now that card exists
-    removeBtn.addEventListener('click', () => {
-        card.remove();
-        renumberContainer(enemiesContainer, { prefix: "e" });  // auto-update IDs after removal
-    });
-    
-    // expose getValue for save logic
-    card.getValue = function () {
-        const selectedHome = Array.from(homeList.querySelectorAll('input[type=checkbox]'))
-            .filter(cb => cb.checked).map(cb => cb.value);
-
-        const selectedBetween = Array.from(betweenList.querySelectorAll('input[type=checkbox]'))
-            .filter(cb => cb.checked).map(cb => cb.value);
-
-        // don't return empty placeholder items
-        if (!groupInput.value && !enemySelect.value) return null;
-
-        return {
-            groupName: groupInput.value,
-            enemyName: enemySelect.value,
-            quantity: parseInt(qtyInput.value) || 1,
-            homeNodes: selectedHome,
-            betweenNodes: selectedBetween,
-            // id is set during Save payload assignment
-        };
-    };
-
-    return card;
 }
-
-
-// -------------------------------
-// Obstacle Editor
-// -------------------------------
-function makeObstacleEditor(initial = {}, nodes = []) {
-    const init = {
-        name: initial?.name || "",
-        obstacleType: initial?.obstacleType || "abstract",
-        note: initial?.note || "",
-        nodes: (initial?.nodes || []).map(String),
-        id: initial?.id ?? null
-    };
-
-    const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.placeholder = 'Obstacle name';
-    nameInput.value = init.name;
-    nameInput.classList.add("editor-input");
-
-
-    const typeSelect = document.createElement('select');
-    const obstacleTypes = ['abstract', 'environment', 'timed', 'physical'];
-    obstacleTypes.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t;
-        opt.innerText = t.charAt(0).toUpperCase() + t.slice(1);
-        if (t === init.obstacleType) opt.selected = true;
-        typeSelect.appendChild(opt);
-    });
-    typeSelect.style.marginBottom = '6px';
-
-    const noteArea = document.createElement('textarea');
-    noteArea.placeholder = 'Note (optional)';
-    noteArea.value = Array.isArray(init.note) ? init.note.join("\n") : init.note;
-    noteArea.classList.add("editor-textarea");
-
-    // nodes picker
-    const nodeList = makeScrollableCheckboxList(nodes, init.nodes);
-
-    const removeBtn = document.createElement('button');
-    removeBtn.innerText = '- Remove Obstacle';
-    removeBtn.classList.add('remove-btn');
-
-    const body = document.createElement('div');
-    body.appendChild(nameInput);
-    body.appendChild(typeSelect);
-    body.appendChild(nodeList);
-    body.appendChild(noteArea);
-    body.appendChild(removeBtn);
-
-    const card = makeCard('Obstacle', init.id, body);
-makeCardDraggable(card);
-    
-    removeBtn.addEventListener('click', () => {
-        card.remove();
-        renumberContainer(obstaclesContainer); // reassign IDs to fill gaps
-    });
-    
-    card.getValue = function () {
-        const selectedNodes = Array.from(nodeList.querySelectorAll('input[type=checkbox]'))
-            .filter(cb => cb.checked).map(cb => cb.value);
-    
-        if (!nameInput.value) return null;
-        return {
-            id: card._id,            // use the persistent card._id
-            name: nameInput.value,
-            obstacleType: typeSelect.value,
-            note: noteArea.value,
-            nodes: selectedNodes
-        };
-    };    
-
-    return card;
-}
-
-
-// ----------------------
-// Strategies (Strats) - uses existing condition editors + unlocks editor
-// ----------------------
-function makeStratEditor(initial = {}, nodes = []) {
-    const init = {
-        name: initial?.name || "",
-        devNote: initial?.devNote || "",
-        entranceCondition: initial?.entranceCondition || null,
-        exitCondition: initial?.exitCondition || null,
-        requires: initial?.requires || null,
-        unlocksDoors: initial?.unlocksDoors || [],
-        id: initial?.id ?? null
-    };
-
-    const nameInput = document.createElement('input');
-    nameInput.placeholder = "Strat Name";
-    nameInput.value = init.name;
-    nameInput.style.display = 'block';
-    nameInput.style.marginBottom = '6px';
-
-    const devNoteInput = document.createElement('input');
-    devNoteInput.placeholder = "Dev Note";
-    devNoteInput.value = init.devNote;
-    devNoteInput.classList.add("editor-input");
-
-    // Requires
-    const requiresDiv = document.createElement('div');
-    const requiresLabel = document.createElement('label');
-    requiresLabel.innerText = "Requires:";
-    requiresDiv.appendChild(requiresLabel);
-    const requiresEditor = makeConditionEditor(requiresDiv, init.requires);
-
-    // Entrance Condition
-    const entranceDiv = document.createElement('div');
-    const entranceLabel = document.createElement('label');
-    entranceLabel.innerText = "Entrance Condition:";
-    entranceDiv.appendChild(entranceLabel);
-    const entranceEditorLocal = makeConditionEditor(entranceDiv, init.entranceCondition);
-
-    // Exit Condition
-    const exitDiv = document.createElement('div');
-    const exitLabel = document.createElement('label');
-    exitLabel.innerText = "Exit Condition:";
-    exitDiv.appendChild(exitLabel);
-    const exitEditorLocal = makeConditionEditor(exitDiv, init.exitCondition);
-
-    // UnlocksDoors editor
-    const unlocksEditor = makeUnlocksDoorsEditor(init.unlocksDoors);
-    
-    const removeBtn = document.createElement('button');
-    removeBtn.innerText = '- Remove Strat';
-    removeBtn.classList.add('remove-btn');
-    removeBtn.style.marginTop = '6px';
-
-    const body = document.createElement('div');
-    body.appendChild(nameInput);
-    body.appendChild(devNoteInput);
-    body.appendChild(entranceDiv);
-    body.appendChild(exitDiv);
-    body.appendChild(requiresDiv);
-    body.appendChild(unlocksEditor);
-    body.appendChild(removeBtn);
-
-    const card = makeCard('Strat', init.id, body);
-    makeCardDraggable(card);
-    
-    // attach remove action now that card exists
-    removeBtn.addEventListener('click', () => {
-        card.remove();
-        renumberContainer(stratsContainer, { numeric: true }); // auto-update IDs after removal
-    });
-
-    card.getValue = function () {
-        return {
-            name: nameInput.value,
-            devNote: devNoteInput.value,
-            entranceCondition: entranceEditorLocal.getValue(),
-            exitCondition: exitEditorLocal.getValue(),
-            requires: requiresEditor.getValue(),
-            unlocksDoors: unlocksEditor.getValue()
-        };
-    };
-
-    return card;
-}
-
-
-// ----------------------
-// UnlocksDoors Editor  (keeps select-multiple behavior)
-function makeUnlocksDoorsEditor(initial) {
-    const init = Array.isArray(initial) ? initial : [];
-    const itemsContainer = document.createElement('div');
-
-    function addEntry(entry = null) {
-        const entryDiv = document.createElement('div');
-        entryDiv.classList.add("door-entry");
-
-        // Types (multiple)
-        const typesSelect = document.createElement('select');
-        typesSelect.multiple = true;
-        const typeOptions = ['super', 'missiles', 'powerbomb', 'ammo'];
-        typeOptions.forEach(t => {
-            const opt = document.createElement('option');
-            opt.value = t;
-            opt.innerText = t;
-            if (entry?.types?.includes(t)) opt.selected = true;
-            typesSelect.appendChild(opt);
-        });
-
-        // Requires (multiple)
-        const requiresSelect = document.createElement('select');
-        requiresSelect.multiple = true;
-        const requireOptions = ['never', 'canPrepareForNextRoom', 'SpaceJump', 'canWalljump'];
-        requireOptions.forEach(r => {
-            const opt = document.createElement('option');
-            opt.value = r;
-            opt.innerText = r;
-            if (entry?.requires?.includes(r)) opt.selected = true;
-            requiresSelect.appendChild(opt);
-        });
-
-        const removeBtn = document.createElement('button');
-        removeBtn.innerText = '- Remove Unlock Door';
-        removeBtn.classList.add('remove-btn');
-        removeBtn.addEventListener('click', () => entryDiv.remove());
-
-        entryDiv.appendChild(typesSelect);
-        entryDiv.appendChild(requiresSelect);
-        entryDiv.appendChild(removeBtn);
-
-        itemsContainer.appendChild(entryDiv);
-    }
-
-    (init || []).forEach(e => addEntry(e));
-
-    const addBtn = document.createElement('button');
-    addBtn.innerText = '+ Add Door Unlock';
-    addBtn.classList.add('add-btn');
-    addBtn.addEventListener('click', () => addEntry());
-
-    const wrapper = document.createElement('div');
-    wrapper.appendChild(itemsContainer);
-    wrapper.appendChild(addBtn);
-
-    // wrap into a card
-    const card = makeCard('Unlocks Doors', null, wrapper);
-    makeCardDraggable(card);
-    
-    card.getValue = function () {
-        return Array.from(itemsContainer.children).map(div => {
-            const selects = div.querySelectorAll('select');
-            const types = Array.from(selects[0].selectedOptions).map(o => o.value);
-            const requires = Array.from(selects[1].selectedOptions).map(o => o.value);
-            return { types, requires };
-        }).filter(e => e.types.length > 0);
-    };
-
-    return card;
-}
-
-
-// ----------------------
-// Notable Editor
-// ----------------------
-function makeNotableEditor(initial = {}) {
-    const init = {
-        name: initial?.name || "",
-        note: initial?.note || "",
-        id: initial?.id ?? null
-    };
-
-    const nameInput = document.createElement('input');
-    nameInput.placeholder = 'Name';
-    nameInput.value = init.name;
-    nameInput.style.display = 'block';
-    nameInput.style.marginBottom = '6px';
-    nameInput.style.width = '100%';
-
-    const noteArea = document.createElement('textarea');
-    noteArea.placeholder = 'Note (multi-line)';
-    noteArea.value = Array.isArray(init.note) ? init.note.join('\n') : init.note;
-    noteArea.classList.add("editor-textarea");
-
-    const removeBtn = document.createElement('button');
-    removeBtn.innerText = '- Remove Notable';
-    removeBtn.classList.add('remove-btn');
-    removeBtn.style.marginTop = '6px';
-    
-    const body = document.createElement('div');
-    body.appendChild(nameInput);
-    body.appendChild(noteArea);
-    body.appendChild(removeBtn);
-
-    const card = makeCard('Notable', init.id, body);
-    makeCardDraggable(card);
-    
-
-    // attach remove action now that card exists
-    removeBtn.addEventListener('click', () => {
-        card.remove();
-        renumberContainer(notablesContainer, { numeric: true }); // auto-update IDs after removal
-    });
-
-    card.getValue = function () {
-        if (!nameInput.value) return null;
-        const noteVal = noteArea.value.split('\n').map(l => l.trim()).filter(Boolean);
-        return {
-            name: nameInput.value,
-            note: noteVal.length === 1 ? noteVal[0] : noteVal
-        };
-    };
-
-    return card;
-}
-
-function renumberContainer(container, options = {}) {
-    const { prefix = '', startCharCode = 65, numeric = false } = options;
-
-    Array.from(container.children).forEach((card, idx) => {
-        let id;
-        if (numeric) {
-            // simple 1, 2, 3...
-            id = (idx + 1).toString();
-        } else if (prefix) {
-            id = `${prefix}${idx + 1}`;
-        } else {
-            id = String.fromCharCode(startCharCode + idx); // A, B, C...
-        }
-
-        const header = card.querySelector('div:first-child');
-        if (header) {
-            header.textContent = header.textContent.replace(/\((ID: .*?|new)\)/, `(ID: ${id})`);
-        }
-
-        card._id = id;
-    });
-}
-
-
-function makeCardDraggable(card) {
-    const header = card.querySelector('.editor-card-header');
-    let isDragging = false, startY, placeholder, parent, offsetY;
-
-    header.addEventListener('mousedown', e => {
-        e.preventDefault();
-        parent = card.parentNode;
-        isDragging = true;
-
-        const rect = card.getBoundingClientRect();
-        offsetY = e.clientY - rect.top;
-
-        placeholder = document.createElement('div');
-        placeholder.style.height = `${rect.height}px`;
-        placeholder.className = 'card-placeholder';
-        parent.insertBefore(placeholder, card.nextSibling);
-
-        card.classList.add('dragging');
-        card.style.position = 'absolute';
-        card.style.width = `${rect.width}px`;
-        card.style.left = `${rect.left}px`;
-        card.style.top = `${e.clientY - offsetY}px`;
-
-        const onMouseMove = (e) => {
-            if (!isDragging) return;
-            card.style.top = `${e.clientY - offsetY}px`;
-
-            const next = placeholder.nextElementSibling;
-            const prev = placeholder.previousElementSibling;
-            if (next && e.clientY > next.getBoundingClientRect().top + next.offsetHeight/2) {
-                parent.insertBefore(placeholder, next.nextSibling);
-            }
-            if (prev && e.clientY < prev.getBoundingClientRect().top + prev.offsetHeight/2) {
-                parent.insertBefore(placeholder, prev);
-            }
-        };
-
-        const onMouseUp = () => {
-            isDragging = false;
-            card.classList.remove('dragging');
-            card.style.position = '';
-            card.style.top = '';
-            card.style.left = '';
-            card.style.width = '';
-            parent.insertBefore(card, placeholder);
-            placeholder.remove();
-            renumberContainer(parent);
-
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
-
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    });
-}
+   
+   function normalizeNotableData(data) {
+       return {
+           name: data?.name || '',
+           note: data?.note || '',
+           id: data?.id
+       };
+   }
+   
+   // ---- Utility Functions --------------------------------
+   function getSelectedCheckboxValues(container) {
+       return Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+           .map(checkbox => checkbox.value);
+   }
+   
+   function addNewEditor(type) {
+       const container = containers[type];
+       if (!container) return;
+   
+       const editorFunctions = {
+           obstacles: createObstacleEditor,
+           enemies: createEnemyEditor,
+           strats: createStratEditor,
+           notables: createNotableEditor
+       };
+   
+       const createFunction = editorFunctions[type];
+       if (createFunction) {
+           const newEditor = createFunction();
+           container.appendChild(newEditor);
+           renumberContainer(container, type);
+       }
+   }
+   
+   function removeAndRenumber(card, container, type) {
+       card.remove();
+       renumberContainer(container, type);
+   }
+   
+   function renumberContainer(container, type) {
+       if (!container || !EDITOR_CONFIG[type]) return;
+   
+       const config = EDITOR_CONFIG[type];
+       Array.from(container.children).forEach((card, index) => {
+           const newId = generateID(index, config);
+           updateCardHeader(card, newId, config);
+           card._assignedId = newId;
+       });
+   }
+   
+   function updateCardHeader(card, id, config) {
+       const header = card.querySelector('.editor-card-header');
+       if (!header) return;
+   
+       const titleMatch = header.textContent.match(/^(.*?)\s*\(.*?\)$/);
+       const baseTitle = titleMatch ? titleMatch[1] : header.textContent;
+       header.textContent = `${baseTitle} (ID: ${id})`;
+   }
+   
+   // ---- Drag and Drop Functionality --------------------------------
+   function makeCardDraggable(card, container, type) {
+       const header = card.querySelector('.editor-card-header');
+       if (!header) return;
+   
+       let dragState = {
+           isDragging: false,
+           placeholder: null,
+           startY: 0,
+           offsetY: 0
+       };
+   
+       header.addEventListener('mousedown', startDrag);
+   
+       function startDrag(event) {
+           event.preventDefault();
+           
+           const rect = card.getBoundingClientRect();
+           dragState.isDragging = true;
+           dragState.offsetY = event.clientY - rect.top;
+   
+           // Create and insert placeholder
+           dragState.placeholder = createDragPlaceholder(rect.height);
+           container.insertBefore(dragState.placeholder, card.nextSibling);
+   
+           // Style the dragged card
+           card.classList.add('dragging');
+           card.style.position = 'absolute';
+           card.style.width = `${rect.width}px`;
+           card.style.left = `${rect.left}px`;
+           card.style.top = `${event.clientY - dragState.offsetY}px`;
+           card.style.zIndex = '1000';
+   
+           // Attach move and end handlers
+           document.addEventListener('mousemove', handleDragMove);
+           document.addEventListener('mouseup', endDrag);
+       }
+   
+       function handleDragMove(event) {
+           if (!dragState.isDragging) return;
+   
+           // Update card position
+           card.style.top = `${event.clientY - dragState.offsetY}px`;
+   
+           // Find insertion point
+           const afterElement = getDragAfterElement(container, event.clientY);
+           if (afterElement) {
+               container.insertBefore(dragState.placeholder, afterElement);
+           } else {
+               container.appendChild(dragState.placeholder);
+           }
+       }
+   
+       function endDrag() {
+           if (!dragState.isDragging) return;
+   
+           dragState.isDragging = false;
+   
+           // Reset card styling
+           card.classList.remove('dragging');
+           card.style.position = '';
+           card.style.top = '';
+           card.style.left = '';
+           card.style.width = '';
+           card.style.zIndex = '';
+   
+           // Insert card at placeholder position and remove placeholder
+           container.insertBefore(card, dragState.placeholder);
+           dragState.placeholder.remove();
+   
+           // Renumber after reordering
+           renumberContainer(container, type);
+   
+           // Clean up event listeners
+           document.removeEventListener('mousemove', handleDragMove);
+           document.removeEventListener('mouseup', endDrag);
+       }
+   }
+   
+   function createDragPlaceholder(height) {
+       const placeholder = document.createElement('div');
+       placeholder.className = 'card-placeholder';
+       placeholder.style.height = `${height}px`;
+       return placeholder;
+   }
+   
+   function getDragAfterElement(container, y) {
+       const draggableElements = Array.from(container.children)
+           .filter(child => !child.classList.contains('card-placeholder') && !child.classList.contains('dragging'));
+   
+       return draggableElements.reduce((closest, child) => {
+           const box = child.getBoundingClientRect();
+           const offset = y - box.top - box.height / 2;
+   
+           if (offset < 0 && offset > closest.offset) {
+               return { offset, element: child };
+           } else {
+               return closest;
+           }
+       }, { offset: Number.NEGATIVE_INFINITY }).element;
+   }
+   
+   // ---- Event Handlers --------------------------------
+   function handleKeydown(event) {
+       if (event.key === 'Escape') {
+           window.close();
+       }
+   }
+   
+   // ---- Utility Functions --------------------------------
+   function capitalize(str) {
+       return str.charAt(0).toUpperCase() + str.slice(1);
+   }
