@@ -26,6 +26,36 @@
        notables: null
    };
    
+   // ---- Obstacles sync helpers --------------------------------
+let _uidCounter = 0;
+function genUID() { return `ob-${Date.now().toString(36)}-${_uidCounter++}`; }
+
+const obstacleListeners = new Set();
+
+function onObstaclesChanged(listener) {
+  obstacleListeners.add(listener);
+  // Push current snapshot immediately
+  listener(getObstacleSnapshot());
+  return () => obstacleListeners.delete(listener);
+}
+
+function getObstacleSnapshot() {
+  const cards = Array.from(containers.obstacles?.children || []);
+  return cards
+    .map(card => ({
+      uid: card._uid,
+      id: card._assignedId, // current display ID (A, B, C…)
+      name: (card._nameInput?.value || '').trim()
+    }))
+    .filter(x => x.uid);
+}
+
+function broadcastObstaclesChanged() {
+  const snap = getObstacleSnapshot();
+  obstacleListeners.forEach(fn => fn(snap));
+}
+
+
    // Configuration for different editor types
    const EDITOR_CONFIG = {
        obstacles: {
@@ -160,6 +190,8 @@
                containers.notables.appendChild(createNotableEditor(notable));
            });
        }
+
+       broadcastObstaclesChanged();
    }
    
    // ---- Save/Load Logic --------------------------------
@@ -217,43 +249,50 @@
    }
    
    // ---- Editor Creation Functions --------------------------------
-   function createObstacleEditor(initialData = {}) {
-       const data = normalizeObstacleData(initialData);
-       const card = createEditorCard('Obstacle', data.id, EDITOR_CONFIG.obstacles);
-   
-       // Create form elements
-       const nameInput = createInput('text', 'Obstacle name', data.name);
-       const typeSelect = createObstacleTypeSelect(data.obstacleType);
-       const noteArea = createTextarea('Note (optional)', data.note);
-       const devNoteInput = createInput('text', 'Developer Note', data.devNote);
+function createObstacleEditor(initialData = {}) {
+  const data = normalizeObstacleData(initialData);
+  const card = createEditorCard('Obstacle', data.id, EDITOR_CONFIG.obstacles);
 
-       // Assemble card content
-       const content = createDiv([
-           nameInput,
-           typeSelect,
-           noteArea,
-           devNoteInput,
-           createRemoveButton('Remove Obstacle', () => removeAndRenumber(card, containers.obstacles, 'obstacles'))
-       ]);
-   
-       card.appendChild(content);
-       makeCardDraggable(card, containers.obstacles, 'obstacles');
-   
-       // Expose getValue method
-       card.getValue = () => {
-           if (!nameInput.value.trim()) return null;
-           
-           return {
-               name: nameInput.value.trim(),
-               obstacleType: typeSelect.value,
-               note: noteArea.value.trim(),
-               nodes: getSelectedCheckboxValues(nodesList)
-           };
-       };
-   
-       return card;
-   }
-   
+  // Create form elements
+  const nameInput = createInput('text', 'Obstacle name', data.name);
+  const typeSelect = createObstacleTypeSelect(data.obstacleType);
+  const noteArea = createTextarea('Note (optional)', data.note);
+  const devNoteInput = createInput('text', 'Developer Note', data.devNote);
+
+  // Attach stable identity + live fields
+  card._uid = card._uid || genUID();
+  card._assignedId = data.id ?? card._assignedId ?? null; // keep current if present
+  card._nameInput = nameInput;
+
+  // Re-broadcast when the name changes so tables see live names
+  nameInput.addEventListener('input', () => broadcastObstaclesChanged());
+
+  // Assemble card content
+  const content = createDiv([
+    nameInput,
+    typeSelect,
+    noteArea,
+    devNoteInput,
+    createRemoveButton('Remove Obstacle', () => removeAndRenumber(card, containers.obstacles, 'obstacles'))
+  ]);
+
+  card.appendChild(content);
+  makeCardDraggable(card, containers.obstacles, 'obstacles');
+
+  // Expose getValue method (removed stale nodesList reference)
+  card.getValue = () => {
+    if (!nameInput.value.trim()) return null;
+    return {
+      name: nameInput.value.trim(),
+      obstacleType: typeSelect.value,
+      note: noteArea.value.trim(),
+      devNote: devNoteInput.value.trim()
+    };
+  };
+
+  return card;
+}
+
    function createEnemyEditor(initialData = {}) {
        const data = normalizeEnemyData(initialData);
        const card = createEditorCard('Enemy', data.id, EDITOR_CONFIG.enemies);
@@ -304,91 +343,52 @@
    function createStratEditor(initialData = {}) {
     const data = normalizeStratData(initialData);
     const card = createEditorCard('Strat', data.id, EDITOR_CONFIG.strats);
-
-    // --- Core fields ---
+  
+    // Core fields
     const nameInput = createInput('text', 'Strat Name', data.name);
     const devNoteInput = createInput('text', 'Dev Note', data.devNote);
-
-    // --- Condition editors ---
+  
+    // Conditions
     const conditionEditors = {
-        entrance: createConditionSection('Entrance Condition', data.entranceCondition),
-        exit: createConditionSection('Exit Condition', data.exitCondition),
-        requires: createConditionSection('Requirements', data.requires)
+      entrance: createConditionSection('Entrance Condition', data.entranceCondition),
+      exit: createConditionSection('Exit Condition', data.exitCondition),
+      requires: createConditionSection('Requirements', data.requires)
     };
-
-    // --- Node-based editors ---
-    const clearsObstaclesList = createNodeCheckboxList(data.clearsObstacles, 'Clears Obstacles');
-    const resetsObstaclesList = createNodeCheckboxList(data.resetsObstacles, 'Resets Obstacles');
+  
+    // Obstacle tables (ID-robust)
+    const clearsObstaclesList = createObstacleCheckboxList(data.clearsObstacles, 'Clears Obstacles');
+    const resetsObstaclesList = createObstacleCheckboxList(data.resetsObstacles, 'Resets Obstacles');
+  
+    // Doors / Items / Flags (you can integrate your filtered node tables here as needed)
     const unlocksEditor = createUnlocksDoorsEditor(data.unlocksDoors);
-
-    // Filter nodes by type
-    const itemNodes = validRoomNodes.filter(n => n.nodeType === "item");
-    const collectsItemsList = createNodeCheckboxList(data.collectsItems, 'Collects Items', itemNodes);
-
-    // --- Flags dropdown (from CONDITION_EVENTS) ---
-    const setsFlagsSelect = createSelect(
-        (window.CONDITION_EVENTS || []).map(flag => ({ value: flag, text: flag })),
-        data.setsFlags,
-        true
-    );
-
-    // --- Boolean checkboxes ---
-    const boolOptions = [
-        { label: 'Comes Through Toilet', key: 'comesThroughToilet' },
-        { label: 'G-Mode Regain Mobility', key: 'gModeRegainMobility' },
-        { label: 'Bypasses Door Shell', key: 'bypassesDoorShell' },
-        { label: 'Wall Jump Avoid', key: 'wallJumpAvoid' },
-        { label: 'Flash Suit Checked', key: 'flashSuitChecked' }
-    ];
-    const boolCheckboxes = {};
-    boolOptions.forEach(opt => {
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = data[opt.key];
-        boolCheckboxes[opt.key] = checkbox;
-
-        const label = document.createElement('label');
-        label.textContent = opt.label;
-        label.style.display = 'block';
-        label.prepend(checkbox);
-        card.appendChild(label);
-    });
-
-    // --- Assemble ---
+  
     const content = createDiv([
-        nameInput,
-        devNoteInput,
-        ...Object.values(conditionEditors),
-        createLabel('Clears Obstacles:', clearsObstaclesList),
-        createLabel('Resets Obstacles:', resetsObstaclesList),
-        unlocksEditor,
-        createLabel('Collects Items:', collectsItemsList),
-        createLabel('Sets Flags:', setsFlagsSelect),
-        createRemoveButton('Remove Strat', () => removeAndRenumber(card, containers.strats, 'strats'))
+      nameInput,
+      devNoteInput,
+      ...Object.values(conditionEditors),
+      createLabel('Clears Obstacles:', clearsObstaclesList),
+      createLabel('Resets Obstacles:', resetsObstaclesList),
+      unlocksEditor,
+      createRemoveButton('Remove Strat', () => removeAndRenumber(card, containers.strats, 'strats'))
     ]);
+  
     card.appendChild(content);
-
-    // --- Draggable ---
     makeCardDraggable(card, containers.strats, 'strats');
-
-    // --- getValue ---
+  
     card.getValue = () => ({
-        name: nameInput.value.trim(),
-        devNote: devNoteInput.value.trim(),
-        entranceCondition: conditionEditors.entrance.getValue(),
-        exitCondition: conditionEditors.exit.getValue(),
-        requires: conditionEditors.requires.getValue(),
-        clearsObstacles: getSelectedCheckboxValues(clearsObstaclesList),
-        resetsObstacles: getSelectedCheckboxValues(resetsObstaclesList),
-        unlocksDoors: unlocksEditor.getValue(),
-        collectsItems: getSelectedCheckboxValues(collectsItemsList),
-        setsFlags: Array.from(setsFlagsSelect.selectedOptions).map(opt => opt.value),
-        ...Object.fromEntries(Object.entries(boolCheckboxes).map(([k, el]) => [k, el.checked]))
+      name: nameInput.value.trim(),
+      devNote: devNoteInput.value.trim(),
+      entranceCondition: conditionEditors.entrance.getValue(),
+      exitCondition: conditionEditors.exit.getValue(),
+      requires: conditionEditors.requires.getValue(),
+      clearsObstacles: clearsObstaclesList.getSelectedIds(), // <- translated to current IDs
+      resetsObstacles: resetsObstaclesList.getSelectedIds(), // <- translated to current IDs
+      unlocksDoors: unlocksEditor.getValue()
     });
-
+  
     return card;
-}
-
+  }
+  
    
    function createNotableEditor(initialData = {}) {
        const data = normalizeNotableData(initialData);
@@ -652,6 +652,200 @@
     return container;
 }
    
+function createObstacleCheckboxList(initialSelectedIds = [], title = '') {
+    const container = document.createElement('div');
+    container.className = 'obstacle-checkbox-container';
+  
+    // Internal selection is by UID so it survives renumbering
+    const selectedUIDs = new Set();
+  
+    // Map initial IDs -> UIDs using current snapshot
+    getObstacleSnapshot()
+      .filter(o => initialSelectedIds.map(String).includes(String(o.id)))
+      .forEach(o => selectedUIDs.add(o.uid));
+  
+    // Toggle button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'node-toggle-btn';
+    toggleBtn.textContent = '▼ Hide Unchecked Obstacles';
+    toggleBtn.dataset.hidden = 'false';
+    container.appendChild(toggleBtn);
+  
+    // Wrapper
+    const listWrapper = document.createElement('div');
+    listWrapper.className = 'node-list-wrapper';
+    container.appendChild(listWrapper);
+  
+    // Search
+    const searchInput = createInput('text', 'Filter obstacles (id/name)…');
+    searchInput.className = 'node-search-input';
+    listWrapper.appendChild(searchInput);
+  
+    // Table
+    const table = document.createElement('table');
+    table.className = 'node-table';
+    listWrapper.appendChild(table);
+  
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    ['Enabled', 'ID', 'Name'].forEach(text => {
+      const th = document.createElement('th');
+      th.textContent = text;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+  
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+  
+    // Build rows from a snapshot
+    function buildRows(snapshot) {
+      tbody.innerHTML = '';
+  
+      if (!snapshot.length) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 3;
+        emptyCell.textContent = '(no obstacles in this room)';
+        emptyCell.style.fontStyle = 'italic';
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+        updateTableVisibility();
+        return;
+      }
+  
+      snapshot.forEach(obs => {
+        const row = document.createElement('tr');
+        row.className = 'obstacle-row';
+  
+        const chkCell = document.createElement('td');
+        chkCell.style.textAlign = 'center';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = selectedUIDs.has(obs.uid);
+        chk.dataset.uid = obs.uid;
+        chkCell.appendChild(chk);
+  
+        const idCell = document.createElement('td');
+        idCell.textContent = obs.id ?? '';
+        const nameCell = document.createElement('td');
+        nameCell.textContent = obs.name || `(Obstacle ${obs.id ?? ''})`;
+  
+        row.appendChild(chkCell);
+        row.appendChild(idCell);
+        row.appendChild(nameCell);
+        tbody.appendChild(row);
+  
+        chk.addEventListener('change', () => {
+          if (chk.checked) selectedUIDs.add(obs.uid);
+          else selectedUIDs.delete(obs.uid);
+          updateRowVisibility();
+          updateTableVisibility();
+        });
+      });
+  
+      updateRowVisibility();
+      updateTableVisibility();
+    }
+  
+    // Row visibility under toggle / search
+    function updateRowVisibility() {
+        const hideUnchecked = toggleBtn.dataset.hidden === 'true';
+        const filter = (searchInput.value || '').toLowerCase();
+    
+        let anyVisible = false;
+    
+        tbody.querySelectorAll('tr.obstacle-row').forEach(row => {
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            const idTxt = row.children[1]?.textContent?.toLowerCase() || '';
+            const nameTxt = row.children[2]?.textContent?.toLowerCase() || '';
+    
+            const matchesFilter = !filter || idTxt.includes(filter) || nameTxt.includes(filter);
+            const passesToggle = !hideUnchecked || (checkbox && checkbox.checked);
+    
+            row.style.display = matchesFilter && passesToggle ? '' : 'none';
+    
+            if (row.style.display !== 'none') anyVisible = true;
+        });
+    
+        // Show placeholder if zero rows match filter
+        let placeholder = tbody.querySelector('.no-match-row');
+        if (!anyVisible) {
+            if (!placeholder) {
+                placeholder = document.createElement('tr');
+                placeholder.className = 'no-match-row';
+                const td = document.createElement('td');
+                td.colSpan = 3;
+                td.style.fontStyle = 'italic';
+                td.textContent = '(no obstacles match filter)';
+                placeholder.appendChild(td);
+                tbody.appendChild(placeholder);
+            }
+            placeholder.style.display = '';
+        } else if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+    
+        // Show/hide table + search based on any visible rows AND hideUnchecked toggle
+        const tableWrapper = listWrapper; // or whatever your container div for table+search is
+        if (!anyVisible && hideUnchecked) {
+            tableWrapper.style.display = 'none';
+        } else {
+            tableWrapper.style.display = '';
+        }
+    };    
+  
+    function updateTableVisibility() {
+        const hideUnchecked = toggleBtn.dataset.hidden === 'true';
+        const anyChecked = selectedUIDs.size > 0;
+      
+        // Only hide the table entirely if "hideUnchecked" is on AND no rows are checked
+        // This prevents the table and searchbox from disappearing when filter matches zero rows
+        if (hideUnchecked && !anyChecked) {
+          tbody.style.display = 'none';
+        } else {
+          tbody.style.display = ''; // always show tbody container (rows may still be hidden individually)
+        }
+      
+        // Search box always visible
+        searchInput.style.display = '';
+      }
+      
+  
+    // Events
+    searchInput.addEventListener('input', () => {
+      updateRowVisibility();
+      updateTableVisibility();
+    });
+  
+    toggleBtn.addEventListener('click', () => {
+      const hidden = toggleBtn.dataset.hidden === 'true';
+      toggleBtn.dataset.hidden = hidden ? 'false' : 'true';
+      toggleBtn.textContent = hidden ? '▼ Hide Unchecked Obstacles' : '▶ Show All Obstacles';
+      updateRowVisibility();
+      updateTableVisibility();
+    });
+  
+    // Subscribe to obstacle changes (add/remove/reorder/rename/renumber)
+    const unsubscribe = onObstaclesChanged(buildRows);
+  
+    // Expose a way to read current selected **IDs** (translating from UIDs)
+    container.getSelectedIds = () => {
+      const snap = getObstacleSnapshot();
+      const byUid = new Map(snap.map(o => [o.uid, o.id]));
+      return Array.from(selectedUIDs)
+        .map(uid => byUid.get(uid))
+        .filter(id => id != null)
+        .map(String);
+    };
+  
+    // (Optional) expose a cleanup if you ever remove the editor dynamically
+    container._destroy = () => unsubscribe();
+  
+    return container;
+  }
+  
    function createConditionSection(title, initialCondition) {
        const container = createDiv([]);
        const label = createLabel(`${title}:`, null);
@@ -805,15 +999,19 @@
    }
    
    function renumberContainer(container, type) {
-       if (!container || !EDITOR_CONFIG[type]) return;
-   
-       const config = EDITOR_CONFIG[type];
-       Array.from(container.children).forEach((card, index) => {
-           const newId = generateID(index, config);
-           updateCardHeader(card, newId, config);
-           card._assignedId = newId;
-       });
-   }
+    if (!container || !EDITOR_CONFIG[type]) return;
+  
+    const config = EDITOR_CONFIG[type];
+    Array.from(container.children).forEach((card, index) => {
+      const newId = generateID(index, config);
+      updateCardHeader(card, newId, config);
+      card._assignedId = newId;
+    });
+  
+    if (type === 'obstacles') {
+      broadcastObstaclesChanged();
+    }
+  }  
    
    function updateCardHeader(card, id, config) {
        const header = card.querySelector('.editor-card-header');
