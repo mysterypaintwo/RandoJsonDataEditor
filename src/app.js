@@ -2,38 +2,33 @@
  * Main Application - Entry point and orchestration of all components
  * Coordinates the state manager, UI manager, room manager, renderer, and interaction handler
  */
-
 // ===== CONFIG =====
 const Config = {
 	enableValidation: false, // toggle AJV validation
 	gameType: 'XFusion', // 'XFusion' or 'SuperMetroid'
 };
-
 const SchemaPrefix = {
 	XFusion: 'mxf',
 	SuperMetroid: 'm3'
 };
-
-import state from './state.js';
+import state from './core/state.js';
 import {
 	CanvasRenderer
-} from './canvasRenderer.js';
+} from './ui/canvasRenderer.js';
 import {
 	InteractionHandler
-} from './interactionHandler.js';
+} from './core/interactionHandler.js';
 import {
 	UIManager
-} from './uiManager.js';
+} from './ui/uiManager.js';
 import {
 	RoomManager
-} from './roomManager.js';
-
+} from './core/roomManager.js';
 class RandoJsonDataEditor {
 	constructor() {
 		// Get DOM elements
 		this.canvas = document.getElementById("roomCanvas");
 		this.mapContainer = document.getElementById("map-container");
-
 		// Initialize managers
 		this.uiManager = new UIManager(state);
 		this.renderer = new CanvasRenderer(this.canvas, this.mapContainer);
@@ -45,12 +40,10 @@ class RandoJsonDataEditor {
 			this.renderer,
 			this.uiManager
 		);
-
 		this.setupEventListeners();
 		this.initCanvas();
 		this.initDoorButtons();
 	}
-
 	/**
 	 * Set up all application event listeners
 	 */
@@ -59,7 +52,6 @@ class RandoJsonDataEditor {
 		document.getElementById('setDirBtn').addEventListener('click', async () => {
 			await this.selectWorkingDirectory();
 		});
-
 		// Tool mode buttons
 		['draw', 'select', 'move', 'resize'].forEach(mode => {
 			const button = document.getElementById(`${mode}ModeBtn`);
@@ -69,7 +61,6 @@ class RandoJsonDataEditor {
 				});
 			}
 		});
-
 		// Sector navigation buttons
 		document.querySelectorAll('.sector-btn').forEach(btn => {
 			btn.addEventListener('click', async () => {
@@ -77,12 +68,10 @@ class RandoJsonDataEditor {
 				await this.roomManager.navigateToArea(sector);
 			});
 		});
-
 		// Save button
 		document.getElementById('saveBtn').addEventListener('click', () => {
 			this.roomManager.saveCurrentRoom();
 		});
-		
 		// JSON editor live sync
 		this.uiManager.setupJsonEditor((parsedData) => {
 			state.currentRoomData = parsedData;
@@ -95,18 +84,15 @@ class RandoJsonDataEditor {
 				state.scale
 			);
 		});
-
 		// Door Editor updates
 		window.api.onUpdateDoorData((payload) => {
 			this.roomManager.handleDoorUpdate(payload);
 		});
-
 		// Room Properties Editor updates
 		window.api.onUpdateRoomProperties((payload) => {
 			this.roomManager.handleRoomPropertiesUpdate(payload);
 		});
 	}
-
 	/**
 	 * Initialize canvas with default size
 	 */
@@ -115,7 +101,6 @@ class RandoJsonDataEditor {
 		this.canvas.height = 360;
 		this.uiManager.updateActiveTool('selectModeBtn'); // Default to select mode
 	}
-
 	/**
 	 * Handle working directory selection
 	 */
@@ -126,7 +111,6 @@ class RandoJsonDataEditor {
 			this.uiManager.updateWorkingDirectory(selectedDir);
 		}
 	}
-
 	/**
 	 * Set the current tool mode
 	 * @param {string} mode - The tool mode to set
@@ -134,7 +118,6 @@ class RandoJsonDataEditor {
 	setToolMode(mode) {
 		state.setMode(mode);
 		this.uiManager.updateActiveTool(`${mode}ModeBtn`);
-
 		// Redraw to update visual selection states
 		this.renderer.redraw(
 			state.currentRoomImage,
@@ -144,7 +127,6 @@ class RandoJsonDataEditor {
 			state.scale
 		);
 	}
-
 	/**
 	 * Initialize editor buttons (Doors, Room Properties) on app startup
 	 */
@@ -154,7 +136,6 @@ class RandoJsonDataEditor {
 		document.querySelectorAll('.door-btn').forEach(btn => {
 			btn.classList.remove('active');
 			btn._doorConnection = null;
-
 			// Add click handler for navigation
 			btn.addEventListener('click', () => {
 				console.log(`Door button clicked: ${btn.dataset.dir}, active: ${btn.classList.contains('active')}, connection:`, btn._doorConnection);
@@ -163,12 +144,10 @@ class RandoJsonDataEditor {
 					this.roomManager.navigateThroughDoor(btn._doorConnection);
 				}
 			});
-
 			// Add right-click handler for door editor
 			btn.addEventListener('contextmenu', (e) => {
 				e.preventDefault();
 				console.log(`Door button right-clicked: ${btn.dataset.dir}`);
-
 				if (state.currentRoomData) {
 					const direction = btn.dataset.dir;
 					const connection = btn._doorConnection || null;
@@ -177,7 +156,6 @@ class RandoJsonDataEditor {
 			});
 		});
 		console.log('Door buttons initialized');
-
 		// Room Properties button
 		console.log('Initializing Room Properties button...');
 		let rpBtn = document.getElementById('roomPropertiesBtn');
@@ -192,7 +170,6 @@ class RandoJsonDataEditor {
 		console.log('Room Properties button initialized');
 	}
 }
-
 // Initialize the application when DOM is ready
 window.addEventListener('DOMContentLoaded', () => {
 	new RandoJsonDataEditor();

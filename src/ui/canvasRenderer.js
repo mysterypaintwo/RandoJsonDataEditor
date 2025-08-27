@@ -2,14 +2,12 @@
  * Canvas Renderer - Handles all canvas drawing operations
  * Responsible for rendering the room image, nodes, and interactive elements
  */
-
 export class CanvasRenderer {
 	constructor(canvas, mapContainer) {
 		this.canvas = canvas;
 		this.ctx = canvas.getContext("2d");
 		this.mapContainer = mapContainer;
 	}
-
 	/**
 	 * Draw a rectangle with fill and stroke
 	 * @param {Object} rect - Rectangle with x, y, w, h properties
@@ -21,13 +19,11 @@ export class CanvasRenderer {
 		// Fill the rectangle
 		this.ctx.fillStyle = fillStyle;
 		this.ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-
 		// Draw the border
 		this.ctx.strokeStyle = strokeStyle;
 		this.ctx.lineWidth = 2 / scale;
 		this.ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
 	}
-
 	/**
 	 * Render a single node with appropriate styling based on selection state
 	 * @param {Object} node - Node object with position and size
@@ -39,7 +35,6 @@ export class CanvasRenderer {
 		const strokeStyle = isSelected ? "yellow" : "blue";
 		this.drawRect(node, fillStyle, strokeStyle, scale);
 	}
-
 	/**
 	 * Render the current drawing rectangle (while user is dragging)
 	 * @param {Object} rect - Rectangle being drawn
@@ -48,7 +43,6 @@ export class CanvasRenderer {
 	renderCurrentRect(rect, scale) {
 		this.drawRect(rect, "rgba(255,0,0,0.6)", "red", scale);
 	}
-
 	/**
 	 * Clear the entire canvas
 	 */
@@ -56,7 +50,6 @@ export class CanvasRenderer {
 		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	}
-
 	/**
 	 * Draw the room background image
 	 * @param {HTMLImageElement} image - The room image to draw
@@ -66,7 +59,6 @@ export class CanvasRenderer {
 			this.ctx.drawImage(image, 0, 0);
 		}
 	}
-
 	/**
 	 * Complete redraw of the entire canvas
 	 * @param {HTMLImageElement} roomImage - Background room image
@@ -77,11 +69,9 @@ export class CanvasRenderer {
 	 */
 	redraw(roomImage, nodes, selectedNode, currentRect, scale) {
 		if (!roomImage) return;
-	
 		// Clear canvas
 		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-	
 		// Draw background image at scaled size
 		this.ctx.drawImage(
 			roomImage,
@@ -89,7 +79,6 @@ export class CanvasRenderer {
 			roomImage.width * scale,
 			roomImage.height * scale
 		);
-	
 		nodes.forEach(node => {
 			const scaledNode = {
 				x: node.x * scale,
@@ -99,7 +88,6 @@ export class CanvasRenderer {
 			};
 			this.renderNode(scaledNode, selectedNode === node, 1); // pass 1 for scale inside drawRect
 		});
-	
 		if (currentRect) {
 			const scaledRect = {
 				x: currentRect.x * scale,
@@ -110,7 +98,6 @@ export class CanvasRenderer {
 			this.renderCurrentRect(scaledRect, 1);
 		}
 	}
-	
 	/**
 	 * Update canvas size and styling based on image and scale
 	 * @param {HTMLImageElement} image - The room image
@@ -118,22 +105,17 @@ export class CanvasRenderer {
 	 */
 	updateCanvasSize(image, scale = 1) {
 		if (!image) return;
-	
 		// Adjust canvas intrinsic size to match current scale
 		this.canvas.width = image.width * scale;
 		this.canvas.height = image.height * scale;
-	
 		// CSS size stays 1:1 with intrinsic canvas (optional)
 		this.canvas.style.width = this.canvas.width + "px";
 		this.canvas.style.height = this.canvas.height + "px";
-	
 		// Disable smoothing for pixel-perfect visuals
 		this.ctx.imageSmoothingEnabled = false;
-	
 		// Reset scroll to top-left
 		this.resetScrollPosition();
-	}	
-
+	}
 	/**
 	 * Reset scroll position to top-left
 	 */
@@ -141,7 +123,6 @@ export class CanvasRenderer {
 		this.mapContainer.scrollLeft = 0;
 		this.mapContainer.scrollTop = 0;
 	}
-
 	/**
 	 * Update scroll position for zoom centering
 	 * @param {number} oldScale - Previous scale value

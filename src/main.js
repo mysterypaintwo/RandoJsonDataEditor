@@ -6,9 +6,7 @@ const {
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
-
 let mainWindow; // <--- define global
-
 // enable remote debugging before the app's ready
 app.commandLine.appendSwitch('remote-debugging-port', '9223');
 
@@ -20,12 +18,9 @@ function createWindow() {
 			preload: path.join(__dirname, 'preload.js')
 		}
 	});
-
-	mainWindow.loadFile('index.html');
+	mainWindow.loadFile('ui/index.html');
 }
-
 app.whenReady().then(createWindow);
-
 ipcMain.handle('select-working-directory', async () => {
 	const result = await dialog.showOpenDialog({
 		properties: ['openDirectory']
@@ -33,7 +28,6 @@ ipcMain.handle('select-working-directory', async () => {
 	if (result.canceled) return null;
 	return result.filePaths[0];
 });
-
 ipcMain.handle('load-json', async (event, filePath) => {
 	try {
 		const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -44,7 +38,6 @@ ipcMain.handle('load-json', async (event, filePath) => {
 		return null;
 	}
 });
-
 ipcMain.handle('save-json', async (event, filePath, data) => {
 	try {
 		// Create directory if it doesn't exist
@@ -54,7 +47,6 @@ ipcMain.handle('save-json', async (event, filePath, data) => {
 				recursive: true
 			});
 		}
-
 		fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 		console.log(`Saved JSON: ${filePath}`);
 		return true;
@@ -63,7 +55,6 @@ ipcMain.handle('save-json', async (event, filePath, data) => {
 		return false;
 	}
 });
-
 ipcMain.handle('read-directory', async (event, dirPath) => {
 	try {
 		const items = fs.readdirSync(dirPath);
@@ -79,11 +70,9 @@ ipcMain.handle('read-directory', async (event, dirPath) => {
 		return [];
 	}
 });
-
 // Schema validation helper using AJV
 let Ajv;
 let ajv;
-
 // Initialize AJV when needed
 async function initAjv() {
 	if (!ajv) {
@@ -99,7 +88,6 @@ async function initAjv() {
 	}
 	return ajv;
 }
-
 ipcMain.handle('validate-json-schema', async (event, data, schemaPath) => {
 	try {
 		// Load the schema file
@@ -109,15 +97,12 @@ ipcMain.handle('validate-json-schema', async (event, data, schemaPath) => {
 				errors: [`Schema file not found: ${schemaPath}`]
 			};
 		}
-
 		const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
-
 		const validator = await initAjv();
 		if (validator) {
 			// Use AJV for proper validation
 			const validate = validator.compile(schema);
 			const valid = validate(data);
-
 			return {
 				valid,
 				errors: valid ? [] : validate.errors.map(err =>
@@ -140,7 +125,6 @@ ipcMain.handle('validate-json-schema', async (event, data, schemaPath) => {
 		};
 	}
 });
-
 /**
  * Basic JSON schema validation (fallback when AJV not available)
  * @param {Object} data - Data to validate
@@ -149,7 +133,6 @@ ipcMain.handle('validate-json-schema', async (event, data, schemaPath) => {
  */
 function basicValidateSchema(data, schema) {
 	const errors = [];
-
 	// Check required properties
 	if (schema.required && Array.isArray(schema.required)) {
 		for (const prop of schema.required) {
@@ -158,7 +141,6 @@ function basicValidateSchema(data, schema) {
 			}
 		}
 	}
-
 	// Check properties types and nested requirements
 	if (schema.properties) {
 		for (const [prop, propSchema] of Object.entries(schema.properties)) {
@@ -168,13 +150,11 @@ function basicValidateSchema(data, schema) {
 			}
 		}
 	}
-
 	return {
 		valid: errors.length === 0,
 		errors
 	};
 }
-
 /**
  * Validate a single property against its schema
  * @param {*} value - Property value
@@ -184,7 +164,6 @@ function basicValidateSchema(data, schema) {
  */
 function validateProperty(value, schema, propName) {
 	const errors = [];
-
 	// Type checking
 	if (schema.type) {
 		const actualType = Array.isArray(value) ? 'array' : typeof value;
@@ -192,13 +171,11 @@ function validateProperty(value, schema, propName) {
 			errors.push(`Property ${propName} should be ${schema.type}, got ${actualType}`);
 		}
 	}
-
 	// Nested object validation
 	if (schema.type === 'object' && value && typeof value === 'object') {
 		const nestedResult = basicValidateSchema(value, schema);
 		errors.push(...nestedResult.errors.map(err => `${propName}.${err}`));
 	}
-
 	// Array validation
 	if (schema.type === 'array' && Array.isArray(value)) {
 		if (schema.items) {
@@ -208,49 +185,14 @@ function validateProperty(value, schema, propName) {
 			});
 		}
 	}
-
 	return {
 		errors
 	};
 }
-
-// Handle request to open door editor
-ipcMain.on('open-door-editor', (event, doorData) => {
-	console.log('Opening door editor with data:', doorData);
-
-	const doorWin = new BrowserWindow({
-		width: 700,
-		height: 800,
-		modal: true,
-		parent: mainWindow,
-		webPreferences: {
-			nodeIntegration: true,
-			contextIsolation: false
-		}
-	});
-
-	// Load door editor files from editor subdirectory
-	doorWin.loadFile(path.join(__dirname, 'editor/doorEditor.html'));
-
-	// Send data once the window is ready
-	doorWin.webContents.once('did-finish-load', () => {
-		console.log('Sending door editor data:', doorData);
-		doorWin.webContents.send('init-door-data', doorData);
-	});
-});
-
-// Handle requests to save door editor changes
-ipcMain.on('save-door-data', (event, payload) => {
-	console.log('Received door data save request:', payload);
-	if (mainWindow && mainWindow.webContents) {
-		mainWindow.webContents.send('update-door-data', payload);
-	}
-});
-
+/* Room Properties Editor IPCs */
 // Handle request to open Room Properties Editor
 ipcMain.on('open-room-properties-editor', (event, roomPropertiesData) => {
 	console.log('Opening Room Properties Editor with data:', roomPropertiesData);
-
 	const roomPropertiesWin = new BrowserWindow({
 		width: 700,
 		height: 800,
@@ -261,21 +203,66 @@ ipcMain.on('open-room-properties-editor', (event, roomPropertiesData) => {
 			contextIsolation: false
 		}
 	});
-
+	// Force DevTools to open
+	//roomPropertiesWin.webContents.openDevTools();
 	// Load Room Properties Editor files from editor subdirectory
-	roomPropertiesWin.loadFile(path.join(__dirname, 'editor/roomPropertiesEditor.html'));
-
-	// Send data once the window is ready
+	roomPropertiesWin.loadFile(path.join(__dirname, 'editor/roomProperties/roomPropertiesEditor.html'));
+	// Store the data temporarily
+	roomPropertiesWin.roomPropertiesData = roomPropertiesData;
+	//console.log('Room Properties window finished loading - debug point');
 	roomPropertiesWin.webContents.once('did-finish-load', () => {
-		console.log('Sending Room Properties Editor data:', roomPropertiesData);
-		roomPropertiesWin.webContents.send('init-room-properties-data', roomPropertiesData);
+		console.log('Room Properties window finished loading');
 	});
 });
-
-// Handle requests to save Room Properties Editor changes
-ipcMain.on('save-room-properties-data', (event, payload) => {
+// Handle the renderer saying it's ready
+ipcMain.on('room-properties-editor-ready', (event) => {
+	console.log('Received room-properties-editor-ready signal');
+	const win = BrowserWindow.fromWebContents(event.sender);
+	if (win && win.roomPropertiesData) {
+		console.log('Sending Room Properties Editor data:', win.roomPropertiesData);
+		event.sender.send('init-room-properties-data', win.roomPropertiesData);
+		// Clean up the temporary data
+		delete win.roomPropertiesData;
+	} else {
+		console.log('No window or no data found:', {
+			hasWindow: !!win,
+			hasData: !!(win && win.roomPropertiesData)
+		});
+	}
+});
+/* Door Editor IPCs */
+// Handle request to open door editor
+ipcMain.on('open-door-editor', (event, doorData) => {
+	console.log('Opening door editor with data:', doorData);
+	const doorWin = new BrowserWindow({
+		width: 700,
+		height: 800,
+		modal: true,
+		parent: mainWindow,
+		webPreferences: {
+			nodeIntegration: true,
+			contextIsolation: false
+		}
+	});
+	// Load door editor files from editor subdirectory
+	doorWin.loadFile(path.join(__dirname, 'editor/doors/doorEditor.html'));
+	// Send data once the window is ready
+	doorWin.webContents.once('did-finish-load', () => {
+		console.log('Sending door editor data:', doorData);
+		doorWin.webContents.send('init-door-data', doorData);
+	});
+});
+// Handle requests to save door editor changes
+ipcMain.on('save-door-data', (event, payload) => {
 	console.log('Received door data save request:', payload);
 	if (mainWindow && mainWindow.webContents) {
-		mainWindow.webContents.send('update-room-properties', payload);
+		mainWindow.webContents.send('update-door-data', payload);
+	}
+});
+// Handle requests to save door editor changes
+ipcMain.on('save-door-data', (event, payload) => {
+	console.log('Received door data save request:', payload);
+	if (mainWindow && mainWindow.webContents) {
+		mainWindow.webContents.send('update-door-data', payload);
 	}
 });

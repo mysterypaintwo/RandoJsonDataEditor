@@ -2,7 +2,6 @@
  * Utility functions for the room editor
  * Updated for new JSON format and file structure
  */
-
 /**
  * Checks if a connection type string contains the given directional keyword
  * (case-insensitive).
@@ -10,7 +9,6 @@
 export function connectionContainsDirection(connectionType, direction) {
 	return connectionType.toLowerCase().includes(direction.toLowerCase());
 }
-
 /**
  * Formats a door name preserving the original direction terminology
  * @param {string} originalDirection - direction string (like "northwest")
@@ -38,13 +36,10 @@ export function formatDirection(originalDirection) {
 		westupper: "West-Upper",
 		eastupper: "East-Upper",
 	};
-
 	const directionName = map[originalDirection.toLowerCase()] ||
 		(originalDirection.charAt(0).toUpperCase() + originalDirection.slice(1));
-
 	return directionName;
 }
-
 /**
  * Parse room path in new format: area/subarea/roomName
  * @param {string} roomPath - Room path string
@@ -55,14 +50,12 @@ export function parseRoomPath(roomPath) {
 	if (parts.length !== 3) {
 		throw new Error(`Invalid room path format: ${roomPath}. Expected: area/subarea/roomName`);
 	}
-
 	return {
 		area: parts[0],
 		subarea: parts[1],
 		roomName: parts[2]
 	};
 }
-
 /**
  * Convert room name to filename (replace / with _)
  * @param {string} roomName - Room name with potential / characters
@@ -71,7 +64,6 @@ export function parseRoomPath(roomPath) {
 export function roomNameToFileName(roomName) {
 	return roomName.replace(/\//g, '_');
 }
-
 /**
  * Convert filename back to room name (replace _ with /)
  * @param {string} fileName - Filename without .json extension
@@ -80,7 +72,6 @@ export function roomNameToFileName(roomName) {
 export function fileNameToRoomName(fileName) {
 	return fileName.replace(/_/g, '/');
 }
-
 /**
  * Get mouse position relative to canvas, accounting for scroll and scale
  * @param {MouseEvent} e - Mouse event
@@ -90,19 +81,18 @@ export function fileNameToRoomName(fileName) {
  * @returns {Object} {x, y} coordinates
  */
 export function getMousePos(e, canvas, container, scale) {
-    const rect = canvas.getBoundingClientRect();
-
-    // Mouse position relative to the canvas element (CSS pixels)
-    const cssX = e.clientX - rect.left;
-    const cssY = e.clientY - rect.top;
-
-    // Convert to image-pixel coordinates
-    const x = cssX / scale;
-    const y = cssY / scale;
-
-    return { x, y };
+	const rect = canvas.getBoundingClientRect();
+	// Mouse position relative to the canvas element (CSS pixels)
+	const cssX = e.clientX - rect.left;
+	const cssY = e.clientY - rect.top;
+	// Convert to image-pixel coordinates
+	const x = cssX / scale;
+	const y = cssY / scale;
+	return {
+		x,
+		y
+	};
 }
-
 /**
  * Check if point is in resize corner of a node
  * @param {Object} node - Node with x, y, w, h properties
@@ -119,7 +109,6 @@ export function isInResizeCorner(node, x, y) {
 		y <= node.y + node.h
 	);
 }
-
 /**
  * Find node at given position
  * @param {Array} nodes - Array of nodes
@@ -142,7 +131,6 @@ export function findNodeAtPosition(nodes, x, y) {
 	}
 	return null;
 }
-
 /**
  * Get appropriate cursor style based on mode and hover state
  * @param {string} mode - Current tool mode
@@ -153,7 +141,6 @@ export function findNodeAtPosition(nodes, x, y) {
  */
 export function getCursorStyle(mode, hoverNode, isResizeCorner, isMoving) {
 	if (isMoving) return 'grabbing';
-
 	switch (mode) {
 		case 'draw':
 			return 'crosshair';
@@ -167,7 +154,6 @@ export function getCursorStyle(mode, hoverNode, isResizeCorner, isMoving) {
 			return 'default';
 	}
 }
-
 /**
  * Snap coordinate to 8px grid
  * @param {number} coord - Coordinate to snap
@@ -176,7 +162,6 @@ export function getCursorStyle(mode, hoverNode, isResizeCorner, isMoving) {
 export function snapToGrid(coord) {
 	return Math.round(coord / 8) * 8;
 }
-
 /**
  * Clamp value between min and max
  * @param {number} value - Value to clamp
@@ -187,7 +172,6 @@ export function snapToGrid(coord) {
 export function clamp(value, min, max) {
 	return Math.min(Math.max(value, min), max);
 }
-
 /**
  * Normalize and snap rectangle to grid
  * @param {Object} rect - Rectangle with x, y, w, h
@@ -198,7 +182,6 @@ export function snapRectToGrid(rect) {
 	const y1 = Math.min(rect.y, rect.y + rect.h);
 	const x2 = Math.max(rect.x, rect.x + rect.w);
 	const y2 = Math.max(rect.y, rect.y + rect.h);
-
 	return {
 		x: snapToGrid(x1),
 		y: snapToGrid(y1),
@@ -206,7 +189,6 @@ export function snapRectToGrid(rect) {
 		h: snapToGrid(y2 - y1)
 	};
 }
-
 /**
  * Constrain rectangle to bounds
  * @param {Object} rect - Rectangle to constrain
@@ -222,7 +204,6 @@ export function constrainRectToBounds(rect, maxWidth, maxHeight) {
 		h: Math.min(Math.abs(rect.h), maxHeight - rect.y)
 	};
 }
-
 /**
  * Update tool button states
  * @param {string} activeToolId - ID of active tool button
@@ -231,13 +212,11 @@ export function updateToolButtonStates(activeToolId) {
 	document.querySelectorAll('.tool-btn').forEach(btn => {
 		btn.classList.remove('active');
 	});
-
 	const activeBtn = document.getElementById(activeToolId);
 	if (activeBtn) {
 		activeBtn.classList.add('active');
 	}
 }
-
 /**
  * Show tooltip at position
  * @param {HTMLElement} tooltip - Tooltip element
@@ -251,7 +230,6 @@ export function showTooltip(tooltip, text, x, y) {
 	tooltip.style.top = y - 30 + 'px';
 	tooltip.style.display = 'block';
 }
-
 /**
  * Hide tooltip
  * @param {HTMLElement} tooltip - Tooltip element
@@ -259,7 +237,6 @@ export function showTooltip(tooltip, text, x, y) {
 export function hideTooltip(tooltip) {
 	tooltip.style.display = 'none';
 }
-
 /**
  * Highlight a node in the JSON textarea
  * @param {HTMLTextAreaElement} textarea - JSON textarea
@@ -268,23 +245,18 @@ export function hideTooltip(tooltip) {
  */
 export function highlightNodeInJSON(textarea, node, jsonData) {
 	if (!node || !jsonData || !jsonData.nodes) return;
-
 	const jsonText = textarea.value;
 	const nodeIndex = jsonData.nodes.findIndex(n => n.id === node.id);
-
 	if (nodeIndex === -1) return;
-
 	// Find the node in the JSON text
 	const nodePattern = new RegExp(`"id":\\s*${node.id}`, 'g');
 	const match = nodePattern.exec(jsonText);
-
 	if (match) {
 		textarea.focus();
 		textarea.setSelectionRange(match.index, match.index + match[0].length);
 		textarea.scrollTop = textarea.scrollHeight * (match.index / jsonText.length);
 	}
 }
-
 /**
  * Generate connection description from room and node data
  * @param {string} connectionType - Type of connection
@@ -296,7 +268,6 @@ export function generateConnectionDescription(connectionType, sourceRoom, target
 	const typeText = connectionType.replace(/([A-Z])/g, ' $1').trim();
 	return `${typeText} connection between ${sourceRoom.roomName} and ${targetRoom.roomName}`;
 }
-
 /**
  * Validate connection data structure
  * @param {Object} connectionData - Connection data to validate
@@ -304,18 +275,15 @@ export function generateConnectionDescription(connectionType, sourceRoom, target
  */
 export function validateConnectionData(connectionData) {
 	const errors = [];
-
 	if (!connectionData) {
 		return {
 			valid: true,
 			errors: []
 		}; // null connection is valid (removal)
 	}
-
 	if (!connectionData.connectionType) {
 		errors.push('Connection type is required');
 	}
-
 	if (!connectionData.targetNode) {
 		errors.push('Target node is required');
 	} else {
@@ -327,7 +295,6 @@ export function validateConnectionData(connectionData) {
 		if (!target.nodeName) errors.push('Target node name is required');
 		if (!target.position) errors.push('Target position is required');
 	}
-
 	return {
 		valid: errors.length === 0,
 		errors

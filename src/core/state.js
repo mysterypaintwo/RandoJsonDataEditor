@@ -2,43 +2,35 @@
  * State Manager - Centralized application state management
  * Handles current room data, nodes, UI state, and connections
  */
-
 class State {
 	constructor() {
 		// Working directory
 		this.workingDir = null;
-
 		// Current room data (new format)
 		this.currentRoomData = null;
 		this.currentRoomPath = null;
 		this.currentRoomImage = null;
 		this.nodes = [];
-
 		// Current area/subarea for connection lookups
 		this.currentArea = null;
 		this.currentSubarea = null;
-
 		// Connection data cache
 		this.connectionCache = new Map(); // area/subarea -> connection data
 		this.interConnections = null; // inter-area connections
 		this.intraConnections = new Map(); // area -> intra connections
-
 		// UI state
 		this.selectedNode = null;
 		this.mode = "select";
 		this.scale = 1.0;
-
 		// Drawing state
 		this.isDrawing = false;
 		this.currentRect = null;
 		this.startX = 0;
 		this.startY = 0;
-
 		// Moving/resizing state
 		this.movingNode = null;
 		this.offsetX = 0;
 		this.offsetY = 0;
-
 		// Area start rooms mapping
 		this.areaStartRooms = {
 			"L-X": "L-X/General/Revival Room",
@@ -52,7 +44,6 @@ class State {
 			"DMX": "DMX/Opening Segment/DMX Entrance"
 		};
 	}
-
 	/**
 	 * Set the working directory
 	 * @param {string} dir - Path to working directory
@@ -64,7 +55,6 @@ class State {
 		this.interConnections = null;
 		this.intraConnections.clear();
 	}
-
 	/**
 	 * Load room data in new format
 	 * @param {string} roomPath - Path to room JSON file
@@ -73,14 +63,11 @@ class State {
 	loadRoomData(roomPath, roomData) {
 		this.currentRoomPath = roomPath;
 		this.currentRoomData = roomData;
-
 		// Extract area/subarea from room data
 		this.currentArea = roomData.area;
 		this.currentSubarea = roomData.subarea;
-
 		this.nodes = roomData.nodes;
 	}
-
 	/**
 	 * Load connection data for current area/subarea
 	 * @param {string} area - Area name
@@ -88,15 +75,12 @@ class State {
 	 */
 	async loadConnections(area, subarea) {
 		const key = `${area}/${subarea}`;
-
 		if (this.connectionCache.has(key)) {
 			return this.connectionCache.get(key);
 		}
-
 		try {
 			const connectionPath = `${this.workingDir}/connection/${area}/${subarea}.json`;
 			const data = await window.api.loadJson(connectionPath);
-
 			if (data) {
 				this.connectionCache.set(key, data);
 				return data;
@@ -104,10 +88,8 @@ class State {
 		} catch (err) {
 			console.error(`Failed to load connections for ${key}:`, err);
 		}
-
 		return null;
 	}
-
 	/**
 	 * Load inter-area connections
 	 */
@@ -115,7 +97,6 @@ class State {
 		if (this.interConnections) {
 			return this.interConnections;
 		}
-
 		try {
 			const interPath = `${this.workingDir}/connection/inter.json`;
 			const data = await window.api.loadJson(interPath);
@@ -126,7 +107,6 @@ class State {
 			return null;
 		}
 	}
-
 	/**
 	 * Load intra-area connections for a specific area
 	 * @param {string} area - Area name
@@ -135,11 +115,9 @@ class State {
 		if (this.intraConnections.has(area)) {
 			return this.intraConnections.get(area);
 		}
-
 		try {
 			const intraPath = `${this.workingDir}/connection/${area}/intra.json`;
 			const data = await window.api.loadJson(intraPath);
-
 			if (data) {
 				this.intraConnections.set(area, data);
 				return data;
@@ -147,10 +125,8 @@ class State {
 		} catch (err) {
 			console.error(`Failed to load intra-area connections for ${area}:`, err);
 		}
-
 		return null;
 	}
-
 	/**
 	 * Find the connection for a door node by checking all connection JSONs
 	 * @param {Object} doorNode - Node from current room
@@ -158,16 +134,13 @@ class State {
 	 */
 	async findDoorConnection(doorNode) {
 		if (!doorNode || doorNode.nodeType !== 'door') return null;
-
 		const allConnections = [
 			await this.loadConnections(this.currentArea, this.currentSubarea),
 			await this.loadIntraConnections(this.currentArea),
 			await this.loadInterConnections()
 		];
-
 		for (const connData of allConnections) {
 			if (!connData?.connections) continue;
-
 			for (const conn of connData.connections) {
 				const matchNode = conn.nodes.find(n => n.roomName === this.currentRoomData.name && n.nodeid === doorNode.id);
 				if (matchNode) {
@@ -182,10 +155,8 @@ class State {
 				}
 			}
 		}
-
 		return null;
 	}
-
 	/**
 	 * Search connection data for a specific node
 	 * @param {Object} connectionData - Connection data to search
@@ -194,13 +165,11 @@ class State {
 	 */
 	searchConnectionsForNode(connectionData, doorNode) {
 		if (!connectionData?.connections) return null;
-
 		for (const conn of connectionData.connections) {
 			for (const node of conn.nodes || []) {
 				if (node.area === this.currentArea &&
 					node.subarea === this.currentSubarea &&
 					node.nodeid === doorNode.id) {
-
 					// Find the other node in this connection
 					const otherNode = conn.nodes.find(n => n !== node);
 					if (otherNode) {
@@ -213,19 +182,15 @@ class State {
 				}
 			}
 		}
-
 		return null;
 	}
-
 	/**
 	 * Get all door connections for the current room
 	 * @returns {Object} Door connections keyed by node name
 	 */
 	async getDoorConnections() {
 		const connections = {};
-
 		if (!this.currentRoomData?.nodes) return connections;
-
 		for (const node of this.currentRoomData.nodes) {
 			if (node.nodeType === 'door') {
 				const conn = await this.findDoorConnection(node);
@@ -241,10 +206,8 @@ class State {
 				}
 			}
 		}
-
 		return connections;
 	}
-
 	/**
 	 * Set room image
 	 * @param {HTMLImageElement} image - Room image
@@ -252,7 +215,6 @@ class State {
 	setRoomImage(image) {
 		this.currentRoomImage = image;
 	}
-
 	/**
 	 * Set current mode
 	 * @param {string} mode - Tool mode
@@ -260,7 +222,6 @@ class State {
 	setMode(mode) {
 		this.mode = mode;
 	}
-
 	/**
 	 * Set zoom scale
 	 * @param {number} scale - Zoom scale
@@ -268,7 +229,6 @@ class State {
 	setScale(scale) {
 		this.scale = Math.max(0.1, Math.min(5.0, scale));
 	}
-
 	/**
 	 * Start drawing operation
 	 * @param {number} x - Starting X coordinate
@@ -285,7 +245,6 @@ class State {
 			h: 0
 		};
 	}
-
 	/**
 	 * Update current rectangle being drawn
 	 * @param {Object} rect - Rectangle data
@@ -293,7 +252,6 @@ class State {
 	updateCurrentRect(rect) {
 		this.currentRect = rect;
 	}
-
 	/**
 	 * Finish drawing operation
 	 */
@@ -301,7 +259,6 @@ class State {
 		this.isDrawing = false;
 		this.currentRect = null;
 	}
-
 	/**
 	 * Add a new node
 	 * @param {Object} rect - Node rectangle
@@ -317,11 +274,9 @@ class State {
 			w: rect.w,
 			h: rect.h
 		};
-
 		this.nodes.push(newNode);
-        this.currentRoomData.nodes = [...this.nodes];
+		this.currentRoomData.nodes = [...this.nodes];
 	}
-
 	/**
 	 * Remove a node
 	 * @param {number} nodeId - Node ID to remove
@@ -331,9 +286,8 @@ class State {
 		if (this.selectedNode && this.selectedNode.id === nodeId) {
 			this.selectedNode = null;
 		}
-        this.currentRoomData.nodes = [...this.nodes];
+		this.currentRoomData.nodes = [...this.nodes];
 	}
-
 	/**
 	 * Start moving/resizing operation
 	 * @param {Object} node - Node to move
@@ -345,14 +299,12 @@ class State {
 		this.offsetX = offsetX;
 		this.offsetY = offsetY;
 	}
-
 	/**
 	 * Stop moving operation
 	 */
 	stopMoving() {
 		this.movingNode = null;
 	}
-
 	/**
 	 * Update node position
 	 * @param {Object} node - Node to update
@@ -363,7 +315,6 @@ class State {
 		node.x = x;
 		node.y = y;
 	}
-
 	/**
 	 * Update node dimensions
 	 * @param {Object} node - Node to update
@@ -375,7 +326,6 @@ class State {
 		node.h = height;
 	}
 }
-
 // Create and export singleton instance
 const state = new State();
 export default state;

@@ -1,0 +1,497 @@
+/* =============================================================================
+   Super Metroid: X-Fusion Room Properties Editor Styles (Refactored)
+   
+   Optimized stylesheet for the modular room properties editor interface.
+   Removed unused styles and consolidated common patterns.
+   ============================================================================= */
+
+/* Base Layout & Typography */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+/* Header - Location Context */
+#header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Main Form Container */
+#form {
+    padding: 20px;
+    overflow-y: auto;
+    min-height: calc(100vh - 120px);
+    box-sizing: border-box;
+}
+
+/* Section Headings */
+h3 {
+    margin: 30px 0 15px 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #2c3e50;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Form Controls */
+input,
+select,
+textarea {
+    font-size: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+textarea {
+    resize: vertical;
+    width: 100%;
+    min-height: 80px;
+}
+
+/* Buttons */
+button {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 8px 16px;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.add-btn {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    color: white;
+    margin: 10px 5px;
+}
+
+.add-btn:hover {
+    background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
+}
+
+.remove-btn {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    margin: 5px;
+}
+
+.remove-btn:hover {
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+}
+
+/* Toggle buttons for collapse/expand */
+.toggle-btn {
+    background: transparent;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    color: #666;
+    min-width: 20px;
+    padding: 2px;
+}
+
+.toggle-btn:hover {
+    color: #333;
+    background: rgba(0, 0, 0, 0.1);
+    transform: none; /* Override general button hover */
+}
+
+/* Editor Card System */
+.editor-card {
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.editor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.editor-card-header {
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-size: 16px;
+    cursor: grab;
+    user-select: none;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.editor-card-content {
+    padding-top: 8px;
+}
+
+/* Collapsed state */
+.editor-card.collapsed {
+    opacity: 0.8;
+}
+
+.editor-card.collapsed .editor-card-content {
+    display: none;
+}
+
+/* Card Type Specific Styling */
+.enemy-card {
+    background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
+    border-color: #f48fb1;
+}
+
+.obstacle-card {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border-color: #ffb74d;
+}
+
+.strat-card {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-color: #64b5f6;
+}
+
+.notable-card {
+    background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);
+    border-color: #fff176;
+}
+
+.unlocks-doors-card {
+    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+    border-color: #81c784;
+}
+
+/* Dragging State */
+.editor-card.dragging {
+    opacity: 0.85;
+    transform: scale(1.02) rotate(1deg);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+/* Form Elements within Cards */
+.editor-card input,
+.editor-card select,
+.editor-card textarea {
+    background-color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.editor-card input:focus,
+.editor-card select:focus,
+.editor-card textarea:focus {
+    background-color: white;
+}
+
+/* Node/Obstacle Tables and Lists */
+.node-checkbox-container,
+.obstacle-checkbox-container {
+    margin-top: 8px;
+}
+
+.node-list-wrapper {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.node-search-input {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.node-toggle-btn {
+    font-weight: 600;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.node-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+}
+
+.node-table th,
+.node-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid #ddd;
+    font-size: 13px;
+}
+
+.node-table th {
+    text-align: left;
+    font-weight: 600;
+    background: #f8f8f8;
+}
+
+.node-table td:first-child {
+    text-align: center;
+    width: 40px;
+}
+
+.node-table td:nth-child(2),
+.node-table td:nth-child(3) {
+    text-align: left;
+    white-space: nowrap;
+}
+
+.node-row:last-child td {
+    border-bottom: none;
+}
+
+/* Condition System Blocks */
+.condition-block {
+    position: relative;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    transition: background-color 0.3s ease;
+}
+
+/* Left vertical bar for condition type indicator */
+.condition-block::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+/* Logical conditions */
+.condition-block.and {
+    background: #dbeafe;
+    border: 1px solid #60a5fa;
+}
+.condition-block.and::before {
+    background: #3b82f6;
+}
+
+.condition-block.or {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+}
+.condition-block.or::before {
+    background: #f59e0b;
+}
+
+.condition-block.not {
+    background: #ffd6d6;
+    border: 1px solid #f87171;
+}
+.condition-block.not::before {
+    background: #ef4444;
+}
+
+/* Item / Event / Strat / Environment conditions */
+.condition-block.item {
+    background: #e6ffe6;
+    border: 1px solid #34d399;
+}
+.condition-block.item::before {
+    background: #10b981;
+}
+
+.condition-block.event {
+    background: #ffe6f0;
+    border: 1px solid #f472b6;
+}
+.condition-block.event::before {
+    background: #ec4899;
+}
+
+.condition-block.strat {
+    background: #e3f2fd;
+    border: 1px solid #64b5f6;
+}
+.condition-block.strat::before {
+    background: #2196f3;
+}
+
+.condition-block.environment {
+    background: #f0f0f0;
+    border: 1px solid #a3a3a3;
+}
+.condition-block.environment::before {
+    background: #525252;
+}
+
+/* Door Entry Components */
+.door-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+}
+
+.door-entry select {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* Enemy top row layout */
+.enemy-top-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.enemy-top-row > * {
+    flex: 1;
+}
+
+/* Drag & Drop Placeholders */
+.card-placeholder {
+    background: repeating-linear-gradient(
+        45deg,
+        #f8f9fa,
+        #f8f9fa 10px,
+        #e9ecef 10px,
+        #e9ecef 20px
+    );
+    border: 2px dashed #adb5bd;
+    border-radius: 12px;
+    min-height: 80px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.card-placeholder::after {
+    content: "Drop here";
+}
+
+/* Boolean Checkbox Grid Styling */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    column-gap: 8px;
+    row-gap: 4px;
+    align-items: center;
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+}
+
+.editor-checkbox-wrapper {
+    display: contents;
+}
+
+.editor-checkbox {
+    width: 18px;
+    height: 18px;
+    margin: 0 auto;
+    accent-color: #3498db;
+}
+
+.editor-checkbox-label {
+    display: block;
+    line-height: 1.2;
+    word-break: break-word;
+    font-size: 12px;
+    color: #333;
+}
+
+/* Footer */
+#footer {
+    padding: 16px 20px;
+    background: #f8f9fa;
+    border-top: 2px solid #e9ecef;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+#footer button {
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#closeBtn {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+}
+
+#saveBtn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #form {
+        padding: 12px;
+    }
+
+    .editor-card {
+        margin-bottom: 12px;
+        padding: 12px;
+    }
+
+    h3 {
+        font-size: 18px;
+    }
+
+    .enemy-top-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+}

@@ -28,14 +28,11 @@
             "main.js",
             "preload.js",
             "app.js",
-            "canvasRenderer.js",
-            "interactionHandler.js",
-            "roomManager.js",
-            "state.js",
-            "uiManager.js",
-            "utils.js",
             "styles.css",
-            "editor/**/*"
+            "editor/**/*",
+            "core/**/*",
+            "ui/**/*",
+            "data/**/*"
         ],
         "directories": {
             "buildResources": "assets",
