@@ -562,18 +562,17 @@ function createObstacleEditor(initialData = {}) {
    // ---- Specialized Creation Functions --------------------------------
    function createObstacleTypeSelect(selectedType = 'abstract') {
        const types = [
-           { value: 'abstract', text: 'Abstract' },
-           { value: 'enemies', text: 'Enemies' },
-           { value: 'inanimate', text: 'Inanimate' }
+           { value: 'abstract', text: `Abstract (e.g. "At the Power Bomb Item While in Artificial Morph")` },
+           { value: 'enemies', text: `Enemies (e.g. "Sidehopper trio")` },
+           { value: 'inanimate', text: `Inanimate (e.g. "Power Bomb Blocks")` }
        ];
        
        return createSelect(types, selectedType);
    }
    
    function createEnemySelect(selectedEnemy = '') {
-       const enemies = window.ENEMY_LIST || [
-           'Kihunter', 'Zoro', 'Yellow Space Pirate', 'Red Space Pirate',
-           'Green Space Pirate', 'Silver Space Pirate', 'Metroid', 'Rinka'
+       const enemies = window.CONDITION_ENEMIES || [
+           'Failed to load enemies/main.json. Was it included in the work directory?'
        ];
        
        const options = enemies.map(enemy => ({ value: enemy, text: enemy }));
