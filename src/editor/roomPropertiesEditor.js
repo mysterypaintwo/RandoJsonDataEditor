@@ -257,7 +257,7 @@ function createObstacleEditor(initialData = {}) {
   const nameInput = createInput('text', 'Obstacle name', data.name);
   const typeSelect = createObstacleTypeSelect(data.obstacleType);
   const noteArea = createTextarea('Note (optional)', data.note);
-  const devNoteInput = createInput('text', 'Developer Note', data.devNote);
+  //const devNoteInput = createInput('text', 'Developer Note', data.devNote);
 
   // Attach stable identity + live fields
   card._uid = card._uid || genUID();
@@ -272,7 +272,7 @@ function createObstacleEditor(initialData = {}) {
     nameInput,
     typeSelect,
     noteArea,
-    devNoteInput,
+    //devNoteInput,
     createRemoveButton('Remove Obstacle', () => removeAndRenumber(card, containers.obstacles, 'obstacles'))
   ]);
 
@@ -302,23 +302,22 @@ function createObstacleEditor(initialData = {}) {
        const enemySelect = createEnemySelect(data.enemyName);
        const quantityInput = createInput('number', 'Quantity', data.quantity, { min: 1 });
        const homeNodesList = createNodeCheckboxList(data.homeNodes, 'Home Nodes');
-       const betweenNodesList = createNodeCheckboxList(data.betweenNodes, 'Between Nodes');
+       const betweenNodesList = createNodeCheckboxList(data.betweenNodes, 'Enemy is encountered while travelling between these two nodes', 2);
        const spawnCondition = createConditionSection('Spawn Condition', data.spawnCondition);
        const stopSpawnCondition = createConditionSection('Stop Spawn Condition', data.stopSpawnCondition);
        const noteArea = createTextarea('Note (optional)', data.note);
-       const devNoteInput = createInput('text', 'Developer Note', data.devNote);
+       //const devNoteInput = createInput('text', 'Developer Note', data.devNote);
        
        // Assemble card content
        const topRow = createDiv([enemySelect, quantityInput], 'enemy-top-row');
        const content = createDiv([
            groupInput,
            topRow,
-           createLabel('Home Nodes:', homeNodesList),
-           createLabel('Between Nodes:', betweenNodesList),
+           createLabel('Enemy Patrols These Nodes:', homeNodesList),
+           createLabel('Encounter Enemy Between These Nodes (Max 2):', betweenNodesList),
            spawnCondition,
            stopSpawnCondition,
            noteArea,
-           devNoteInput,
            createRemoveButton('Remove Enemy', () => removeAndRenumber(card, containers.enemies, 'enemies'))
        ]);
    
@@ -346,28 +345,50 @@ function createObstacleEditor(initialData = {}) {
   
     // Core fields
     const nameInput = createInput('text', 'Strat Name', data.name);
-    const devNoteInput = createInput('text', 'Dev Note', data.devNote);
+    //const devNoteInput = createInput('text', 'Dev Note', data.devNote);
   
     // Conditions
     const conditionEditors = {
       entrance: createConditionSection('Entrance Condition', data.entranceCondition),
-      exit: createConditionSection('Exit Condition', data.exitCondition),
-      requires: createConditionSection('Requirements', data.requires)
+      requires: createConditionSection('Requirements', data.requires),
+      exit: createConditionSection('Exit Condition', data.exitCondition)
     };
   
     // Obstacle tables (ID-robust)
     const clearsObstaclesList = createObstacleCheckboxList(data.clearsObstacles, 'Clears Obstacles');
     const resetsObstaclesList = createObstacleCheckboxList(data.resetsObstacles, 'Resets Obstacles');
-  
+    
+    /*
+        comesThroughToilet: Indicates whether this strat is applicable if the Toilet comes between this room and the other room.
+        gModeRegainMobility: Indicates that this strat allows regaining mobility when entering with G-mode immobile.
+        bypassesDoorShell: Indicates that this strat allows exiting without opening the door.
+    */
+
+        const comesThroughToilet = createCheckbox('Toilet comes between this room and the other room (If this strat involves a door)', false);
+        const gModeRegainMobility = createCheckbox('Allows regaining mobility when entering with G-mode immobile', false);
+        const bypassesDoorShell = createCheckbox('Allows exiting without opening the door.', false);
+        
+        const boolCheckboxes = [
+            comesThroughToilet,
+            gModeRegainMobility,
+            bypassesDoorShell
+        ];
+        
+        const boolGrid = createCheckboxGrid(boolCheckboxes);
+        
     // Doors / Items / Flags (you can integrate your filtered node tables here as needed)
     const unlocksEditor = createUnlocksDoorsEditor(data.unlocksDoors);
   
     const content = createDiv([
       nameInput,
-      devNoteInput,
+      //devNoteInput,
       ...Object.values(conditionEditors),
+      'hr',
       createLabel('Clears Obstacles:', clearsObstaclesList),
       createLabel('Resets Obstacles:', resetsObstaclesList),
+      'hr',
+      boolGrid,
+      'hr',
       unlocksEditor,
       createRemoveButton('Remove Strat', () => removeAndRenumber(card, containers.strats, 'strats'))
     ]);
@@ -377,7 +398,7 @@ function createObstacleEditor(initialData = {}) {
   
     card.getValue = () => ({
       name: nameInput.value.trim(),
-      devNote: devNoteInput.value.trim(),
+      //devNote: devNoteInput.value.trim(),
       entranceCondition: conditionEditors.entrance.getValue(),
       exitCondition: conditionEditors.exit.getValue(),
       requires: conditionEditors.requires.getValue(),
@@ -430,7 +451,7 @@ function createObstacleEditor(initialData = {}) {
        
        const header = document.createElement('div');
        header.className = 'editor-card-header';
-       header.textContent = `${config.emoji} ${title} ${id != null ? `(ID: ${id})` : '(new)'}`;
+       header.textContent = `${config.emoji} ${title} ${id != null ? `(ID: ${id})` : ''}`;
        
        card.appendChild(header);
        return card;
@@ -449,7 +470,29 @@ function createObstacleEditor(initialData = {}) {
        
        return input;
    }
-   
+
+   function createCheckbox(labelText, checked = false) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'editor-checkbox-wrapper';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'editor-checkbox';
+    checkbox.checked = checked;
+    
+    const label = document.createElement('label');
+    label.className = 'editor-checkbox-label';
+    label.appendChild(document.createTextNode(labelText));
+    
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(label);
+    
+    // Add getValue helper
+    wrapper.getValue = () => checkbox.checked;
+    
+    return wrapper;
+}
+
    function createTextarea(placeholder, value = '') {
        const textarea = document.createElement('textarea');
        textarea.placeholder = placeholder;
@@ -476,15 +519,21 @@ function createObstacleEditor(initialData = {}) {
    }
    
    function createDiv(children = [], className = '') {
-       const div = document.createElement('div');
-       if (className) div.className = className;
-       
-       children.forEach(child => {
-           if (child) div.appendChild(child);
-       });
-       
-       return div;
-   }
+    const div = document.createElement('div');
+    if (className) div.className = className;
+
+    children.forEach(child => {
+        if (child === 'hr') {
+            const hr = document.createElement('hr');
+            hr.style.margin = '12px 0'; // optional: control spacing
+            div.appendChild(hr);
+        } else if (child) {
+            div.appendChild(child);
+        }
+    });
+
+    return div;
+}
    
    function createLabel(text, associatedElement) {
        const container = createDiv([]);
@@ -531,7 +580,7 @@ function createObstacleEditor(initialData = {}) {
        return createSelect(options, selectedEnemy);
    }
 
-   function createNodeCheckboxList(selectedNodes = [], title = '') {
+   function createNodeCheckboxList(selectedNodes = [], title = '', maxSelected = Infinity) {
     const container = document.createElement('div');
     container.className = 'node-checkbox-container';
 
@@ -583,6 +632,8 @@ function createObstacleEditor(initialData = {}) {
 
     const selectedSet = new Set(selectedNodes.map(String));
 
+    const checkboxes = []; // keep track of all checkboxes
+
     validRoomNodes.forEach(node => {
         const row = document.createElement('tr');
         row.className = 'node-row';
@@ -605,9 +656,25 @@ function createObstacleEditor(initialData = {}) {
 
         tbody.appendChild(row);
 
+        checkboxes.push(checkbox);
+
         // --- Watch checkbox change ---
-        checkbox.addEventListener('change', updateRowVisibility);
+        checkbox.addEventListener('change', () => {
+            updateRowVisibility();
+            enforceMaxSelected();
+        });
     });
+
+    // --- Helper to enforce max selected ---
+    function enforceMaxSelected() {
+        const checkedCount = checkboxes.filter(cb => cb.checked).length;
+        checkboxes.forEach(cb => {
+            if (!cb.checked) {
+                cb.disabled = checkedCount >= maxSelected;
+                cb.parentElement.style.opacity = cb.disabled ? '0.5' : '1'; // grey out
+            }
+        });
+    }
 
     // --- Helper to update row + table visibility ---
     function updateRowVisibility() {
@@ -623,7 +690,6 @@ function createObstacleEditor(initialData = {}) {
             }
         });
 
-        // Hide table + search bar if nothing visible
         table.style.display = anyVisible ? 'table' : 'none';
         searchInput.style.display = (anyVisible && toggleBtn.dataset.hidden === 'true') ? '' : (anyVisible ? '' : 'none');
     }
@@ -648,10 +714,11 @@ function createObstacleEditor(initialData = {}) {
 
     toggleBtn.dataset.hidden = 'false';
     updateRowVisibility();
+    enforceMaxSelected(); // enforce initially
 
     return container;
 }
-   
+
 function createObstacleCheckboxList(initialSelectedIds = [], title = '') {
     const container = document.createElement('div');
     container.className = 'obstacle-checkbox-container';
@@ -754,9 +821,20 @@ function createObstacleCheckboxList(initialSelectedIds = [], title = '') {
         const hideUnchecked = toggleBtn.dataset.hidden === 'true';
         const filter = (searchInput.value || '').toLowerCase();
     
+        const rows = tbody.querySelectorAll('tr.obstacle-row');
+    
+        // Short-circuit if there are no rows
+        if (!rows.length) {
+            // Hide the table wrapper entirely
+            listWrapper.style.display = 'none';
+            return;
+        } else {
+            listWrapper.style.display = '';
+        }
+    
         let anyVisible = false;
     
-        tbody.querySelectorAll('tr.obstacle-row').forEach(row => {
+        rows.forEach(row => {
             const checkbox = row.querySelector('input[type="checkbox"]');
             const idTxt = row.children[1]?.textContent?.toLowerCase() || '';
             const nameTxt = row.children[2]?.textContent?.toLowerCase() || '';
@@ -768,10 +846,10 @@ function createObstacleCheckboxList(initialSelectedIds = [], title = '') {
     
             if (row.style.display !== 'none') anyVisible = true;
         });
-    
-        // Show placeholder if zero rows match filter
+        
+        // Only show "(no obstacles match filter)" if there are actually obstacles
         let placeholder = tbody.querySelector('.no-match-row');
-        if (!anyVisible) {
+        if (rows.length && !anyVisible) {
             if (!placeholder) {
                 placeholder = document.createElement('tr');
                 placeholder.className = 'no-match-row';
@@ -786,15 +864,12 @@ function createObstacleCheckboxList(initialSelectedIds = [], title = '') {
         } else if (placeholder) {
             placeholder.style.display = 'none';
         }
-    
-        // Show/hide table + search based on any visible rows AND hideUnchecked toggle
-        const tableWrapper = listWrapper; // or whatever your container div for table+search is
-        if (!anyVisible && hideUnchecked) {
-            tableWrapper.style.display = 'none';
-        } else {
-            tableWrapper.style.display = '';
-        }
-    };    
+
+        // Hide search input if there are no obstacles at all
+    searchInput.style.display = rows.length > 0 ? '' : 'none';
+
+    }
+      
   
     function updateTableVisibility() {
         const hideUnchecked = toggleBtn.dataset.hidden === 'true';
@@ -852,7 +927,7 @@ function createObstacleCheckboxList(initialSelectedIds = [], title = '') {
        container.appendChild(label);
        
        const conditionDiv = createDiv([]);
-       const conditionEditor = makeConditionEditor(conditionDiv, initialCondition);
+       const conditionEditor = makeConditionEditor(conditionDiv, initialCondition, 0, true);
        container.appendChild(conditionDiv);
        
        container.getValue = () => conditionEditor.getValue();
@@ -861,7 +936,7 @@ function createObstacleCheckboxList(initialSelectedIds = [], title = '') {
    }
    
    function createUnlocksDoorsEditor(initialDoors = []) {
-       const card = createEditorCard('Unlocks Doors', null, { className: 'unlocks-doors', emoji: '🔑' });
+       const card = createEditorCard('Doors unlocked by this Strat', null, { className: 'unlocks-doors', emoji: '🔑' });
        const itemsContainer = createDiv([], 'door-entries');
    
        function addDoorEntry(entry = null) {
@@ -1135,3 +1210,15 @@ function createObstacleCheckboxList(initialSelectedIds = [], title = '') {
    function capitalize(str) {
        return str.charAt(0).toUpperCase() + str.slice(1);
    }
+
+   function createCheckboxGrid(checkboxes) {
+    const container = document.createElement('div');
+    container.className = 'checkbox-grid';
+    
+    checkboxes.forEach(cb => container.appendChild(cb));
+    
+    return container;
+}
+
+
+

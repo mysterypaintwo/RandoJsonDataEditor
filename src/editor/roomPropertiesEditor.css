@@ -461,3 +461,60 @@ button:hover {
         font-size: 18px;
     }
 }
+
+/* ==============================
+   Boolean Checkbox Styling
+============================== */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: 24px 1fr; /* 24px for checkbox, remaining space for text */
+    column-gap: 8px;
+    row-gap: 4px;
+    align-items: center; /* vertically center items in each row */
+    margin-top: 4px;
+}
+
+.editor-checkbox-wrapper {
+    display: contents; /* necessary for grid placement */
+}
+
+.editor-checkbox {
+    width: 18px;
+    height: 18px;
+    margin: 0 auto; /* center in left column */
+    accent-color: #3498db;
+}
+
+.editor-checkbox-label {
+    display: block;
+    line-height: 1.2;
+    word-break: break-word;
+    max-width: 90%;
+    font-size: 11px;
+    color: #333;
+}
+
+/* Indent child nodes */
+.editor-checkbox-wrapper.child-node {
+    margin-left: 16px;
+}
+
+.scrollable-checkbox-list .editor-checkbox-wrapper,
+.scroll-checkbox-list .editor-checkbox-wrapper {
+    padding: 4px 6px;
+    margin-bottom: 4px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.scrollable-checkbox-list .editor-checkbox-wrapper:hover,
+.scroll-checkbox-list .editor-checkbox-wrapper:hover {
+    background: rgba(52, 152, 219, 0.1);
+    border-color: #3498db;
+}
+
+.editor-checkbox-wrapper.child-node label {
+    font-size: 11px;
+}

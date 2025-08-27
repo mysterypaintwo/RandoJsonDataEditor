@@ -150,7 +150,9 @@
 		   entranceContainer.innerHTML = '';
 		   conditionEditors.entrance = makeConditionEditor(
 			   entranceContainer, 
-			   connectionData.entranceCondition || null
+			   connectionData.entranceCondition || null,
+			   0,
+			   true
 		   );
 	   }
 	   
@@ -160,7 +162,9 @@
 		   exitContainer.innerHTML = '';
 		   conditionEditors.exit = makeConditionEditor(
 			   exitContainer,
-			   connectionData.exitCondition || null
+			   connectionData.exitCondition || null,
+			   0,
+			   true
 		   );
 	   }
    }

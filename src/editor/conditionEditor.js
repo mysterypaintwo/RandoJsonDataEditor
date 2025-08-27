@@ -73,30 +73,32 @@ const CONDITION_CONFIG = {
 };
 
 // ---- Main Condition Editor Factory --------------------------------
-function makeConditionEditor(container, initialCondition, indentLevel = 0) {
+function makeConditionEditor(container, initialCondition, indentLevel = 0, isRoot = false) {
     // Prevent excessive nesting
-    if (indentLevel > CONDITION_CONFIG.maxDepth) {
+	if (indentLevel > CONDITION_CONFIG.maxDepth) {
         console.warn('Maximum condition nesting depth reached');
         return createEmptyConditionEditor(container);
     }
     
-    const editor = new ConditionEditor(container, initialCondition, indentLevel);
+    const editor = new ConditionEditor(container, initialCondition, indentLevel, isRoot);
     return editor;
 }
 
+
 // ---- ConditionEditor Class --------------------------------
 class ConditionEditor {
-    constructor(container, initialCondition, indentLevel = 0) {
-        this.container = container;
-        this.initialCondition = initialCondition;
-        this.indentLevel = indentLevel;
-        this.childEditors = [];
-        this.isCollapsed = false;
-        
-        this.createElement();
-        this.setupEventHandlers();
-        this.renderCondition();
-    }
+	constructor(container, initialCondition, indentLevel = 0, isRoot = false) {
+		this.container = container;
+		this.initialCondition = initialCondition;
+		this.indentLevel = indentLevel;
+		this.childEditors = [];
+		this.isCollapsed = false;
+		this.isRoot = isRoot; // properly mark root node
+	
+		this.createElement();
+		this.setupEventHandlers();
+		this.renderCondition();
+	}	
     
     createElement() {
         this.root = document.createElement('div');
@@ -222,6 +224,9 @@ class ConditionEditor {
         
         // Add type-specific CSS class
         this.root.className = `condition-block editor-card ${this.typeSelect.value}`;
+
+
+		this.removeButton.style.display = this.isRoot ? 'none' : 'block';
     }
     
     renderLogicalCondition(type) {
@@ -298,7 +303,7 @@ class ConditionEditor {
     
 	addChildCondition(initialData = null, appendAddButton = true) {
 		const childContainer = document.createElement('div');
-		const childEditor = makeConditionEditor(childContainer, initialData, this.indentLevel + 1);
+		const childEditor = makeConditionEditor(childContainer, initialData, this.indentLevel + 1, false);
 		this.childEditors.push(childEditor);
 	
 		// Insert child above the add button if it exists, otherwise append normally
