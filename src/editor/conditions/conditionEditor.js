@@ -540,7 +540,7 @@ class ConditionEditor {
 
 		// Add type-specific class for CSS hover
 		container.classList.add(label.toLowerCase()); // 'tech' or 'helper'
-		
+
 		const initialSet = new Set((initialSelected || []).map(x => String(x)));
 	
 		const collapseButton = document.createElement('button');
@@ -592,7 +592,7 @@ class ConditionEditor {
 			const nameCell = document.createElement('td');
 			nameCell.style.cursor = 'pointer';
 			nameCell.style.borderRight = '1px solid #ccc'; // vertical line to devNote
-			nameCell.style.paddingLeft = `${depth * 12}px`; // indentation for nested
+			nameCell.style.textAlign = 'left';
 	
 			let displayLabel = item.name;
 			if (item.extensionTech) displayLabel += ' [Ext]';
