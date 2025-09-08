@@ -34,7 +34,7 @@
 			clearsObstacles: normalizeArrayField(data, 'clearsObstacles'),
 			resetsObstacles: normalizeArrayField(data, 'resetsObstacles'),
 			comesThroughToilet: normalizeBooleanField(data, 'comesThroughToilet'),
-			gModeRegainMobility: normalizeBooleanField(data, 'gModeRegainMobility'),
+			//gModeRegainMobility: normalizeBooleanField(data, 'gModeRegainMobility'),
 			bypassesDoorShell: normalizeBooleanField(data, 'bypassesDoorShell'),
 			unlocksDoors: normalizeArrayField(data, 'unlocksDoors'),
 			collectsItems: normalizeArrayField(data, 'collectsItems'),
@@ -62,11 +62,11 @@
 		this.resetsObstaclesList = this.createObstacleCheckboxList(this.initialData.resetsObstacles, 'Resets Obstacles');
 		// Boolean checkboxes
 		this.comesThroughToilet = createCheckbox('Toilet comes between this room and the other room (If this strat involves a door)', this.initialData.comesThroughToilet);
-		this.gModeRegainMobility = createCheckbox('Allows regaining mobility when entering with G-mode immobile', this.initialData.gModeRegainMobility);
+		//this.gModeRegainMobility = createCheckbox('Allows regaining mobility when entering with G-mode immobile', this.initialData.gModeRegainMobility);
 		this.bypassesDoorShell = createCheckbox('Allows exiting without opening the door', this.initialData.bypassesDoorShell);
 		const boolCheckboxes = [
 			this.comesThroughToilet,
-			this.gModeRegainMobility,
+			//this.gModeRegainMobility,
 			this.bypassesDoorShell
 		];
 		const boolGrid = createCheckboxGrid(boolCheckboxes);
@@ -351,7 +351,7 @@
 			clearsObstacles: this.clearsObstaclesList.getSelectedIds(),
 			resetsObstacles: this.resetsObstaclesList.getSelectedIds(),
 			comesThroughToilet: this.comesThroughToilet.getValue(),
-			gModeRegainMobility: this.gModeRegainMobility.getValue(),
+			//gModeRegainMobility: this.gModeRegainMobility.getValue(),
 			bypassesDoorShell: this.bypassesDoorShell.getValue(),
 			unlocksDoors: this.unlocksEditor.getValue()
 		};
