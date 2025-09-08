@@ -191,8 +191,8 @@ function validateProperty(value, schema, propName) {
 }
 /* Room Properties Editor IPCs */
 // Handle request to open Room Properties Editor
-ipcMain.on('open-room-properties-editor', (event, roomPropertiesData) => {
-	console.log('Opening Room Properties Editor with data:', roomPropertiesData);
+ipcMain.on('open-room-properties-editor', (event, roomPropertiesData, enemyList, itemList, eventList, techMap, helperMap) => {
+	console.log('Opening Room Properties Editor with data:', roomPropertiesData, enemyList, itemList, eventList, techMap, helperMap);
 	const roomPropertiesWin = new BrowserWindow({
 		width: 700,
 		height: 800,
@@ -209,6 +209,12 @@ ipcMain.on('open-room-properties-editor', (event, roomPropertiesData) => {
 	roomPropertiesWin.loadFile(path.join(__dirname, 'editor/roomProperties/roomPropertiesEditor.html'));
 	// Store the data temporarily
 	roomPropertiesWin.roomPropertiesData = roomPropertiesData;
+	roomPropertiesWin.enemyList = enemyList;
+	roomPropertiesWin.itemList = itemList;
+	roomPropertiesWin.eventList = eventList;
+	roomPropertiesWin.techMap = techMap;
+	roomPropertiesWin.helperMap = helperMap;
+	
 	//console.log('Room Properties window finished loading - debug point');
 	roomPropertiesWin.webContents.once('did-finish-load', () => {
 		console.log('Room Properties window finished loading');
@@ -218,15 +224,20 @@ ipcMain.on('open-room-properties-editor', (event, roomPropertiesData) => {
 ipcMain.on('room-properties-editor-ready', (event) => {
 	console.log('Received room-properties-editor-ready signal');
 	const win = BrowserWindow.fromWebContents(event.sender);
-	if (win && win.roomPropertiesData) {
-		console.log('Sending Room Properties Editor data:', win.roomPropertiesData);
-		event.sender.send('init-room-properties-data', win.roomPropertiesData);
+	if (win && win.roomPropertiesData && win.enemyList) {
+		console.log('Sending Room Properties Editor data:', win.roomPropertiesData, win.enemyList, win.itemList, win.eventList, win.techMap, win.helperMap);
+		event.sender.send('init-room-properties-data', win.roomPropertiesData, win.enemyList, win.itemList, win.eventList, win.techMap, win.helperMap);
 		// Clean up the temporary data
 		delete win.roomPropertiesData;
+		delete win.enemyList;
+		delete win.itemList;
+		delete win.eventList;
+		delete win.techMap;
+		delete win.helperMap;
 	} else {
 		console.log('No window or no data found:', {
 			hasWindow: !!win,
-			hasData: !!(win && win.roomPropertiesData)
+			hasData: !!(win && win.roomPropertiesData && win.enemyList && win.itemList && win.eventList && win.techMap && win.helperMap)
 		});
 	}
 });

@@ -5,7 +5,7 @@
    door unlocking, and real-time title updates.
    ============================================================================= */
    class StratEditor extends BaseEditor {
-	constructor(initialData = {}, validRoomNodes = []) {
+	constructor(initialData = {}, validRoomNodes = [], enemyList, itemList, eventList, techMap, helperMap) {
 		const config = {
 			type: 'strats',
 			className: 'strat',
@@ -16,6 +16,13 @@
 		};
 		super(initialData, config);
 		this.validRoomNodes = validRoomNodes;
+		this.enemyList = enemyList;
+		this.itemList = itemList;
+		this.eventList = eventList;
+		this.techMap = techMap;
+		this.helperMap = helperMap;
+		
+		this.refreshAllConditionEditors();
 	}
 	normalizeData(data) {
 		return {
@@ -40,12 +47,16 @@
 	populateFields() {
 		this.nameInput = createInput('text', 'Strat Name', this.initialData.name);
 		this.devNoteInput = createInput('text', 'Dev Note', this.initialData.devNote);
+		
+		this._conditionEditors = [];
+
 		// Condition sections
 		this.conditionEditors = {
-			entrance: this.createConditionSection('Entrance Condition', this.initialData.entranceCondition),
-			requires: this.createConditionSection('Requirements', this.initialData.requires),
-			exit: this.createConditionSection('Exit Condition', this.initialData.exitCondition)
+			entrance: this.createConditionSection('Entrance Condition', this.initialData.entranceCondition, editor => this._conditionEditors.push(editor)),
+			requires: this.createConditionSection('Requirements', this.initialData.requires, editor => this._conditionEditors.push(editor)),
+			exit: this.createConditionSection('Exit Condition', this.initialData.exitCondition, editor => this._conditionEditors.push(editor))
 		};
+
 		// Obstacle tables
 		this.clearsObstaclesList = this.createObstacleCheckboxList(this.initialData.clearsObstacles, 'Clears Obstacles');
 		this.resetsObstaclesList = this.createObstacleCheckboxList(this.initialData.resetsObstacles, 'Resets Obstacles');
@@ -75,6 +86,9 @@
 			this.createRemoveButton('Remove Strat')
 		]);
 		this.contentArea.appendChild(content);
+
+		// Now that _conditionEditors exist, populate their lists
+		this.refreshAllConditionEditors();
 	}
 	setupTitleUpdates() {
 		this.nameInput.addEventListener('input', () => {
@@ -84,16 +98,23 @@
 	getTitleFromData() {
 		return this.nameInput?.value?.trim() || '';
 	}
-	createConditionSection(title, initialCondition) {
+	
+	createConditionSection(title, initialCondition, pushCallback) {
 		const container = createDiv([]);
 		const label = createLabel(`${title}:`, null);
 		container.appendChild(label);
+	
 		const conditionDiv = createDiv([]);
 		const conditionEditor = makeConditionEditor(conditionDiv, initialCondition, 0, true);
+	
+		// Store reference for later updates
+    	if (pushCallback) pushCallback(conditionEditor);
+	
 		container.appendChild(conditionDiv);
 		container.getValue = () => conditionEditor.getValue();
 		return container;
 	}
+	
 	createObstacleCheckboxList(initialSelectedIds, title) {
 		const container = document.createElement('div');
 		container.className = 'obstacle-checkbox-container';
@@ -335,4 +356,16 @@
 			unlocksDoors: this.unlocksEditor.getValue()
 		};
 	}
+
+	refreshAllConditionEditors() {
+		this._conditionEditors.forEach(editor => {
+			editor.setLists({
+				itemList: this.itemList,
+				eventList: this.eventList,
+				techMap: this.techMap,
+				helperMap: this.helperMap
+			});
+		});
+	}	
+	
 }

@@ -22,6 +22,11 @@ class RoomPropertiesEditor {
 		this.currentRoomData = null;
 		this.validRoomNodes = [];
 		this.containers = {};
+		this.enemyList = {};
+		this.itemList = [];
+		this.eventList = [];
+		this.techMap = {};
+		this.helperMap = {};
 		this.editorInstances = {
 			obstacles: new Map(),
 			enemies: new Map(),
@@ -84,8 +89,8 @@ class RoomPropertiesEditor {
 	}
 	setupIPCListeners() {
 		console.log('Setting up IPC listeners');
-		ipcRenderer.on('init-room-properties-data', (event, data) => {
-			this.handleRoomDataReceived(data);
+		ipcRenderer.on('init-room-properties-data', (event, data, enemyList, itemList, eventList, techMap, helperMap) => {
+			this.handleRoomDataReceived(data, enemyList, itemList, eventList, techMap, helperMap);
 		});
 		// Tell main process we're ready to receive data
 		console.log('Sending room-properties-editor-ready signal');
@@ -111,9 +116,15 @@ class RoomPropertiesEditor {
 			}
 		});
 	}
-	handleRoomDataReceived(data) {
-		console.log('Room Properties Editor received data:', data);
+	handleRoomDataReceived(data, enemyList, itemList, eventList, techMap, helperMap) {
+		console.log('Room Properties Editor received data:', data, enemyList, itemList, eventList, techMap, helperMap);
 		this.currentRoomData = data || {};
+		this.enemyList = enemyList || {};
+		this.itemList = itemList || [];
+		this.eventList = eventList || [];
+		this.techMap = techMap || {};
+		this.helperMap = helperMap || {};
+		
 		// Prepare node list for dropdowns
 		this.validRoomNodes = (this.currentRoomData.nodes || []).map(node => ({
 			id: node.id,
@@ -156,10 +167,17 @@ class RoomPropertiesEditor {
 		const container = this.containers[type];
 		if (!container || !config) return null;
 		let editor;
-		if (type === 'enemies' || type === 'strats') {
-			editor = new config.editorClass(initialData, this.validRoomNodes);
-		} else {
-			editor = new config.editorClass(initialData);
+
+		switch (type) {
+			case 'enemies':
+				editor = new config.editorClass(initialData, this.validRoomNodes, this.enemyList, this.itemList, this.eventList, this.techMap, this.helperMap);
+				break;
+			case 'strats':
+				editor = new config.editorClass(initialData, this.validRoomNodes, this.enemyList, this.itemList, this.eventList, this.techMap, this.helperMap);
+				break;
+			default:
+				editor = new config.editorClass(initialData);
+				break;
 		}
 		// Set up removal callback
 		editor.onRemove = () => {
@@ -175,7 +193,7 @@ class RoomPropertiesEditor {
 		return editor;
 	}
 	addNewEditor(type) {
-		return this.createEditor(type);
+		return this.createEditor(type, {});
 	}
 	renumberContainer(type) {
 		const container = this.containers[type];

@@ -108,7 +108,7 @@ export class CanvasRenderer {
 		// Adjust canvas intrinsic size to match current scale
 		this.canvas.width = image.width * scale;
 		this.canvas.height = image.height * scale;
-		// CSS size stays 1:1 with intrinsic canvas (optional)
+		// CSS size stays 1:1 with intrinsic canvas
 		this.canvas.style.width = this.canvas.width + "px";
 		this.canvas.style.height = this.canvas.height + "px";
 		// Disable smoothing for pixel-perfect visuals

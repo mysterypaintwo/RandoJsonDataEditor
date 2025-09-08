@@ -14,45 +14,57 @@ const CONDITION_CONFIG = {
 			description: 'No condition required'
 		},
 		'and': {
-			label: 'All of these must be true',
+			label: 'All of these must be true ("and")',
 			icon: '∧',
 			color: '#cce5ff',
 			description: 'Logical AND - all sub-conditions must be satisfied'
 		},
 		'or': {
-			label: 'Any of these can be true',
+			label: 'Any of these can be true ("or")',
 			icon: '∨',
 			color: '#fff0cc',
 			description: 'Logical OR - at least one sub-condition must be satisfied'
 		},
 		'not': {
-			label: 'None of these may be true',
+			label: 'None of these may be true ("not")',
 			icon: '¬',
 			color: '#ffd6d6',
 			description: 'Logical NOT - None of these sub-conditions may be satisfied'
 		},
-		'item': {
-			label: 'Requires item',
-			icon: '🎒',
-			color: '#e6ffe6',
-			description: 'Requires a specific item or upgrade'
-		},
 		'event': {
 			label: 'Triggered by event',
 			icon: '⚡',
-			color: '#ffe6f0',
+			color: '#ffdfee', // soft pink, visible but pastel
 			description: 'Requires a specific game event to have occurred'
 		},
-		'strat': {
-			label: 'Requires strat',
+		'item': {
+			label: 'Requires Item',
+			icon: '🎒',
+			color: '#e0ffe0', // soft mint green, still pastel but visible
+			description: 'Requires a specific item or upgrade'
+		},
+		'tech': {
+			label: 'Requires Tech',
 			icon: '📘',
-			color: '#e3f2fd',
-			description: 'Requires execution of a specific strategy or notable trick'
+			color: '#dbeeff', // soft baby blue
+			description: 'Requires execution of specific Tech Logical Requirement(s)'
+		},
+		'helper': {
+			label: 'Requires Helper',
+			icon: '📘',
+			color: '#f7c2c9', // toned-down pink, less saturated
+			description: 'Requires execution of specific Helper Logical Requirement(s)'
+		},
+		'damageRun': {
+			label: 'Hell Run / Cold Run',
+			icon: '🏃',
+			color: '#f4c28a', // soft yellow-beige
+			description: 'The amount of frames it takes to get through a heated or cold room'
 		},
 		'environment': {
 			label: 'Environment condition',
 			icon: '🌿',
-			color: '#f0f0f0',
+			color: '#e8e8e8', // light gray-beige, visible but subtle
 			description: 'Requires specific environmental conditions'
 		}
 	},
@@ -76,9 +88,12 @@ class ConditionEditor {
 		this.childEditors = [];
 		this.isCollapsed = false;
 		this.isRoot = isRoot;
+		this.itemList = null;
+		this.eventList = null;
+		this.techMap = null;
+		this.helperMap = null;
 		this.createElement();
 		this.setupEventHandlers();
-		this.renderCondition();
 	}
 	createElement() {
 		this.root = document.createElement('div');
@@ -168,12 +183,24 @@ class ConditionEditor {
 		const config = CONDITION_CONFIG.types[selectedType];
 		this.updateStyles(config);
 		this.clearChildren();
-		if (selectedType === 'and' || selectedType === 'or' || selectedType === 'not') {
-			this.renderLogicalCondition(selectedType);
-		} else if (selectedType === 'item' || selectedType === 'event' || selectedType === 'strat') {
-			this.renderSelectCondition(selectedType);
-		} else if (selectedType === 'environment') {
-			this.renderTextCondition();
+		switch (selectedType) {
+			case 'and':
+			case 'or':
+			case 'not':
+				this.renderLogicalCondition(selectedType);
+				break;
+			case 'item':
+			case 'event':
+			case 'tech':
+			case 'helper':
+				this.renderSelectCondition(selectedType);
+				break;
+			case 'environment':
+				this.renderEnvironmentCondition();
+				break;
+			case 'damageRun':
+				this.renderDamageRunCondition();
+				break;
 		}
 	}
 	updateStyles(config) {
@@ -201,26 +228,39 @@ class ConditionEditor {
 		this.childrenContainer.appendChild(this.addButton);
 	}
 	renderSelectCondition(type) {
-		const select = document.createElement('select');
-		select.style.marginLeft = '25px';
-		select.style.backgroundColor = CONDITION_CONFIG.types[type].color;
-		select.style.width = '100%';
-		const emptyOption = document.createElement('option');
-		emptyOption.value = '';
-		emptyOption.textContent = `(select ${type})`;
-		select.appendChild(emptyOption);
-		const options = this.getOptionsForType(type);
-		options.forEach(option => {
-			const opt = document.createElement('option');
-			opt.value = option;
-			opt.textContent = option;
-			select.appendChild(opt);
-		});
-		// Set initial value
-		if (this.initialCondition && this.initialCondition[type]) {
-			select.value = this.initialCondition[type];
+		const container = document.createElement('div');
+		container.style.marginLeft = '25px';
+		container.style.display = 'flex';
+		container.style.flexDirection = 'column';
+		container.style.gap = '6px';
+		if (type === 'tech') {
+			this._techCheckboxContainer = this.createMapCheckboxList(this.techMap, 'Tech', this.initialCondition?.tech || []);
+			container.appendChild(this._techCheckboxContainer);
+		} else if (type === 'helper') {
+			this._helperCheckboxContainer = this.createMapCheckboxList(this.helperMap, 'Helper', this.initialCondition?.helper || []);
+			container.appendChild(this._helperCheckboxContainer);
+		} else {
+			// fallback to single-select
+			const select = document.createElement('select');
+			select.style.width = '100%';
+			const emptyOption = document.createElement('option');
+			emptyOption.value = '';
+			emptyOption.textContent = `(select ${type})`;
+			select.appendChild(emptyOption);
+			container.appendChild(select);
+			const options = this.getOptionsForType(type);
+			options.forEach(option => {
+				const opt = document.createElement('option');
+				opt.value = option;
+				opt.textContent = option;
+				select.appendChild(opt);
+			});
+			// Set initial value
+			if (this.initialCondition && this.initialCondition[type]) {
+				select.value = this.initialCondition[type];
+			}
 		}
-		this.childrenContainer.appendChild(select);
+		this.childrenContainer.appendChild(container);
 	}
 	renderTextCondition() {
 		const input = document.createElement('input');
@@ -237,9 +277,39 @@ class ConditionEditor {
 		}
 		this.childrenContainer.appendChild(input);
 	}
+	renderEnvironmentCondition() {
+		const select = document.createElement('select');
+		select.style.marginLeft = '25px';
+		select.style.backgroundColor = CONDITION_CONFIG.types.environment.color;
+		select.style.width = '100%';
+		// Add placeholder
+		const emptyOption = document.createElement('option');
+		emptyOption.value = '';
+		emptyOption.textContent = '(select environment)';
+		select.appendChild(emptyOption);
+		// Add fixed options
+		['heated', 'freezing', 'underwater'].forEach(opt => {
+			const option = document.createElement('option');
+			option.value = opt;
+			option.textContent = opt;
+			select.appendChild(option);
+		});
+		// Set initial value
+		if (this.initialCondition && this.initialCondition.environment) {
+			select.value = this.initialCondition.environment;
+		}
+		this.childrenContainer.appendChild(select);
+	}
 	addChildCondition(initialData = null, appendAddButton = true) {
 		const childContainer = document.createElement('div');
 		const childEditor = makeConditionEditor(childContainer, initialData, this.indentLevel + 1, false);
+		// immediately give the child the current lists
+		childEditor.setLists({
+			itemList: this.itemList,
+			eventList: this.eventList,
+			techMap: this.techMap,
+			helperMap: this.helperMap
+		});
 		this.childEditors.push(childEditor);
 		if (this.addButton && appendAddButton) {
 			this.childrenContainer.insertBefore(childContainer, this.addButton);
@@ -262,145 +332,305 @@ class ConditionEditor {
 	}
 	getOptionsForType(type) {
 		if (type === 'item') {
-			return (window.CONDITION_ITEMS || this.getDefaultItems()).sort();
+			return (this.itemList || this.getDefaultItems()).sort();
 		} else if (type === 'event') {
-			return (window.CONDITION_EVENTS || this.getDefaultEvents()).sort();
-		} else if (type === 'strat') {
-			return this.getStratOptions().sort();
+			return (this.eventList || this.getDefaultEvents()).sort();
 		}
 		return [];
 	}
-	getStratOptions() {
-		// Combine regular strats and notables
-		const strats = [];
-		// Get regular strats
-		const stratCards = Array.from(document.querySelectorAll('.strat-card'));
-		stratCards.forEach(card => {
-			const nameInput = card._nameInput;
-			if (nameInput && nameInput.value.trim()) {
-				strats.push(nameInput.value.trim());
-			}
-		});
-		// Get notables (prefixed to distinguish them)
-		const notableCards = Array.from(document.querySelectorAll('.notable-card'));
-		notableCards.forEach(card => {
-			const nameInput = card._nameInput;
-			if (nameInput && nameInput.value.trim()) {
-				strats.push(`Notable: ${nameInput.value.trim()}`);
-			}
-		});
-		return strats.length > 0 ? strats : ['(no strats or notables defined yet)'];
-	}
 	getDefaultItems() {
 		return [
-			'Morph', 'Bombs', 'PowerBombs', 'Missiles', 'Super',
-			'Charge', 'Ice', 'Wave', 'Spazer', 'Plasma',
-			'Varia', 'Gravity', 'HiJump', 'SpeedBooster', 'SpaceJump',
-			'ScrewAttack', 'SpringBall', 'Grapple', 'XRay',
-			'canWallJump', 'canBombHop', 'canShineCharge'
+			'Items failed to load'
 		];
 	}
 	getDefaultEvents() {
 		return [
-			'f_DefeatedRidley', 'f_DefeatedKraid', 'f_DefeatedPhantoon', 'f_DefeatedDraygon',
-			'f_SavedAnimals', 'f_UsedAcidChozoStatue', 'f_MaridiaGlassTubesBroken'
+			'Events failed to load'
 		];
 	}
 	getValue() {
 		const selectedType = this.typeSelect.value;
-		if (!selectedType) {
-			return null;
-		}
-		if (selectedType === 'and' || selectedType === 'or' || selectedType === 'not') {
-			const childValues = this.childEditors
-				.map(editor => editor.getValue())
-				.filter(value => value !== null);
-			return childValues.length > 0 ? {
-				[selectedType]: childValues
-			} : null;
-		} else if (selectedType === 'item' || selectedType === 'event') {
-			const select = this.childrenContainer.querySelector('select');
-			const selectedValue = select ? select.value : '';
-			return selectedValue ? {
-				[selectedType]: selectedValue
-			} : null;
-		} else if (selectedType === 'strat') {
-			const select = this.childrenContainer.querySelector('select');
-			const selectedValue = select ? select.value : '';
-			if (!selectedValue) return null;
-			// Handle notable strats specially
-			if (selectedValue.startsWith('Notable: ')) {
-				const notableName = selectedValue.replace('Notable: ', '');
-				return {
-					notable: notableName
-				};
-			} else {
-				return {
-					strat: selectedValue
+		if (!selectedType) return null;
+		switch (selectedType) {
+			case 'and':
+			case 'or':
+			case 'not': {
+				const childValues = this.childEditors
+					.map(editor => editor.getValue())
+					.filter(v => v !== null);
+				return childValues.length ? {
+					[selectedType]: childValues
+				} : null;
+			}
+			case 'item':
+			case 'event': {
+				const select = this.childrenContainer.querySelector('select');
+				const val = select ? select.value : '';
+				return val ? {
+					[selectedType]: val
+				} : null;
+			}
+			case 'tech': {
+				if (!this._techCheckboxContainer) return null;
+				const selected = this._techCheckboxContainer.getSelectedValues();
+				return selected.length ? {
+					tech: selected
+				} : null;
+			}
+			case 'helper': {
+				if (!this._helperCheckboxContainer) return null;
+				const selected = this._helperCheckboxContainer.getSelectedValues();
+				return selected.length ? {
+					helper: selected
+				} : null;
+			}
+			case 'environment': {
+				const input = this.childrenContainer.querySelector('input');
+				const val = input ? input.value.trim() : '';
+				return val ? {
+					[selectedType]: val
+				} : null;
+			}
+			case 'damageRun': {
+				const typeVal = this._damageRunTypeSelect?.value;
+				const frameVal = parseInt(this._damageRunFrameInput?.value, 10);
+				if (!typeVal || isNaN(frameVal)) return null;
+				return typeVal === 'Hell Run' ? {
+					heatFrames: frameVal
+				} : {
+					coldFrames: frameVal
 				};
 			}
-		} else if (selectedType === 'environment') {
-			const input = this.childrenContainer.querySelector('input');
-			const inputValue = input ? input.value.trim() : '';
-			return inputValue ? {
-				[selectedType]: inputValue
-			} : null;
+			default:
+				return null;
 		}
-		return null;
 	}
 	isValid() {
 		const selectedType = this.typeSelect.value;
-		if (!selectedType) {
-			return true;
+		if (!selectedType) return true;
+		switch (selectedType) {
+			case 'and':
+			case 'or':
+			case 'not':
+				return this.childEditors.some(editor => editor.isValid());
+			case 'item':
+			case 'event':
+			case 'tech':
+			case 'helper': {
+				const select = this.childrenContainer.querySelector('select');
+				return !!(select && select.value);
+			}
+			case 'environment': {
+				const input = this.childrenContainer.querySelector('input');
+				return !!(input && input.value.trim());
+			}
+			case 'damageRun': {
+				const typeVal = this._damageRunTypeSelect?.value;
+				const frameVal = this._damageRunFrameInput?.value;
+				return typeVal && typeVal !== '(Select a Damage Run Type)' && frameVal !== '';
+			}
+			default:
+				return false;
 		}
-		if (selectedType === 'and' || selectedType === 'or' || selectedType === 'not') {
-			const validChildren = this.childEditors.filter(editor => editor.isValid());
-			return validChildren.length > 0;
-		} else if (selectedType === 'item' || selectedType === 'event' || selectedType === 'strat') {
-			const select = this.childrenContainer.querySelector('select');
-			return select && select.value;
-		} else if (selectedType === 'environment') {
-			const input = this.childrenContainer.querySelector('input');
-			return input && input.value.trim();
-		}
-		return false;
 	}
 	getDescription() {
 		const selectedType = this.typeSelect.value;
-		if (!selectedType) {
-			return 'No condition';
-		}
+		if (!selectedType) return 'No condition';
 		const config = CONDITION_CONFIG.types[selectedType];
-		if (selectedType === 'and' || selectedType === 'or') {
-			const childDescriptions = this.childEditors
-				.map(editor => editor.getDescription())
-				.filter(desc => desc !== 'No condition');
-			if (childDescriptions.length === 0) {
-				return 'No condition';
-			} else if (childDescriptions.length === 1) {
-				return childDescriptions[0];
-			} else {
+		switch (selectedType) {
+			case 'and':
+			case 'or': {
+				const childDescs = this.childEditors
+					.map(editor => editor.getDescription())
+					.filter(d => d !== 'No condition');
+				if (!childDescs.length) return 'No condition';
+				if (childDescs.length === 1) return childDescs[0];
 				const connector = selectedType === 'and' ? ' AND ' : ' OR ';
-				return `(${childDescriptions.join(connector)})`;
+				return `(${childDescs.join(connector)})`;
 			}
-		} else if (selectedType === 'not') {
-			const childDescriptions = this.childEditors
-				.map(editor => editor.getDescription())
-				.filter(desc => desc !== 'No condition');
-			if (childDescriptions.length === 0) {
-				return 'No condition';
+			case 'not': {
+				const childDescs = this.childEditors
+					.map(editor => editor.getDescription())
+					.filter(d => d !== 'No condition');
+				return childDescs.length ? `NOT (${childDescs[0]})` : 'No condition';
 			}
-			return `NOT (${childDescriptions[0]})`;
-		} else if (selectedType === 'item' || selectedType === 'event' || selectedType === 'strat') {
-			const select = this.childrenContainer.querySelector('select');
-			const value = select ? select.value : '';
-			return value ? `${config.label}: ${value}` : 'No condition';
-		} else if (selectedType === 'environment') {
-			const input = this.childrenContainer.querySelector('input');
-			const value = input ? input.value.trim() : '';
-			return value ? `${config.label}: ${value}` : 'No condition';
+			case 'item':
+			case 'event':
+			case 'tech':
+			case 'helper': {
+				const select = this.childrenContainer.querySelector('select');
+				const val = select ? select.value : '';
+				return val ? `${config.label}: ${val}` : 'No condition';
+			}
+			case 'environment': {
+				const input = this.childrenContainer.querySelector('input');
+				const val = input ? input.value.trim() : '';
+				return val ? `${config.label}: ${val}` : 'No condition';
+			}
+			default:
+				return config.label;
 		}
-		return config.label;
+	}
+	setLists({
+		itemList,
+		eventList,
+		techMap,
+		helperMap
+	}) {
+		this.itemList = itemList || [];
+		this.eventList = eventList || [];
+		this.techMap = techMap || {};
+		this.helperMap = helperMap || {};
+		// Render condition now that lists exist
+		this.renderCondition();
+		// propagate lists to child editors after children exist
+		this.childEditors.forEach(child => child.setLists({
+			itemList,
+			eventList,
+			techMap,
+			helperMap
+		}));
+	}
+	renderDamageRunCondition() {
+		const container = document.createElement('div');
+		container.style.marginLeft = '25px';
+		container.style.display = 'flex';
+		container.style.flexDirection = 'column';
+		container.style.gap = '6px';
+		// Dropdown for Hell / Cold
+		const typeSelect = document.createElement('select');
+		['(Select a Damage Run Type)', 'Hell Run', 'Cold Run'].forEach(opt => {
+			const option = document.createElement('option');
+			option.value = opt;
+			option.textContent = opt;
+			typeSelect.appendChild(option);
+		});
+		if (this.initialCondition?.damageRunType) {
+			typeSelect.value = this.initialCondition.damageRunType;
+		}
+		// Numbers-only input for frames
+		const frameInput = document.createElement('input');
+		frameInput.type = 'number';
+		frameInput.min = '0';
+		frameInput.max = '999999';
+		frameInput.step = '1';
+		frameInput.placeholder = '# of frames to reach goal (for avg. skilled player, no mistakes. Not TAS!)';
+		frameInput.style.width = '500px';
+		// Enforce valid integer on input
+		frameInput.addEventListener('input', () => {
+			if (frameInput.value === '') return;
+			let val = parseInt(frameInput.value, 10);
+			if (isNaN(val)) val = 0;
+			if (val < 0) val = 0;
+			if (val > 99999) val = 99999;
+			frameInput.value = val;
+		});
+		container.appendChild(typeSelect);
+		container.appendChild(frameInput);
+		this.childrenContainer.appendChild(container);
+		// Save references for getValue
+		this._damageRunTypeSelect = typeSelect;
+		this._damageRunFrameInput = frameInput;
+	}
+	createMapCheckboxList(map, label, initialSelected = []) {
+		const container = document.createElement('div');
+		container.className = 'checkbox-map-container';
+		// Normalize initialSelected into a Set of strings for fast lookups (support ids or names)
+		const initialSet = new Set((initialSelected || []).map(x => String(x)));
+		// Collapse toggle
+		const collapseButton = document.createElement('button');
+		collapseButton.textContent = 'Hide List ▼';
+		collapseButton.style.marginBottom = '6px';
+		collapseButton.style.padding = '2px 6px';
+		collapseButton.style.fontSize = '12px';
+		collapseButton.style.cursor = 'pointer';
+		container.appendChild(collapseButton);
+		const searchInput = document.createElement('input');
+		searchInput.type = 'text';
+		searchInput.placeholder = `Filter ${label}...`;
+		searchInput.style.marginBottom = '6px';
+		container.appendChild(searchInput);
+		const table = document.createElement('table');
+		table.style.width = '100%';
+		container.appendChild(table);
+		const tbody = document.createElement('tbody');
+		table.appendChild(tbody);
+		// Store { checkbox, item } — item is the original object (so name/id are always available)
+		const checkboxes = [];
+		// Recursive row builder (handles extensionTechs)
+		function renderItemRow(item, depth = 0) {
+			const row = document.createElement('tr');
+			// Checkbox cell
+			const cbCell = document.createElement('td');
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			// Determine checked state: initialSelected may contain id or name
+			const itemIdStr = item.id !== undefined && item.id !== null ? String(item.id) : null;
+			const isChecked = (itemIdStr && initialSet.has(itemIdStr)) || initialSet.has(String(item.name));
+			checkbox.checked = !!isChecked;
+			cbCell.appendChild(checkbox);
+			// Name cell (display only). Append [Ext] visually when flagged, but don't change item.name.
+			const nameCell = document.createElement('td');
+			let displayLabel = item.name;
+			if (item.extensionTech) displayLabel += ' [Ext]';
+			// Indentation for nested extensionTechs
+			nameCell.textContent = ' '.repeat(depth * 2) + displayLabel;
+			// Note/devNote cell (handle arrays)
+			const noteCell = document.createElement('td');
+			if (Array.isArray(item.devNote)) noteCell.textContent = item.devNote.join(' ');
+			else noteCell.textContent = item.devNote || item.note || '';
+			row.appendChild(cbCell);
+			row.appendChild(nameCell);
+			row.appendChild(noteCell);
+			tbody.appendChild(row);
+			// Save reference for export
+			checkboxes.push({
+				checkbox,
+				item
+			});
+			// Recurse into children (if any)
+			(item.extensionTechs || []).forEach(ext => renderItemRow(ext, depth + 1));
+		}
+		// Add categories and their items
+		for (const [categoryName, catObj] of map.entries()) {
+			const catRow = document.createElement('tr');
+			const catCell = document.createElement('td');
+			catCell.colSpan = 3;
+			catCell.textContent = categoryName;
+			catCell.style.fontWeight = 'bold';
+			catRow.appendChild(catCell);
+			tbody.appendChild(catRow);
+			(catObj.items || []).forEach(item => renderItemRow(item));
+		}
+		// Search filter — includes name and the note/devNote column
+		searchInput.addEventListener('input', () => {
+			const filter = searchInput.value.toLowerCase();
+			tbody.querySelectorAll('tr').forEach(row => {
+				const nameCell = row.querySelector('td:nth-child(2)');
+				const noteCell = row.querySelector('td:nth-child(3)');
+				if (!nameCell) return; // skip category header rows
+				const textToCheck = nameCell.textContent + ' ' + (noteCell ? noteCell.textContent : '');
+				row.style.display = textToCheck.toLowerCase().includes(filter) ? '' : 'none';
+			});
+		});
+		// Collapse/Expand behavior
+		collapseButton.addEventListener('click', () => {
+			const isHidden = table.style.display === 'none';
+			table.style.display = isHidden ? '' : 'none';
+			searchInput.style.display = isHidden ? '' : 'none';
+			collapseButton.textContent = isHidden ? 'Hide List ▼' : 'Show List ▶';
+		});
+		// Export selected names — do NOT include the UI-only "[Ext]" marker
+		container.getSelectedValues = () => {
+			return checkboxes
+				.filter(cb => cb.checkbox.checked)
+				.map(cb => {
+					// prefer the original item.name (never include displayLabel '[Ext]')
+					return cb.item && cb.item.name ? cb.item.name : null;
+				})
+				.filter(name => name !== null);
+		};
+		return container;
 	}
 }
 

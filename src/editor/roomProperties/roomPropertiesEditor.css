@@ -365,6 +365,55 @@ button:hover {
     background: #525252;
 }
 
+.condition-block.tech {
+    background: #e3f2fd;
+    border: 1px solid #64b5f6;
+}
+.condition-block.tech::before {
+    background: #2196f3;
+}
+
+.condition-block.helper {
+    background: #fdb0c0;
+    border: 1px solid #f76c8d;
+}
+.condition-block.helper::before {
+    background: #f5426c;
+}
+
+.condition-block.damageRun {
+    background: #f4c28a;      /* soft desaturated orange */
+    border: 1px solid #e0a85c; /* slightly darker orange for border */
+}
+.condition-block.damageRun::before {
+    background: #d18f4f;      /* muted orange for icon/marker */
+}
+
+/* Tree/Checkbox Lists inside Condition Blocks */
+.condition-block .tree-list,
+.condition-block .checkbox-list {
+    max-height: 300px; /* prevents huge lists from dominating the UI */
+    overflow-y: auto;
+    margin-top: 6px;
+    padding-left: 4px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 4px;
+}
+
+.condition-block .editor-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.condition-block .editor-checkbox-wrapper:hover {
+    background: rgba(52, 152, 219, 0.05); /* subtle highlight */
+}
+
 /* Door Entry Components */
 .door-entry {
     display: flex;

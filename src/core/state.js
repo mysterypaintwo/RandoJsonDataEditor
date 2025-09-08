@@ -11,6 +11,17 @@ class State {
 		this.currentRoomPath = null;
 		this.currentRoomImage = null;
 		this.nodes = [];
+
+		// Enemy database
+		this.enemies = [];
+
+		// Items database
+		this.itemsData = null;
+
+		// Tech and helpers data
+		this.techMap = new Map();       // key: tech/extensionTech name -> { id, notes, categories }
+		this.helperMap = new Map();     // key: helper name -> { notes, categories }
+
 		// Current area/subarea for connection lookups
 		this.currentArea = null;
 		this.currentSubarea = null;
@@ -48,12 +59,22 @@ class State {
 	 * Set the working directory
 	 * @param {string} dir - Path to working directory
 	 */
-	setWorkingDir(dir) {
+	async setWorkingDir(dir) {
 		this.workingDir = dir;
 		// Clear connection cache when directory changes
 		this.connectionCache.clear();
 		this.interConnections = null;
 		this.intraConnections.clear();
+	
+		// Initialize the Enemy database
+		await this.initEnemyDatabase();
+
+		// Initialize the Items and Events database
+		await this.initItemAndEventsDatabase();
+
+		// Initialize the Tech and Helpers database
+		await state.initTech();
+		await state.initHelpers();
 	}
 	/**
 	 * Load room data in new format
@@ -324,6 +345,174 @@ class State {
 	updateNodeDimensions(node, width, height) {
 		node.w = width;
 		node.h = height;
+	}
+
+	/**
+	 * Initialize the enemy database
+	 */
+	async initEnemyDatabase() {
+		try {
+			const enemyPath = `${this.workingDir}/enemies/main.json`;
+			const data = await window.api.loadJson(enemyPath);
+			if (data?.enemies) {
+				this.enemies = data.enemies;
+			} else {
+				console.warn("Enemy database missing or malformed:", data);
+				this.enemies = [];
+			}
+		} catch (err) {
+			console.error("Failed to initialize enemy database:", err);
+			this.enemies = [];
+		}
+	}
+
+	/**
+	 * Get list of enemy names
+	 * @returns {string[]} Array of enemy names
+	 */
+	getEnemyList() {
+		return this.enemies.map(e => e.name);
+	}
+
+	  /**
+   * Initialize the items database by reading items.json
+   */
+	  async initItemAndEventsDatabase() {
+		if (!this.workingDir) {
+		  console.warn("Working directory not set, cannot load items.json");
+		  this.itemsData = null;
+		  return;
+		}
+		try {
+		  const itemsPath = `${this.workingDir}/items.json`;
+		  const data = await window.api.loadJson(itemsPath);
+		  // Deep clone to avoid mutations
+		  this.itemsData = data ? JSON.parse(JSON.stringify(data)) : null;
+		} catch (err) {
+		  console.error("Failed to initialize items database:", err);
+		  this.itemsData = null;
+		}
+	  }
+	
+	/**
+	 * Get all item names, excluding ETank and ReserveX, sorted alphabetically
+	 * @returns {string[]}
+	 */
+	getItemList() {
+		if (!this.itemsData) return [];
+		const itemArrays = [
+			this.itemsData.implicitItems || [],
+			(this.itemsData.upgradeItems || []).map(i => i.name),
+			(this.itemsData.expansionItems || []).map(i => i.name)
+		];
+		const combined = itemArrays.flat();
+		return combined
+			.filter(name => name !== "ETank" && name !== "ReserveX")
+			.sort((a, b) => a.localeCompare(b));
+	}
+
+	/**
+	 * Get all game flags/events, sorted alphabetically
+	 * @returns {string[]}
+	 */
+	getEventList() {
+		if (!this.itemsData) return [];
+		return (this.itemsData.gameFlags || []).slice().sort((a, b) => a.localeCompare(b));
+	}
+
+/**
+ * Initialize Tech data from <working_dir>/tech.json
+ */
+async initTech() {
+	if (!this.workingDir) {
+		console.warn("Working directory not set, cannot load tech.json");
+		return;
+	}
+
+	try {
+		const techPath = `${this.workingDir}/tech.json`;
+		const data = await window.api.loadJson(techPath);
+		if (!data?.techCategories) {
+			console.warn("No techCategories found in tech.json");
+			return;
+		}
+
+		this.techMap.clear();
+
+		// Helper function to recursively process techs and their extensions
+		const processTechs = (techs, isExtension = false) => {
+			return techs.map(t => {
+				const techObj = {
+					id: t.id,
+					name: t.name,
+					note: t.note,
+					devNote: t.devNote,
+					extensionTech: isExtension,
+					extensionTechs: t.extensionTechs ? processTechs(t.extensionTechs, true) : []
+				};
+				return techObj;
+			});
+		};
+
+		// Populate the Map: key = category name, value = { items: [...] }
+		for (const cat of data.techCategories) {
+			this.techMap.set(cat.name, {
+				items: processTechs(cat.techs)
+			});
+		}
+	} catch (err) {
+		console.error("Failed to initialize tech data:", err);
+	}
+}
+
+
+	/**
+	 * Load and initialize helpers data from helpers.json
+	 */
+	async initHelpers() {
+		if (!this.workingDir) {
+			console.warn("Working directory not set, cannot load helpers.json");
+			return;
+		}
+	
+		try {
+			const helperPath = `${this.workingDir}/helpers.json`;
+			const data = await window.api.loadJson(helperPath);
+			if (!data?.helperCategories) return;
+	
+			for (const cat of data.helperCategories) {
+				const categoryObj = { items: [] };
+				for (const helper of cat.helpers || []) {
+					categoryObj.items.push({
+						name: helper.name,
+						note: helper.note || null,
+						devNote: helper.devNote || null
+					});
+				}
+				this.helperMap.set(cat.name, categoryObj);
+			}
+		} catch (err) {
+			console.error("Failed to initialize helpers data:", err);
+		}
+	}
+	
+	
+	/**
+	 * Get all available Tech
+	 * @returns {string[]}
+	 */
+	getTechMap() {
+		if (!this.techMap) return {};
+		return this.techMap;
+	}
+
+	/**
+	 * Get all available Helpers
+	 * @returns {string[]}
+	 */
+	getHelperMap() {
+		if (!this.helperMap) return {};
+		return this.helperMap;
 	}
 }
 // Create and export singleton instance

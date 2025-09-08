@@ -81,7 +81,7 @@
        display: flex; /* Horizontal layout */
        gap: 10px; /* Space between left and right panes */
        padding: 10px; /* Inner spacing */
-       height: 80vh; /* Optional fixed height */
+       height: 80vh; /* Fixed height */
    }
    
    /* =========================================================
@@ -150,7 +150,7 @@
        overflow: auto; /* Enable scrollbars when content exceeds container */
        min-width: 0; /* Allow container to shrink for flex layouts */
        min-height: 0;
-       background: #f0f0f0; /* Optional light grey background for canvas area */
+       background: #f0f0f0; /* Light grey background for canvas area */
    }
    
    /* Room canvas itself */
@@ -161,7 +161,7 @@
        max-width: none; /* Allow canvas to exceed container width */
    }
    
-   /* Optional static map placeholder (not used dynamically) */
+   /* Static map placeholder (not used dynamically) */
    #map {
        width: 1000px;
        height: 1000px;

@@ -5,7 +5,7 @@
    spawn conditions, and real-time title updates.
    ============================================================================= */
    class EnemyEditor extends BaseEditor {
-	constructor(initialData = {}, validRoomNodes = []) {
+	constructor(initialData = {}, validRoomNodes = [], enemyList, itemList, eventList, techMap, helperMap) {
 		const config = {
 			type: 'enemies',
 			className: 'enemy',
@@ -15,7 +15,18 @@
 			idPrefix: 'e'
 		};
 		super(initialData, config);
+		this.enemyList = enemyList;
 		this.validRoomNodes = validRoomNodes;
+
+		this.itemList = itemList;
+		this.eventList = eventList;
+		this.techMap = techMap;
+		this.helperMap = helperMap;
+
+		// Patch up editors after data arrives
+		this.refreshNodeLists();
+		this.refreshEnemyList();
+		this.refreshAllConditionEditors();
 	}
 	normalizeData(data) {
 		return {
@@ -39,8 +50,11 @@
 		});
 		this.homeNodesList = this.createNodeCheckboxList(this.initialData.homeNodes, 'Home Nodes');
 		this.betweenNodesList = this.createNodeCheckboxList(this.initialData.betweenNodes, 'Between Nodes', 2);
-		this.spawnCondition = this.createConditionSection('Spawn Condition', this.initialData.spawnCondition);
-		this.stopSpawnCondition = this.createConditionSection('Stop Spawn Condition', this.initialData.stopSpawnCondition);
+		
+		this._conditionEditors = [];
+
+		this.spawnCondition = this.createConditionSection('Spawn Condition', this.initialData.spawnCondition, editor => this._conditionEditors.push(editor));
+		this.stopSpawnCondition = this.createConditionSection('Stop Spawn Condition', this.initialData.stopSpawnCondition, editor => this._conditionEditors.push(editor));
 		this.noteArea = createTextarea('Note (optional)', this.initialData.note);
 		this.devNoteInput = createInput('text', 'Developer Note', this.initialData.devNote);
 		const topRow = createDiv([this.enemySelect, this.quantityInput], 'enemy-top-row');
@@ -65,6 +79,46 @@
 			this.updateTitle();
 		});
 	}
+	refreshEnemyList() {
+		if (!this.enemySelect || !this.enemyList || this.enemyList.length === 0) return;
+	
+		const currentValue = this.enemySelect.value;
+		const newSelect = this.createEnemySelect(currentValue);
+	
+		// Replace DOM node
+		this.enemySelect.parentNode.replaceChild(newSelect, this.enemySelect);
+		this.enemySelect = newSelect;
+	
+		// Re-attach title updates
+		this.enemySelect.addEventListener('change', () => {
+			this.updateTitle();
+		});
+	}	
+    refreshNodeLists() {
+        // Only refresh if the elements exist and we have nodes
+        if (this.homeNodesList && this.betweenNodesList && this.validRoomNodes && this.validRoomNodes.length > 0) {
+            // Get current selections, but safely handle the case where getSelectedValues doesn't exist
+            const homeSelectedNodes = (this.homeNodesList.getSelectedValues) 
+                ? this.homeNodesList.getSelectedValues() 
+                : this.initialData.homeNodes || [];
+            const betweenSelectedNodes = (this.betweenNodesList.getSelectedValues) 
+                ? this.betweenNodesList.getSelectedValues() 
+                : this.initialData.betweenNodes || [];
+            
+            // Find the containers and replace them
+            const homeContainer = this.homeNodesList.parentNode;
+            const betweenContainer = this.betweenNodesList.parentNode;
+            
+            homeContainer.removeChild(this.homeNodesList);
+            betweenContainer.removeChild(this.betweenNodesList);
+            
+            this.homeNodesList = this.createNodeCheckboxList(homeSelectedNodes, 'Home Nodes');
+            this.betweenNodesList = this.createNodeCheckboxList(betweenSelectedNodes, 'Between Nodes', 2);
+            
+            homeContainer.appendChild(this.homeNodesList);
+            betweenContainer.appendChild(this.betweenNodesList);
+        }
+    }
 	getTitleFromData() {
 		const groupName = this.groupInput?.value?.trim();
 		const enemyName = this.enemySelect?.value;
@@ -78,13 +132,15 @@
 		return null;
 	}
 	createEnemySelect(selectedEnemy) {
-		const enemies = window.CONDITION_ENEMIES || [
-			'Failed to load enemies/main.json. Was it included in the work directory?'
-		];
+		const enemies = this.enemyList?.length
+			? this.enemyList
+			: ['(no enemies available)'];
+
 		const options = enemies.map(enemy => ({
 			value: enemy,
 			text: enemy
 		}));
+
 		return createSelect(options, selectedEnemy);
 	}
 	createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity) {
@@ -114,16 +170,19 @@
 		table.appendChild(thead);
 		const tbody = document.createElement('tbody');
 		table.appendChild(tbody);
-		if (!this.validRoomNodes || !this.validRoomNodes.length) {
-			const emptyRow = document.createElement('tr');
-			const emptyCell = document.createElement('td');
-			emptyCell.colSpan = 3;
-			emptyCell.textContent = '(no nodes available)';
-			emptyCell.style.fontStyle = 'italic';
-			emptyRow.appendChild(emptyCell);
-			tbody.appendChild(emptyRow);
-			return container;
-		}
+        if (!this.validRoomNodes || !this.validRoomNodes.length) {
+            const emptyRow = document.createElement('tr');
+            const emptyCell = document.createElement('td');
+            emptyCell.colSpan = 3;
+            emptyCell.textContent = '(no nodes available)';
+            emptyCell.style.fontStyle = 'italic';
+            emptyRow.appendChild(emptyCell);
+            tbody.appendChild(emptyRow);
+            
+            // Always add the getSelectedValues method, even when empty
+            container.getSelectedValues = () => [];
+            return container;
+        }
 		const selectedSet = new Set(selectedNodes.map(String));
 		const checkboxes = [];
 		this.validRoomNodes.forEach(node => {
@@ -201,12 +260,16 @@
 		};
 		return container;
 	}
-	createConditionSection(title, initialCondition) {
+	createConditionSection(title, initialCondition, pushCallback) {
 		const container = createDiv([]);
 		const label = createLabel(`${title}:`, null);
 		container.appendChild(label);
 		const conditionDiv = createDiv([]);
 		const conditionEditor = makeConditionEditor(conditionDiv, initialCondition, 0, true);
+		
+		// Store reference for later updates
+    	if (pushCallback) pushCallback(conditionEditor);
+
 		container.appendChild(conditionDiv);
 		container.getValue = () => conditionEditor.getValue();
 		return container;
@@ -225,4 +288,15 @@
 			devNote: this.devNoteInput.value.trim()
 		};
 	}
+	
+	refreshAllConditionEditors() {
+		this._conditionEditors.forEach(editor => {
+			editor.setLists({
+				itemList: this.itemList,
+				eventList: this.eventList,
+				techMap: this.techMap,
+				helperMap: this.helperMap
+			});
+		});
+	}	
 }

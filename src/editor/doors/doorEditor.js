@@ -14,17 +14,14 @@
    Dependencies:
    - Electron IPC for communication with main process
    - conditionEditor.js for entrance/exit condition editing
-   - Various condition data files (conditionEnemies.js, conditionItems.js, etc.)
+   - Various condition data files (conditionItems.js, etc.)
    ============================================================================= */
    const {
 	ipcRenderer
 } = require('electron');
 // ---- Module State --------------------------------
 let doorData = null;
-let conditionEditors = {
-	entrance: null,
-	exit: null
-};
+
 // Door configuration constants
 const DOOR_TYPES = [{
 		value: 'HorizontalDoor',
@@ -96,7 +93,6 @@ function handleDoorDataReceived(event, data) {
 	populateDoorTypeOptions(doorData.connection?.doorType);
 	populateDirectionOptions(doorData.connection?.directionType);
 	populateTitleField(doorData.connection?.title);
-	initializeConditionEditors(doorData.connection);
 }
 
 function updateHeaderInfo(data) {
@@ -156,37 +152,6 @@ function populateTitleField(title = '') {
 	}
 }
 
-function initializeConditionEditors(connectionData = {}) {
-	// Clear existing condition editors
-	clearConditionEditors();
-	// Initialize entrance condition editor
-	const entranceContainer = document.getElementById('entranceCondition');
-	if (entranceContainer) {
-		entranceContainer.innerHTML = '';
-		conditionEditors.entrance = makeConditionEditor(
-			entranceContainer,
-			connectionData.entranceCondition || null,
-			0,
-			true
-		);
-	}
-	// Initialize exit condition editor  
-	const exitContainer = document.getElementById('exitCondition');
-	if (exitContainer) {
-		exitContainer.innerHTML = '';
-		conditionEditors.exit = makeConditionEditor(
-			exitContainer,
-			connectionData.exitCondition || null,
-			0,
-			true
-		);
-	}
-}
-
-function clearConditionEditors() {
-	conditionEditors.entrance = null;
-	conditionEditors.exit = null;
-}
 // ---- UI Creation Helpers --------------------------------
 function createRadioOption(name, value, label, isChecked = false) {
 	const labelElement = document.createElement('label');
@@ -215,9 +180,7 @@ function handleSave() {
 			showValidationError('Please select a direction type');
 			return;
 		}
-		// Collect condition data
-		const entranceCondition = conditionEditors.entrance?.getValue() || null;
-		const exitCondition = conditionEditors.exit?.getValue() || null;
+		
 		// Build save payload
 		const payload = {
 			dir: doorData?.dir || document.getElementById('doorDir')?.textContent,
@@ -225,8 +188,6 @@ function handleSave() {
 				doorType: doorTypeElement.value,
 				directionType: directionTypeElement.value,
 				title: titleElement?.value?.trim() || '',
-				entranceCondition: entranceCondition,
-				exitCondition: exitCondition
 			}
 		};
 		console.log('Saving door data:', payload);
