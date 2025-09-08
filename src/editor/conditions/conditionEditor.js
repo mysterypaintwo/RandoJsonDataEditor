@@ -10,79 +10,80 @@ const CONDITION_CONFIG = {
 		'': {
 			label: '(no condition)',
 			icon: '•',
-			color: '#f8f8f8',
+			color: '#f8f8f8', // neutral background
 			description: 'No condition required'
 		},
 		'and': {
 			label: 'All of these must be true ("and")',
 			icon: '∧',
-			color: '#cce5ff',
+			color: '#99ccff', // pastel blue, logical AND
 			description: 'Logical AND - all sub-conditions must be satisfied'
 		},
 		'or': {
 			label: 'Any of these can be true ("or")',
 			icon: '∨',
-			color: '#fff0cc',
+			color: '#ffe699', // pastel yellow, logical OR
 			description: 'Logical OR - at least one sub-condition must be satisfied'
 		},
 		'not': {
 			label: 'None of these may be true ("not")',
 			icon: '¬',
-			color: '#ffd6d6',
-			description: 'Logical NOT - None of these sub-conditions may be satisfied'
+			color: '#ff9999', // pastel red, logical NOT
+			description: 'Logical NOT - none of these sub-conditions may be satisfied'
 		},
 		'event': {
 			label: 'Triggered by event',
 			icon: '⚡',
-			color: '#ffdfee', // soft pink, visible but pastel
+			color: '#ffb3d1', // soft pastel pink, event-based
 			description: 'Requires a specific game event to have occurred'
 		},
 		'item': {
 			label: 'Requires Item',
 			icon: '🎒',
-			color: '#e0ffe0', // soft mint green, still pastel but visible
+			color: '#d6b3ff', // pastel lavender, item-based
 			description: 'Requires a specific item or upgrade'
 		},
 		'tech': {
 			label: 'Requires Tech',
 			icon: '📘',
-			color: '#dbeeff', // soft baby blue
+			color: '#99d0ff', // light pastel blue, tech-based
 			description: 'Requires execution of specific Tech Logical Requirement(s)'
 		},
 		'helper': {
 			label: 'Requires Helper',
 			icon: '📘',
-			color: '#f7c2c9', // toned-down pink, less saturated
+			color: '#f7c2c9', // soft pink, helper-based
 			description: 'Requires execution of specific Helper Logical Requirement(s)'
 		},
 		'damageRun': {
 			label: 'Hell Run / Cold Run',
 			icon: '🏃',
-			color: '#f4c28a', // soft yellow-beige
+			color: '#e6b87a', // soft beige-orange, damage/cold run
 			description: 'The amount of frames it takes to get through a heated or cold room'
 		},
 		'environment': {
 			label: 'Environment condition',
 			icon: '🌿',
-			color: '#e8e8e8', // light gray-beige, visible but subtle
+			color: '#66d1b0', // mid teal, environment-based
 			description: 'Requires specific environmental conditions'
 		},
 		'free': {
 			label: 'This condition is *Always* true ("free")',
 			icon: '♾️',
-			color: '#e0f7e0',
+			color: '#a6f4a6', // strong pastel green, always true
 			description: 'This condition is always satisfied'
 		},
 		'never': {
 			label: 'This condition is *Never* true ("never")',
 			icon: '🚫',
-			color: '#f7e0e0',
-			description: 'This condition can never be satisfied'
+			color: '#f4a6a6', // strong pastel red, never true
+			description: 'This condition can never be satisfied. Useful for differentiating between vanilla and rando behavior.'
 		}
 	},
 	indentSize: 15,
 	maxDepth: 10
 };
+
 // Main factory function
 function makeConditionEditor(container, initialCondition, indentLevel = 0, isRoot = false) {
 	if (indentLevel > CONDITION_CONFIG.maxDepth) {

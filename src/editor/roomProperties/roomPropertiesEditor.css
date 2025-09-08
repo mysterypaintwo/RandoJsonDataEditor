@@ -286,17 +286,19 @@ button:hover {
     border-bottom: none;
 }
 
-/* Condition System Blocks */
-.condition-block {
+/* =============================================================================
+   Condition System Blocks
+   ============================================================================= */
+   .condition-block {
     position: relative;
     border-radius: 6px;
     padding: 8px 12px;
     margin-bottom: 6px;
     transition: background-color 0.3s ease;
-}
-
-.condition-block.none::before {
-    background: transparent;
+    background: inherit;
+    border: 1px solid transparent;
+    font-weight: 600;
+    color: rgba(0,0,0,0.85);
 }
 
 /* Left vertical bar for condition type indicator */
@@ -312,126 +314,57 @@ button:hover {
     background: currentColor;
 }
 
-/* Logical conditions */
-.condition-block.and {
-    background: #dbeafe;
-    border: 1px solid #60a5fa;
-}
-.condition-block.and::before {
-    background: #3b82f6;
-}
+/* Condition Types */
+.condition-block.and { color: #0066cc; border: 1px solid rgba(51,153,255,0.4); }
+.condition-block.or { color: #cc8400; border: 1px solid rgba(255,204,51,0.4); }
+.condition-block.not { color: #ff3333; border: 1px solid rgba(255,102,102,0.4); }
 
-.condition-block.or {
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
-}
-.condition-block.or::before {
-    background: #f59e0b;
-}
+.condition-block.item { color: #7a3fff; border: 1px solid rgba(161,119,255,0.4); }
+.condition-block.event { color: #ff3380; border: 1px solid rgba(255,128,192,0.4); }
+.condition-block.strat { color: #3399ff; border: 1px solid rgba(102,178,255,0.4); }
+.condition-block.environment { color: #009977; border: 1px solid rgba(51,170,136,0.4); }
+.condition-block.tech { color: #0066cc; border: 1px solid rgba(51,153,255,0.4); }
+.condition-block.helper { color: #f5426c; border: 1px solid rgba(247,108,141,0.4); }
+.condition-block.damageRun { color: #b0703f; border: 1px solid rgba(224,168,92,0.4); }
 
-.condition-block.not {
-    background: #ffd6d6;
-    border: 1px solid #f87171;
-}
-.condition-block.not::before {
-    background: #ef4444;
-}
+.condition-block.free { color: #00aa00; border: 1px solid rgba(77,210,77,0.4); }
+.condition-block.never { color: #cc0000; border: 1px solid rgba(224,51,51,0.4); }
 
-/* Item / Event / Strat / Environment conditions */
-.condition-block.item {
-    background: #e6ffe6;
-    border: 1px solid #34d399;
-}
-.condition-block.item::before {
-    background: #10b981;
-}
-
-.condition-block.event {
-    background: #ffe6f0;
-    border: 1px solid #f472b6;
-}
-.condition-block.event::before {
-    background: #ec4899;
-}
-
-.condition-block.strat {
-    background: #e3f2fd;
-    border: 1px solid #64b5f6;
-}
-.condition-block.strat::before {
-    background: #2196f3;
-}
-
-.condition-block.environment {
-    background: #f0f0f0;
-    border: 1px solid #a3a3a3;
-}
-.condition-block.environment::before {
-    background: #525252;
-}
-
-.condition-block.tech {
-    background: #e3f2fd;
-    border: 1px solid #64b5f6;
-}
-.condition-block.tech::before {
-    background: #2196f3;
-}
-
-.condition-block.helper {
-    background: #fdb0c0;
-    border: 1px solid #f76c8d;
-}
-.condition-block.helper::before {
-    background: #f5426c;
-}
-
-.condition-block.damageRun {
-    background: #f4c28a;
-    border: 1px solid #e0a85c;
-}
-.condition-block.damageRun::before {
-    background: #d18f4f;
-}
-
-
-/* Tree/Checkbox Lists inside Condition Blocks */
+/* =============================================================================
+   Checkbox / Tree Lists
+   ============================================================================= */
 .checkbox-map-container table {
     width: 100%;
     border-collapse: collapse;
+    font-weight: 500;
+    color: rgba(0,0,0,0.85);
 }
 
 .checkbox-map-container td {
     padding: 6px 8px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    border-right: 1px solid rgba(255,255,255,0.15);
+    background: inherit;
 }
 
-.checkbox-map-container tr:last-child td {
-    border-bottom: none;
-}
+.checkbox-map-container tr:last-child td { border-bottom: none; }
+.checkbox-map-container tr td:first-child { text-align: center; }
+.checkbox-map-container tr td:nth-child(2) { border-right: 1px solid rgba(255,255,255,0.15); }
+.checkbox-map-container tr td[colspan="3"] { font-weight: 600; border-bottom: 2px solid rgba(255,255,255,0.25); }
 
-.checkbox-map-container tr td:first-child {
-    text-align: center;
-}
+.checkbox-map-container.tech td:hover { background: rgba(51,153,255,0.2); }
+.checkbox-map-container.helper td:hover { background: rgba(245,66,108,0.1); }
 
-/* vertical line separating name & devNote */
-.checkbox-map-container tr td:nth-child(2) {
-    border-right: 1px solid #ccc;
-}
-
-.checkbox-map-container tr td[colspan="3"] {
-    font-weight: bold;
-    border-bottom: 2px solid #bbb;
-}
-
-/* Default hover for tech-type maps */
-.checkbox-map-container.tech td:hover {
-    background: rgba(52, 152, 219, 0.05);
-}
-
-/* Hover for helper-type maps */
-.checkbox-map-container.helper td:hover {
-    background: rgba(245, 66, 108, 0.1);
+/* Inputs / dropdowns inherit parent block colors */
+.condition-block select,
+.condition-block input[type="text"],
+.condition-block input[type="number"] {
+    background: inherit;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 4px;
+    padding: 4px 6px;
+    color: inherit;
+    font-weight: 500;
 }
 
 /* Door Entry Components */
