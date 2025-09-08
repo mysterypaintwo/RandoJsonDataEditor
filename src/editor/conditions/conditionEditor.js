@@ -66,6 +66,18 @@ const CONDITION_CONFIG = {
 			icon: '🌿',
 			color: '#e8e8e8', // light gray-beige, visible but subtle
 			description: 'Requires specific environmental conditions'
+		},
+		'free': {
+			label: 'This condition is *Always* true ("free")',
+			icon: '♾️',
+			color: '#e0f7e0',
+			description: 'This condition is always satisfied'
+		},
+		'never': {
+			label: 'This condition is *Never* true ("never")',
+			icon: '🚫',
+			color: '#f7e0e0',
+			description: 'This condition can never be satisfied'
 		}
 	},
 	indentSize: 15,
@@ -154,12 +166,16 @@ class ConditionEditor {
 	}
 	populateTypeSelect() {
 		Object.entries(CONDITION_CONFIG.types).forEach(([value, config]) => {
+			// Only allow "free" and "never" if this is the root editor
+			if ((value === 'free' || value === 'never') && !this.isRoot) return;
+	
 			const option = document.createElement('option');
 			option.value = value;
 			option.textContent = config.label;
 			option.title = config.description;
 			this.typeSelect.appendChild(option);
 		});
+	
 		// Set initial selection
 		if (this.initialCondition) {
 			const initialType = Object.keys(this.initialCondition)[0];
@@ -168,6 +184,7 @@ class ConditionEditor {
 			}
 		}
 	}
+	
 	setupEventHandlers() {
 		this.typeSelect.addEventListener('change', () => {
 			this.clearChildren();
