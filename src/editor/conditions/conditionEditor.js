@@ -97,7 +97,9 @@ class ConditionEditor {
 	}
 	createElement() {
 		this.root = document.createElement('div');
-		this.root.className = 'condition-block editor-card';
+		//const typeClass = this.typeSelect.value || 'none';
+		//this.root.className = `condition-block editor-card ${typeClass}`;
+		this.root.className = 'condition-block editor-card none';
 		this.root.style.marginLeft = `${this.indentLevel * CONDITION_CONFIG.indentSize}px`;
 		this.root.style.padding = '8px 12px';
 		this.root.style.borderRadius = '6px';
@@ -535,9 +537,12 @@ class ConditionEditor {
 	createMapCheckboxList(map, label, initialSelected = []) {
 		const container = document.createElement('div');
 		container.className = 'checkbox-map-container';
-		// Normalize initialSelected into a Set of strings for fast lookups (support ids or names)
+
+		// Add type-specific class for CSS hover
+		container.classList.add(label.toLowerCase()); // 'tech' or 'helper'
+		
 		const initialSet = new Set((initialSelected || []).map(x => String(x)));
-		// Collapse toggle
+	
 		const collapseButton = document.createElement('button');
 		collapseButton.textContent = 'Hide List ▼';
 		collapseButton.style.marginBottom = '6px';
@@ -545,93 +550,114 @@ class ConditionEditor {
 		collapseButton.style.fontSize = '12px';
 		collapseButton.style.cursor = 'pointer';
 		container.appendChild(collapseButton);
+	
 		const searchInput = document.createElement('input');
 		searchInput.type = 'text';
 		searchInput.placeholder = `Filter ${label}...`;
 		searchInput.style.marginBottom = '6px';
 		container.appendChild(searchInput);
+	
 		const table = document.createElement('table');
 		table.style.width = '100%';
+		table.style.borderCollapse = 'collapse';
 		container.appendChild(table);
 		const tbody = document.createElement('tbody');
 		table.appendChild(tbody);
-		// Store { checkbox, item } — item is the original object (so name/id are always available)
+	
 		const checkboxes = [];
-		// Recursive row builder (handles extensionTechs)
+	
 		function renderItemRow(item, depth = 0) {
 			const row = document.createElement('tr');
+	
 			// Checkbox cell
 			const cbCell = document.createElement('td');
+			cbCell.style.width = '40px';
+			cbCell.style.textAlign = 'center';
+			cbCell.style.cursor = 'pointer'; // entire cell clickable
+	
 			const checkbox = document.createElement('input');
 			checkbox.type = 'checkbox';
-			// Determine checked state: initialSelected may contain id or name
+			checkbox.style.width = '20px';
+			checkbox.style.height = '20px';
+			checkbox.style.margin = '0';
+	
 			const itemIdStr = item.id !== undefined && item.id !== null ? String(item.id) : null;
 			const isChecked = (itemIdStr && initialSet.has(itemIdStr)) || initialSet.has(String(item.name));
 			checkbox.checked = !!isChecked;
+	
 			cbCell.appendChild(checkbox);
-			// Name cell (display only). Append [Ext] visually when flagged, but don't change item.name.
+			row.appendChild(cbCell);
+	
+			// Name cell
 			const nameCell = document.createElement('td');
+			nameCell.style.cursor = 'pointer';
+			nameCell.style.borderRight = '1px solid #ccc'; // vertical line to devNote
+			nameCell.style.paddingLeft = `${depth * 12}px`; // indentation for nested
+	
 			let displayLabel = item.name;
 			if (item.extensionTech) displayLabel += ' [Ext]';
-			// Indentation for nested extensionTechs
-			nameCell.textContent = ' '.repeat(depth * 2) + displayLabel;
-			// Note/devNote cell (handle arrays)
-			const noteCell = document.createElement('td');
-			if (Array.isArray(item.devNote)) noteCell.textContent = item.devNote.join(' ');
-			else noteCell.textContent = item.devNote || item.note || '';
-			row.appendChild(cbCell);
+			nameCell.textContent = displayLabel;
 			row.appendChild(nameCell);
+	
+			// Note/devNote cell
+			const noteCell = document.createElement('td');
+			noteCell.textContent = Array.isArray(item.devNote)
+				? item.devNote.join(' ')
+				: item.devNote || item.note || '';
 			row.appendChild(noteCell);
+	
 			tbody.appendChild(row);
-			// Save reference for export
-			checkboxes.push({
-				checkbox,
-				item
+	
+			checkboxes.push({ checkbox, item });
+	
+			// Make entire first two cells clickable to toggle checkbox
+			[cbCell, nameCell].forEach(cell => {
+				cell.addEventListener('click', () => {
+					checkbox.checked = !checkbox.checked;
+				});
 			});
-			// Recurse into children (if any)
+	
 			(item.extensionTechs || []).forEach(ext => renderItemRow(ext, depth + 1));
 		}
-		// Add categories and their items
+	
 		for (const [categoryName, catObj] of map.entries()) {
 			const catRow = document.createElement('tr');
 			const catCell = document.createElement('td');
 			catCell.colSpan = 3;
 			catCell.textContent = categoryName;
 			catCell.style.fontWeight = 'bold';
+			catCell.style.borderBottom = '2px solid #bbb';
 			catRow.appendChild(catCell);
 			tbody.appendChild(catRow);
+	
 			(catObj.items || []).forEach(item => renderItemRow(item));
 		}
-		// Search filter — includes name and the note/devNote column
+	
 		searchInput.addEventListener('input', () => {
 			const filter = searchInput.value.toLowerCase();
 			tbody.querySelectorAll('tr').forEach(row => {
 				const nameCell = row.querySelector('td:nth-child(2)');
 				const noteCell = row.querySelector('td:nth-child(3)');
-				if (!nameCell) return; // skip category header rows
+				if (!nameCell) return;
 				const textToCheck = nameCell.textContent + ' ' + (noteCell ? noteCell.textContent : '');
 				row.style.display = textToCheck.toLowerCase().includes(filter) ? '' : 'none';
 			});
 		});
-		// Collapse/Expand behavior
+	
 		collapseButton.addEventListener('click', () => {
 			const isHidden = table.style.display === 'none';
 			table.style.display = isHidden ? '' : 'none';
 			searchInput.style.display = isHidden ? '' : 'none';
 			collapseButton.textContent = isHidden ? 'Hide List ▼' : 'Show List ▶';
 		});
-		// Export selected names — do NOT include the UI-only "[Ext]" marker
+	
 		container.getSelectedValues = () => {
-			return checkboxes
-				.filter(cb => cb.checkbox.checked)
-				.map(cb => {
-					// prefer the original item.name (never include displayLabel '[Ext]')
-					return cb.item && cb.item.name ? cb.item.name : null;
-				})
-				.filter(name => name !== null);
+			return checkboxes.filter(cb => cb.checkbox.checked).map(cb => cb.item.name);
 		};
+	
 		return container;
 	}
+	
 }
 
 function createEmptyConditionEditor(container) {

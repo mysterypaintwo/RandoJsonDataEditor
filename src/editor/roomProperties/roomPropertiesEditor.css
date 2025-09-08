@@ -124,7 +124,7 @@ button:hover {
 .toggle-btn:hover {
     color: #333;
     background: rgba(0, 0, 0, 0.1);
-    transform: none; /* Override general button hover */
+    transform: none;
 }
 
 /* Editor Card System */
@@ -295,6 +295,10 @@ button:hover {
     transition: background-color 0.3s ease;
 }
 
+.condition-block.none::before {
+    background: transparent;
+}
+
 /* Left vertical bar for condition type indicator */
 .condition-block::before {
     content: "";
@@ -305,6 +309,7 @@ button:hover {
     width: 6px;
     border-top-left-radius: 6px;
     border-bottom-left-radius: 6px;
+    background: currentColor;
 }
 
 /* Logical conditions */
@@ -382,36 +387,51 @@ button:hover {
 }
 
 .condition-block.damageRun {
-    background: #f4c28a;      /* soft desaturated orange */
-    border: 1px solid #e0a85c; /* slightly darker orange for border */
+    background: #f4c28a;
+    border: 1px solid #e0a85c;
 }
 .condition-block.damageRun::before {
-    background: #d18f4f;      /* muted orange for icon/marker */
+    background: #d18f4f;
 }
+
 
 /* Tree/Checkbox Lists inside Condition Blocks */
-.condition-block .tree-list,
-.condition-block .checkbox-list {
-    max-height: 300px; /* prevents huge lists from dominating the UI */
-    overflow-y: auto;
-    margin-top: 6px;
-    padding-left: 4px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 4px;
+.checkbox-map-container table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-.condition-block .editor-checkbox-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    transition: background 0.2s ease;
+.checkbox-map-container td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #ddd;
 }
 
-.condition-block .editor-checkbox-wrapper:hover {
-    background: rgba(52, 152, 219, 0.05); /* subtle highlight */
+.checkbox-map-container tr:last-child td {
+    border-bottom: none;
+}
+
+.checkbox-map-container tr td:first-child {
+    text-align: center;
+}
+
+/* vertical line separating name & devNote */
+.checkbox-map-container tr td:nth-child(2) {
+    border-right: 1px solid #ccc;
+}
+
+.checkbox-map-container tr td[colspan="3"] {
+    font-weight: bold;
+    border-bottom: 2px solid #bbb;
+}
+
+/* Default hover for tech-type maps */
+.checkbox-map-container.tech td:hover {
+    background: rgba(52, 152, 219, 0.05);
+}
+
+/* Hover for helper-type maps */
+.checkbox-map-container.helper td:hover {
+    background: rgba(245, 66, 108, 0.1);
 }
 
 /* Door Entry Components */
@@ -486,8 +506,10 @@ button:hover {
 .editor-checkbox {
     width: 18px;
     height: 18px;
-    margin: 0 auto;
     accent-color: #3498db;
+    border-right: 1px solid rgba(0,0,0,0.2); /* vertical separator */
+    padding-right: 6px;
+    margin-right: 6px; /* spacing between checkbox and label */
 }
 
 .editor-checkbox-label {
@@ -497,6 +519,7 @@ button:hover {
     font-size: 12px;
     color: #333;
 }
+
 
 /* Footer */
 #footer {
