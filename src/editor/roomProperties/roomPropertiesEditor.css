@@ -352,8 +352,13 @@ button:hover {
 .checkbox-map-container tr td:nth-child(2) { border-right: 1px solid rgba(255,255,255,0.15); }
 .checkbox-map-container tr td[colspan="3"] { font-weight: 600; border-bottom: 2px solid rgba(255,255,255,0.25); }
 
-.checkbox-map-container.tech td:hover { background: rgba(51,153,255,0.2); }
-.checkbox-map-container.helper td:hover { background: rgba(245,66,108,0.1); }
+.checkbox-map-container.tech td:hover {
+    background: rgba(51, 153, 255, 0.5); /* strong blue hover */
+}
+
+.checkbox-map-container.helper td:hover {
+    background: rgba(245, 66, 108, 0.35); /* stronger pink hover */
+}
 
 /* Inputs / dropdowns inherit parent block colors */
 .condition-block select,

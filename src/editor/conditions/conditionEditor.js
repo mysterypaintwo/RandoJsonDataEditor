@@ -10,73 +10,73 @@ const CONDITION_CONFIG = {
 		'': {
 			label: '(no condition)',
 			icon: '•',
-			color: '#f8f8f8', // neutral background
+			color: '#f5f5f5', // very light neutral gray
 			description: 'No condition required'
 		},
 		'and': {
 			label: 'All of these must be true ("and")',
 			icon: '∧',
-			color: '#99ccff', // pastel blue, logical AND
+			color: '#a0c4e8', // soft, muted blue
 			description: 'Logical AND - all sub-conditions must be satisfied'
 		},
 		'or': {
 			label: 'Any of these can be true ("or")',
 			icon: '∨',
-			color: '#ffe699', // pastel yellow, logical OR
+			color: '#fff1b8', // gentle soft yellow
 			description: 'Logical OR - at least one sub-condition must be satisfied'
 		},
 		'not': {
 			label: 'None of these may be true ("not")',
 			icon: '¬',
-			color: '#ff9999', // pastel red, logical NOT
+			color: '#f0a0a0', // soft, muted red
 			description: 'Logical NOT - none of these sub-conditions may be satisfied'
 		},
 		'event': {
 			label: 'Triggered by event',
 			icon: '⚡',
-			color: '#ffb3d1', // soft pastel pink, event-based
+			color: '#ffb3c4', // soft, muted pink
 			description: 'Requires a specific game event to have occurred'
 		},
 		'item': {
 			label: 'Requires Item',
 			icon: '🎒',
-			color: '#d6b3ff', // pastel lavender, item-based
+			color: '#d4b3ff', // soft lavender
 			description: 'Requires a specific item or upgrade'
 		},
 		'tech': {
 			label: 'Requires Tech',
 			icon: '📘',
-			color: '#99d0ff', // light pastel blue, tech-based
+			color: '#a0c4e8', // muted light blue
 			description: 'Requires execution of specific Tech Logical Requirement(s)'
 		},
 		'helper': {
 			label: 'Requires Helper',
 			icon: '📘',
-			color: '#f7c2c9', // soft pink, helper-based
+			color: '#ebabb0', // soft muted pink
 			description: 'Requires execution of specific Helper Logical Requirement(s)'
 		},
 		'damageRun': {
 			label: 'Hell Run / Cold Run',
 			icon: '🏃',
-			color: '#e6b87a', // soft beige-orange, damage/cold run
+			color: '#d7b88c', // soft beige-orange
 			description: 'The amount of frames it takes to get through a heated or cold room'
 		},
 		'environment': {
 			label: 'Environment condition',
 			icon: '🌿',
-			color: '#66d1b0', // mid teal, environment-based
+			color: '#70b2a0', // muted teal
 			description: 'Requires specific environmental conditions'
 		},
 		'free': {
 			label: 'This condition is *Always* true ("free")',
 			icon: '♾️',
-			color: '#a6f4a6', // strong pastel green, always true
+			color: '#a4d8a2', // muted pastel green
 			description: 'This condition is always satisfied'
 		},
 		'never': {
 			label: 'This condition is *Never* true ("never")',
 			icon: '🚫',
-			color: '#f4a6a6', // strong pastel red, never true
+			color: '#e69a9a', // soft muted red
 			description: 'This condition can never be satisfied. Useful for differentiating between vanilla and rando behavior.'
 		}
 	},
@@ -301,7 +301,7 @@ class ConditionEditor {
 		const select = document.createElement('select');
 		select.style.marginLeft = '25px';
 		select.style.backgroundColor = CONDITION_CONFIG.types.environment.color;
-		select.style.width = '100%';
+		select.style.width = '40%';
 		// Add placeholder
 		const emptyOption = document.createElement('option');
 		emptyOption.value = '';
