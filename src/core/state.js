@@ -107,7 +107,7 @@ class State {
 				return data;
 			}
 		} catch (err) {
-			console.error(`Failed to load connections for ${key}:`, err);
+			//console.error(`Failed to load connections for ${key}:`, err);  // Allow this to fail; it'll find the intra/inter connections next anyway
 		}
 		return null;
 	}
@@ -124,7 +124,7 @@ class State {
 			this.interConnections = data;
 			return data;
 		} catch (err) {
-			console.error('Failed to load inter-area connections:', err);
+			//console.error('Failed to load inter-area connections:', err);
 			return null;
 		}
 	}
@@ -144,7 +144,7 @@ class State {
 				return data;
 			}
 		} catch (err) {
-			console.error(`Failed to load intra-area connections for ${area}:`, err);
+			//console.error(`Failed to load intra-area connections for ${area}:`, err);
 		}
 		return null;
 	}
