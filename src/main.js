@@ -34,7 +34,7 @@ ipcMain.handle('load-json', async (event, filePath) => {
 		console.log(`Loaded JSON: ${filePath}`);
 		return data;
 	} catch (err) {
-		console.error(`Error loading JSON ${filePath}:`, err);
+		//console.error(`Error loading JSON ${filePath}:`, err);
 		return null;
 	}
 });
