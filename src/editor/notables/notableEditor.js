@@ -66,12 +66,26 @@
 	}
 	getValue() {
 		if (!this.nameInput.value.trim()) return null;
-		const noteText = this.noteArea.value.trim();
-		const noteLines = noteText.split('\n').map(line => line.trim()).filter(Boolean);
-		return {
-			name: this.nameInput.value.trim(),
-			note: noteLines.length === 1 ? noteLines[0] : noteLines
+		
+		const result = {
+			name: this.nameInput.value.trim()
 		};
+
+		const noteText = this.noteArea.value.trim();
+		if (noteText) {
+			// Schema allows note to be string or array of strings
+			const noteLines = noteText.split('\n').map(line => line.trim()).filter(Boolean);
+			if (noteLines.length > 0) {
+				result.note = noteLines.length === 1 ? noteLines[0] : noteLines;
+			}
+		}
+
+		// Wall jump avoid flag - only include if true
+		if (this.wallJumpAvoid && this.wallJumpAvoid.getValue()) {
+			result.wallJumpAvoid = true;
+		}
+
+		return cleanObject(result);
 	}
 	remove() {
 		super.remove();

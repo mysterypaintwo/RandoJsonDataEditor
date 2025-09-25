@@ -219,8 +219,8 @@
 		const flagsListContainer = document.createElement('div');
 		flagsListContainer.style.marginBottom = '8px';
 
-		// Create checkbox list for flags using event list
-		this.setsFlagsCheckboxList = this.createFlagCheckboxList(initialFlags || []);
+		// Create checkbox list for flags using event list - NOW USING STYLED VERSION
+		this.setsFlagsCheckboxList = this.createStyledFlagCheckboxList(initialFlags || []);
 		flagsListContainer.appendChild(this.setsFlagsCheckboxList);
 
 		const content = createDiv([flagsListContainer]);
@@ -234,15 +234,16 @@
 	}
 
 	/**
-	 * Create a checkbox list for flags using the event list
+	 * Create a styled checkbox list for flags using the improved checkbox container styling
 	 */
-	createFlagCheckboxList(selectedFlags) {
+	createStyledFlagCheckboxList(selectedFlags) {
 		const container = document.createElement('div');
 		container.className = 'flag-checkbox-container';
 
 		const toggleBtn = document.createElement('button');
 		toggleBtn.className = 'node-toggle-btn';
 		toggleBtn.textContent = '▼ Hide Unchecked Flags';
+		toggleBtn.dataset.hidden = 'false';
 		container.appendChild(toggleBtn);
 
 		const listWrapper = document.createElement('div');
@@ -255,59 +256,62 @@
 		searchInput.className = 'node-search-input';
 		listWrapper.appendChild(searchInput);
 
-		const table = document.createElement('table');
-		table.className = 'node-table';
-		listWrapper.appendChild(table);
+		const checkboxContainer = document.createElement('div');
+		checkboxContainer.className = 'improved-checkbox-container';
+		listWrapper.appendChild(checkboxContainer);
 
-		const thead = document.createElement('thead');
-		const headerRow = document.createElement('tr');
-		['Enabled', 'Flag Name'].forEach(text => {
-			const th = document.createElement('th');
-			th.textContent = text;
-			headerRow.appendChild(th);
-		});
-		thead.appendChild(headerRow);
-		table.appendChild(thead);
-
-		const tbody = document.createElement('tbody');
-		table.appendChild(tbody);
+		let checkboxes = [];
+		let eventListenersAdded = false;
 
 		function buildTable() {
-			tbody.innerHTML = '';
+			checkboxContainer.innerHTML = '';
+			checkboxes = [];
 
 			const eventList = window.EditorGlobals.eventList || [];
 			if (!eventList.length) {
-				const emptyRow = document.createElement('tr');
-				const emptyCell = document.createElement('td');
-				emptyCell.colSpan = 2;
-				emptyCell.textContent = '(no flags available)';
-				emptyCell.style.fontStyle = 'italic';
-				emptyRow.appendChild(emptyCell);
-				tbody.appendChild(emptyRow);
+				const emptyDiv = document.createElement('div');
+				emptyDiv.textContent = '(no flags available)';
+				emptyDiv.style.fontStyle = 'italic';
+				emptyDiv.style.textAlign = 'center';
+				emptyDiv.style.padding = '12px';
+				emptyDiv.style.color = '#666';
+				checkboxContainer.appendChild(emptyDiv);
 
 				container.getSelectedValues = () => [];
 				return;
 			}
 
 			const selectedSet = new Set(selectedFlags.map(String));
-			const checkboxes = [];
 
 			eventList.forEach(flag => {
-				const row = document.createElement('tr');
-				row.className = 'flag-row';
+				const row = document.createElement('div');
+				row.className = 'improved-checkbox-row';
 
-				const checkboxCell = document.createElement('td');
+				const checkboxCell = document.createElement('div');
+				checkboxCell.className = 'improved-checkbox-cell';
+				
 				const checkbox = document.createElement('input');
 				checkbox.type = 'checkbox';
+				checkbox.className = 'improved-checkbox-input';
 				checkbox.checked = selectedSet.has(String(flag));
+				checkbox.dataset.flagValue = flag;
 				checkboxCell.appendChild(checkbox);
 
-				const nameCell = document.createElement('td');
-				nameCell.textContent = flag;
+				const labelCell = document.createElement('div');
+				labelCell.className = 'improved-checkbox-label';
+				labelCell.textContent = flag;
+
+				// Make entire row clickable
+				row.addEventListener('click', (e) => {
+					if (e.target !== checkbox) {
+						checkbox.checked = !checkbox.checked;
+						checkbox.dispatchEvent(new Event('change'));
+					}
+				});
 
 				row.appendChild(checkboxCell);
-				row.appendChild(nameCell);
-				tbody.appendChild(row);
+				row.appendChild(labelCell);
+				checkboxContainer.appendChild(row);
 
 				checkboxes.push(checkbox);
 
@@ -318,7 +322,7 @@
 
 			function updateRowVisibility() {
 				let anyVisible = false;
-				tbody.querySelectorAll('tr.flag-row').forEach(row => {
+				checkboxContainer.querySelectorAll('.improved-checkbox-row').forEach(row => {
 					const checkbox = row.querySelector('input[type="checkbox"]');
 					if (toggleBtn.dataset.hidden === 'true' && !checkbox.checked) {
 						row.style.display = 'none';
@@ -327,46 +331,49 @@
 						anyVisible = true;
 					}
 				});
-				table.style.display = anyVisible ? 'table' : 'none';
-				searchInput.style.display = (anyVisible && toggleBtn.dataset.hidden === 'true') ? '' : (anyVisible ? '' : 'none');
+				checkboxContainer.style.display = anyVisible ? 'block' : 'none';
+				searchInput.style.display = anyVisible ? '' : 'none';
 			}
 
-			searchInput.addEventListener('input', () => {
-				const filter = searchInput.value.toLowerCase();
-				tbody.querySelectorAll('tr.flag-row').forEach(row => {
-					const nameCell = row.querySelector('td:nth-child(2)');
-					if (!nameCell) return;
-					row.style.display = nameCell.textContent.toLowerCase().includes(filter) ? '' : 'none';
+			// Add event listeners only once
+			if (!eventListenersAdded) {
+				searchInput.addEventListener('input', () => {
+					const filter = searchInput.value.toLowerCase();
+					checkboxContainer.querySelectorAll('.improved-checkbox-row').forEach(row => {
+						const labelText = row.querySelector('.improved-checkbox-label').textContent.toLowerCase();
+						row.style.display = labelText.includes(filter) ? '' : 'none';
+					});
 				});
-			});
 
-			toggleBtn.addEventListener('click', () => {
-				const currentlyHidden = toggleBtn.dataset.hidden === 'true';
-				toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
-				toggleBtn.textContent = currentlyHidden ? '▼ Hide Unchecked Flags' : '▶ Show All Flags';
-				updateRowVisibility();
-			});
+				toggleBtn.addEventListener('click', () => {
+					const currentlyHidden = toggleBtn.dataset.hidden === 'true';
+					toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
+					toggleBtn.textContent = currentlyHidden ? '▼ Hide Unchecked Flags' : '▶ Show All Flags';
+					updateRowVisibility();
+				});
 
-			toggleBtn.dataset.hidden = 'false';
+				eventListenersAdded = true;
+			}
+
 			updateRowVisibility();
 
 			container.getSelectedValues = () => {
 				return checkboxes
 					.filter(cb => cb.checked)
-					.map(cb => {
-						const row = cb.closest('tr');
-						return row.querySelector('td:nth-child(2)').textContent;
-					});
+					.map(cb => cb.dataset.flagValue);
 			};
 		}
 
 		// Build initial table
 		buildTable();
 
+		// Rebuild when event list changes
+		const unsubscribe = window.EditorGlobals.addListener(() => {
+			buildTable();
+		});
+
 		// Store cleanup function
-		container._destroy = () => {
-			// No specific cleanup needed for this implementation
-		};
+		container._destroy = unsubscribe;
 
 		return container;
 	}
@@ -390,7 +397,7 @@
 				}
 
 				container.removeChild(this.setsFlagsCheckboxList);
-				this.setsFlagsCheckboxList = this.createFlagCheckboxList(currentSelections);
+				this.setsFlagsCheckboxList = this.createStyledFlagCheckboxList(currentSelections);
 				container.appendChild(this.setsFlagsCheckboxList);
 			}
 		}
@@ -400,21 +407,45 @@
 		const name = this.nameInput.value.trim();
 		if (!name) return null;
 
-		return {
-			name,
-			devNote: this.devNoteInput.value.trim(),
-			entranceCondition: this.conditionEditors.entrance.getValue(),
-			exitCondition: this.conditionEditors.exit.getValue(),
-			requires: this.conditionEditors.requires.getValue(),
-			clearsObstacles: this.clearsObstaclesList.getSelectedIds(),
-			resetsObstacles: this.resetsObstaclesList.getSelectedIds(),
-			comesThroughToilet: this.comesThroughToilet.getValue(),
-			bypassesDoorShell: this.bypassesDoorShell.getValue(),
-			collectsItems: this.collectsItemsEditor.getValue(),
-			setsFlags: this.setsFlagsEditor.getValue(),
-			wallJumpAvoid: this.wallJumpAvoid.getValue(),
-			flashSuitChecked: this.flashSuitChecked.getValue()
+		const result = {
+			name
 		};
+
+		// Add required 'requires' field (can be null)
+		const requires = this.conditionEditors.requires.getValue();
+		result.requires = requires;
+
+		// Add optional fields only if they have values
+		const devNote = this.devNoteInput.value.trim();
+		if (devNote) result.devNote = devNote;
+
+		const entranceCondition = this.conditionEditors.entrance.getValue();
+		if (entranceCondition) result.entranceCondition = entranceCondition;
+
+		const exitCondition = this.conditionEditors.exit.getValue();
+		if (exitCondition) result.exitCondition = exitCondition;
+
+		// Obstacle arrays - only include if non-empty
+		const clearsObstacles = this.clearsObstaclesList.getSelectedIds().filter(id => id);
+		if (clearsObstacles.length > 0) result.clearsObstacles = clearsObstacles;
+
+		const resetsObstacles = this.resetsObstaclesList.getSelectedIds().filter(id => id);
+		if (resetsObstacles.length > 0) result.resetsObstacles = resetsObstacles;
+
+		// Boolean fields - only include if true (schema defaults assume false)
+		if (this.comesThroughToilet.getValue()) result.comesThroughToilet = true;
+		if (this.bypassesDoorShell.getValue()) result.bypassesDoorShell = true;
+		if (this.wallJumpAvoid.getValue()) result.wallJumpAvoid = true;
+		if (this.flashSuitChecked.getValue()) result.flashSuitChecked = true;
+
+		// Item/flag collections - only include if non-empty
+		const collectsItems = this.collectsItemsEditor.getValue().filter(id => id != null);
+		if (collectsItems.length > 0) result.collectsItems = collectsItems;
+
+		const setsFlags = this.setsFlagsEditor.getValue().filter(flag => flag && flag.trim());
+		if (setsFlags.length > 0) result.setsFlags = setsFlags;
+
+		return cleanObject(result);
 	}
 
 	remove() {

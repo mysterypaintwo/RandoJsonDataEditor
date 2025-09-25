@@ -282,19 +282,30 @@ class State {
 	 * @param {Object} rect - Node rectangle
 	 */
 	addNode(rect) {
+		// Collect used IDs into a Set for O(1) lookups
+		const usedIds = new Set(this.nodes.map(n => n.id));
+
+		// Find the first available ID starting from 0
+		let newId = 0;
+		while (usedIds.has(newId)) {
+			newId++;
+		}
+
 		const newNode = {
-			id: Date.now(), // Simple ID generation
-			name: `Node ${this.nodes.length + 1}`,
-			nodeType: 'item', // Default type
+			id: newId, // First available slot
+			name: `Junction Node ${newId}`,
+			nodeType: 'junction', // Default type
 			nodeSubType: 'visible',
 			x: rect.x,
 			y: rect.y,
 			w: rect.w,
 			h: rect.h
 		};
+
 		this.nodes.push(newNode);
 		this.currentRoomData.nodes = [...this.nodes];
 	}
+
 	/**
 	 * Remove a node
 	 * @param {number} nodeId - Node ID to remove

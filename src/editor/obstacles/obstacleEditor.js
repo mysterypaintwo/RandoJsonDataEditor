@@ -90,12 +90,20 @@
 	}
 	getValue() {
 		if (!this.nameInput.value.trim()) return null;
-		return {
+		
+		const result = {
 			name: this.nameInput.value.trim(),
-			obstacleType: this.typeSelect.value,
-			note: this.noteArea.value.trim(),
-			devNote: this.devNoteInput.value.trim()
+			obstacleType: this.typeSelect.value || 'abstract'
 		};
+
+		// Only include optional fields if they have values
+		const note = this.noteArea.value.trim();
+		if (note) result.note = note;
+
+		const devNote = this.devNoteInput.value.trim();
+		if (devNote) result.devNote = devNote;
+
+		return cleanObject(result);
 	}
 	remove() {
 		super.remove();

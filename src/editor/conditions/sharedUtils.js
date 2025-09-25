@@ -78,41 +78,31 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 	searchInput.className = 'node-search-input';
 	listWrapper.appendChild(searchInput);
 
-	const table = document.createElement('table');
-	table.className = 'node-table';
-	listWrapper.appendChild(table);
+	const checkboxContainer = document.createElement('div');
+	checkboxContainer.className = 'improved-checkbox-container';
+	listWrapper.appendChild(checkboxContainer);
 
-	const thead = document.createElement('thead');
-	const headerRow = document.createElement('tr');
-	['Enabled', 'ID', 'Name'].forEach(text => {
-		const th = document.createElement('th');
-		th.textContent = text;
-		headerRow.appendChild(th);
-	});
-	thead.appendChild(headerRow);
-	table.appendChild(thead);
-
-	const tbody = document.createElement('tbody');
-	table.appendChild(tbody);
+	let checkboxes = [];
+	let eventListenersAdded = false;
 
 	function buildTable() {
-		tbody.innerHTML = '';
+		checkboxContainer.innerHTML = '';
+		checkboxes = [];
 
 		if (!window.EditorGlobals.validRoomNodes || !window.EditorGlobals.validRoomNodes.length) {
-			const emptyRow = document.createElement('tr');
-			const emptyCell = document.createElement('td');
-			emptyCell.colSpan = 3;
-			emptyCell.textContent = '(no nodes available)';
-			emptyCell.style.fontStyle = 'italic';
-			emptyRow.appendChild(emptyCell);
-			tbody.appendChild(emptyRow);
+			const emptyDiv = document.createElement('div');
+			emptyDiv.textContent = '(no nodes available)';
+			emptyDiv.style.fontStyle = 'italic';
+			emptyDiv.style.textAlign = 'center';
+			emptyDiv.style.padding = '12px';
+			emptyDiv.style.color = '#666';
+			checkboxContainer.appendChild(emptyDiv);
 
 			container.getSelectedValues = () => [];
 			return;
 		}
 
 		const selectedSet = new Set(selectedNodes.map(String));
-		const checkboxes = [];
 
 		window.EditorGlobals.validRoomNodes.forEach(node => {
 			// Skip nodes that don't match filter
@@ -120,25 +110,34 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 				return;
 			}
 
-			const row = document.createElement('tr');
-			row.className = 'node-row';
+			const row = document.createElement('div');
+			row.className = 'improved-checkbox-row';
 
-			const checkboxCell = document.createElement('td');
+			const checkboxCell = document.createElement('div');
+			checkboxCell.className = 'improved-checkbox-cell';
+			
 			const checkbox = document.createElement('input');
 			checkbox.type = 'checkbox';
+			checkbox.className = 'improved-checkbox-input';
 			checkbox.checked = selectedSet.has(String(node.id));
+			checkbox.dataset.nodeId = node.id;
 			checkboxCell.appendChild(checkbox);
 
-			const idCell = document.createElement('td');
-			idCell.textContent = node.id;
+			const labelCell = document.createElement('div');
+			labelCell.className = 'improved-checkbox-label';
+			labelCell.textContent = `${node.id}: ${node.name}`;
 
-			const nameCell = document.createElement('td');
-			nameCell.textContent = node.name;
+			// Make entire row clickable
+			row.addEventListener('click', (e) => {
+				if (e.target !== checkbox) {
+					checkbox.checked = !checkbox.checked;
+					checkbox.dispatchEvent(new Event('change'));
+				}
+			});
 
 			row.appendChild(checkboxCell);
-			row.appendChild(idCell);
-			row.appendChild(nameCell);
-			tbody.appendChild(row);
+			row.appendChild(labelCell);
+			checkboxContainer.appendChild(row);
 
 			checkboxes.push(checkbox);
 
@@ -153,14 +152,18 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 			checkboxes.forEach(cb => {
 				if (!cb.checked) {
 					cb.disabled = checkedCount >= maxSelected;
-					cb.parentElement.style.opacity = cb.disabled ? '0.5' : '1';
+					const row = cb.closest('.improved-checkbox-row');
+					if (row) {
+						row.style.opacity = cb.disabled ? '0.5' : '1';
+						row.style.cursor = cb.disabled ? 'not-allowed' : 'pointer';
+					}
 				}
 			});
 		}
 
 		function updateRowVisibility() {
 			let anyVisible = false;
-			tbody.querySelectorAll('tr.node-row').forEach(row => {
+			checkboxContainer.querySelectorAll('.improved-checkbox-row').forEach(row => {
 				const checkbox = row.querySelector('input[type="checkbox"]');
 				if (toggleBtn.dataset.hidden === 'true' && !checkbox.checked) {
 					row.style.display = 'none';
@@ -169,25 +172,29 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 					anyVisible = true;
 				}
 			});
-			table.style.display = anyVisible ? 'table' : 'none';
-			searchInput.style.display = (anyVisible && toggleBtn.dataset.hidden === 'true') ? '' : (anyVisible ? '' : 'none');
+			checkboxContainer.style.display = anyVisible ? 'block' : 'none';
+			searchInput.style.display = anyVisible ? '' : 'none';
 		}
 
-		searchInput.addEventListener('input', () => {
-			const filter = searchInput.value.toLowerCase();
-			tbody.querySelectorAll('tr.node-row').forEach(row => {
-				const nameCell = row.querySelector('td:nth-child(3)');
-				if (!nameCell) return;
-				row.style.display = nameCell.textContent.toLowerCase().includes(filter) ? '' : 'none';
+		// Add event listeners only once
+		if (!eventListenersAdded) {
+			searchInput.addEventListener('input', () => {
+				const filter = searchInput.value.toLowerCase();
+				checkboxContainer.querySelectorAll('.improved-checkbox-row').forEach(row => {
+					const labelText = row.querySelector('.improved-checkbox-label').textContent.toLowerCase();
+					row.style.display = labelText.includes(filter) ? '' : 'none';
+				});
 			});
-		});
 
-		toggleBtn.addEventListener('click', () => {
-			const currentlyHidden = toggleBtn.dataset.hidden === 'true';
-			toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
-			toggleBtn.textContent = currentlyHidden ? '▼ Hide Unchecked Nodes' : '▶ Show All Nodes';
-			updateRowVisibility();
-		});
+			toggleBtn.addEventListener('click', () => {
+				const currentlyHidden = toggleBtn.dataset.hidden === 'true';
+				toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
+				toggleBtn.textContent = currentlyHidden ? '▼ Hide Unchecked Nodes' : '▶ Show All Nodes';
+				updateRowVisibility();
+			});
+
+			eventListenersAdded = true;
+		}
 
 		toggleBtn.dataset.hidden = 'false';
 		updateRowVisibility();
@@ -196,10 +203,7 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 		container.getSelectedValues = () => {
 			return checkboxes
 				.filter(cb => cb.checked)
-				.map(cb => {
-					const row = cb.closest('tr');
-					return row.querySelector('td:nth-child(2)').textContent;
-				});
+				.map(cb => cb.dataset.nodeId);
 		};
 	}
 
@@ -250,62 +254,62 @@ function createObstacleCheckboxList(selectedObstacles, title) {
 	searchInput.className = 'node-search-input';
 	listWrapper.appendChild(searchInput);
 
-	const table = document.createElement('table');
-	table.className = 'node-table';
-	listWrapper.appendChild(table);
-
-	const thead = document.createElement('thead');
-	const headerRow = document.createElement('tr');
-	['Enabled', 'ID', 'Name'].forEach(text => {
-		const th = document.createElement('th');
-		th.textContent = text;
-		headerRow.appendChild(th);
-	});
-	thead.appendChild(headerRow);
-	table.appendChild(thead);
-
-	const tbody = document.createElement('tbody');
-	table.appendChild(tbody);
+	const checkboxContainer = document.createElement('div');
+	checkboxContainer.className = 'improved-checkbox-container';
+	listWrapper.appendChild(checkboxContainer);
 
 	function buildRows(snapshot) {
-		tbody.innerHTML = '';
+		checkboxContainer.innerHTML = '';
+		
+		// Clean up selections for obstacles that no longer exist
+		const currentUIDs = new Set(snapshot.map(obs => obs.uid));
+		const toRemove = [...selectedUIDs].filter(uid => !currentUIDs.has(uid));
+		toRemove.forEach(uid => selectedUIDs.delete(uid));
+		
 		if (!snapshot.length) {
-			const emptyRow = document.createElement('tr');
-			const emptyCell = document.createElement('td');
-			emptyCell.colSpan = 3;
-			emptyCell.textContent = '(no obstacles in this room)';
-			emptyCell.style.fontStyle = 'italic';
-			emptyRow.appendChild(emptyCell);
-			tbody.appendChild(emptyRow);
+			const emptyDiv = document.createElement('div');
+			emptyDiv.textContent = '(no obstacles in this room)';
+			emptyDiv.style.fontStyle = 'italic';
+			emptyDiv.style.textAlign = 'center';
+			emptyDiv.style.padding = '12px';
+			emptyDiv.style.color = '#666';
+			checkboxContainer.appendChild(emptyDiv);
 			updateTableVisibility();
 			return;
 		}
 
 		snapshot.forEach(obs => {
-			const row = document.createElement('tr');
-			row.className = 'obstacle-row';
+			const row = document.createElement('div');
+			row.className = 'improved-checkbox-row obstacle-row';
 
-			const chkCell = document.createElement('td');
-			chkCell.style.textAlign = 'center';
-			const chk = document.createElement('input');
-			chk.type = 'checkbox';
-			chk.checked = selectedUIDs.has(obs.uid);
-			chk.dataset.uid = obs.uid;
-			chkCell.appendChild(chk);
+			const checkboxCell = document.createElement('div');
+			checkboxCell.className = 'improved-checkbox-cell';
+			
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			checkbox.className = 'improved-checkbox-input';
+			checkbox.checked = selectedUIDs.has(obs.uid);
+			checkbox.dataset.uid = obs.uid;
+			checkboxCell.appendChild(checkbox);
 
-			const idCell = document.createElement('td');
-			idCell.textContent = obs.id ?? '';
+			const labelCell = document.createElement('div');
+			labelCell.className = 'improved-checkbox-label';
+			labelCell.textContent = `${obs.id || ''}: ${obs.name || `(Obstacle ${obs.id || ''})`}`;
 
-			const nameCell = document.createElement('td');
-			nameCell.textContent = obs.name || `(Obstacle ${obs.id ?? ''})`;
+			// Make entire row clickable
+			row.addEventListener('click', (e) => {
+				if (e.target !== checkbox) {
+					checkbox.checked = !checkbox.checked;
+					checkbox.dispatchEvent(new Event('change'));
+				}
+			});
 
-			row.appendChild(chkCell);
-			row.appendChild(idCell);
-			row.appendChild(nameCell);
-			tbody.appendChild(row);
+			row.appendChild(checkboxCell);
+			row.appendChild(labelCell);
+			checkboxContainer.appendChild(row);
 
-			chk.addEventListener('change', () => {
-				if (chk.checked) selectedUIDs.add(obs.uid);
+			checkbox.addEventListener('change', () => {
+				if (checkbox.checked) selectedUIDs.add(obs.uid);
 				else selectedUIDs.delete(obs.uid);
 				updateRowVisibility();
 				updateTableVisibility();
@@ -318,7 +322,7 @@ function createObstacleCheckboxList(selectedObstacles, title) {
 	function updateRowVisibility() {
 		const hideUnchecked = toggleBtn.dataset.hidden === 'true';
 		const filter = (searchInput.value || '').toLowerCase();
-		const rows = tbody.querySelectorAll('tr.obstacle-row');
+		const rows = checkboxContainer.querySelectorAll('.obstacle-row');
 		if (!rows.length) {
 			listWrapper.style.display = 'none';
 			return;
@@ -329,42 +333,39 @@ function createObstacleCheckboxList(selectedObstacles, title) {
 		let anyVisible = false;
 		rows.forEach(row => {
 			const checkbox = row.querySelector('input[type="checkbox"]');
-			const idTxt = row.children[1]?.textContent?.toLowerCase() || '';
-			const nameTxt = row.children[2]?.textContent?.toLowerCase() || '';
-			const matchesFilter = !filter || idTxt.includes(filter) || nameTxt.includes(filter);
+			const labelText = row.querySelector('.improved-checkbox-label').textContent.toLowerCase();
+			const matchesFilter = !filter || labelText.includes(filter);
 			const passesToggle = !hideUnchecked || (checkbox && checkbox.checked);
 			row.style.display = matchesFilter && passesToggle ? '' : 'none';
 			if (row.style.display !== 'none') anyVisible = true;
 		});
 
-		let placeholder = tbody.querySelector('.no-match-row');
+		let placeholder = checkboxContainer.querySelector('.no-match-placeholder');
 		if (rows.length && !anyVisible) {
 			if (!placeholder) {
-				placeholder = document.createElement('tr');
-				placeholder.className = 'no-match-row';
-				const td = document.createElement('td');
-				td.colSpan = 3;
-				td.style.fontStyle = 'italic';
-				td.textContent = '(no obstacles match filter)';
-				placeholder.appendChild(td);
-				tbody.appendChild(placeholder);
+				placeholder = document.createElement('div');
+				placeholder.className = 'no-match-placeholder';
+				placeholder.style.fontStyle = 'italic';
+				placeholder.style.textAlign = 'center';
+				placeholder.style.padding = '12px';
+				placeholder.style.color = '#666';
+				placeholder.textContent = '(no obstacles match filter)';
+				checkboxContainer.appendChild(placeholder);
 			}
 			placeholder.style.display = '';
 		} else if (placeholder) {
 			placeholder.style.display = 'none';
 		}
-		searchInput.style.display = rows.length > 0 ? '' : 'none';
 	}
 
 	function updateTableVisibility() {
 		const hideUnchecked = toggleBtn.dataset.hidden === 'true';
 		const anyChecked = selectedUIDs.size > 0;
 		if (hideUnchecked && !anyChecked) {
-			tbody.style.display = 'none';
+			checkboxContainer.style.display = 'none';
 		} else {
-			tbody.style.display = '';
+			checkboxContainer.style.display = 'block';
 		}
-		searchInput.style.display = '';
 	}
 
 	searchInput.addEventListener('input', () => {
@@ -410,6 +411,33 @@ function createObstacleCheckboxList(selectedObstacles, title) {
 	return container;
 }
 
+/**
+ * Utility function to clean objects by removing empty/null/undefined fields
+ */
+function cleanObject(obj) {
+	if (!obj || typeof obj !== 'object') return obj;
+	
+	const cleaned = {};
+	Object.entries(obj).forEach(([key, value]) => {
+		// Skip null, undefined, empty strings, and empty arrays
+		if (value === null || value === undefined || value === '') return;
+		if (Array.isArray(value) && value.length === 0) return;
+		if (typeof value === 'object' && Object.keys(value).length === 0) return;
+		
+		// Recursively clean nested objects
+		if (typeof value === 'object' && !Array.isArray(value)) {
+			const cleanedNested = cleanObject(value);
+			if (Object.keys(cleanedNested).length > 0) {
+				cleaned[key] = cleanedNested;
+			}
+		} else {
+			cleaned[key] = value;
+		}
+	});
+	
+	return cleaned;
+}
+
 // =============================================================================
 // Tech/Helper Map Checkbox Lists
 // =============================================================================
@@ -418,130 +446,240 @@ function createObstacleCheckboxList(selectedObstacles, title) {
  * Creates a checkbox list for tech/helper maps with search and filtering
  */
 function createMapCheckboxList(map, label, initialSelected = []) {
-	const container = document.createElement('div');
-	container.className = 'checkbox-map-container';
+    const container = document.createElement('div');
+    container.className = 'checkbox-map-container';
 
-	// Add type-specific class for CSS hover
-	container.classList.add(label.toLowerCase()); // 'tech' or 'helper'
+    // Add type-specific class for CSS hover
+    container.classList.add(label.toLowerCase()); // 'tech' or 'helper'
 
-	const initialSet = new Set((initialSelected || []).map(x => String(x)));
+    const initialSet = new Set((initialSelected || []).map(x => String(x)));
 
-	const collapseButton = document.createElement('button');
-	collapseButton.textContent = 'Hide List ▼';
-	collapseButton.style.marginBottom = '6px';
-	collapseButton.style.padding = '2px 6px';
-	collapseButton.style.fontSize = '12px';
-	collapseButton.style.cursor = 'pointer';
-	container.appendChild(collapseButton);
+    const collapseButton = document.createElement('button');
+    collapseButton.textContent = 'Hide List ▼';
+    collapseButton.style.marginBottom = '6px';
+    collapseButton.style.padding = '4px 8px';
+    collapseButton.style.fontSize = '12px';
+    collapseButton.style.cursor = 'pointer';
+    collapseButton.style.background = '#f8f9fa';
+    collapseButton.style.border = '1px solid #dee2e6';
+    collapseButton.style.borderRadius = '4px';
+    container.appendChild(collapseButton);
 
-	const searchInput = document.createElement('input');
-	searchInput.type = 'text';
-	searchInput.placeholder = `Filter ${label}...`;
-	searchInput.style.marginBottom = '6px';
-	container.appendChild(searchInput);
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = `Filter ${label}...`;
+    searchInput.style.marginBottom = '6px';
+    searchInput.style.padding = '6px 10px';
+    searchInput.style.border = '1px solid #ccc';
+    searchInput.style.borderRadius = '4px';
+    searchInput.style.fontSize = '13px';
+    searchInput.style.width = '100%';
+    searchInput.style.boxSizing = 'border-box';
+    container.appendChild(searchInput);
 
-	const table = document.createElement('table');
-	table.style.width = '100%';
-	table.style.borderCollapse = 'collapse';
-	container.appendChild(table);
-	const tbody = document.createElement('tbody');
-	table.appendChild(tbody);
+    const tableWrapper = document.createElement('div');
+    tableWrapper.style.maxHeight = '400px';
+    tableWrapper.style.overflowY = 'auto';
+    tableWrapper.style.border = '1px solid #e0e0e0';
+    tableWrapper.style.borderRadius = '6px';
+    tableWrapper.style.background = 'rgba(255, 255, 255, 0.95)';
+    container.appendChild(tableWrapper);
 
-	const checkboxes = [];
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.style.fontSize = '13px';
+    tableWrapper.appendChild(table);
 
-	function renderItemRow(item, depth = 0) {
-		const row = document.createElement('tr');
+    const tbody = document.createElement('tbody');
+    table.appendChild(tbody);
 
-		// Checkbox cell
-		const cbCell = document.createElement('td');
-		cbCell.style.width = '40px';
-		cbCell.style.textAlign = 'center';
-		cbCell.style.cursor = 'pointer'; // entire cell clickable
+    const checkboxes = [];
 
-		const checkbox = document.createElement('input');
-		checkbox.type = 'checkbox';
-		checkbox.style.width = '20px';
-		checkbox.style.height = '20px';
-		checkbox.style.margin = '0';
+    function renderItemRow(item, depth = 0) {
+        const row = document.createElement('tr');
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '40px 200px 1fr';
+        row.style.alignItems = 'center';
+        row.style.padding = '8px 0';
+        row.style.borderBottom = '1px solid rgba(0, 0, 0, 0.08)';
+        row.style.cursor = 'pointer';
+        row.style.transition = 'background-color 0.2s ease';
 
-		const itemIdStr = item.id !== undefined && item.id !== null ? String(item.id) : null;
-		const isChecked = (itemIdStr && initialSet.has(itemIdStr)) || initialSet.has(String(item.name));
-		checkbox.checked = !!isChecked;
+        // Checkbox cell
+        const cbCell = document.createElement('td');
+        cbCell.style.display = 'flex';
+        cbCell.style.justifyContent = 'center';
+        cbCell.style.alignItems = 'center';
+        cbCell.style.padding = '0 12px';
+        cbCell.style.cursor = 'pointer';
 
-		cbCell.appendChild(checkbox);
-		row.appendChild(cbCell);
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.style.width = '18px';
+        checkbox.style.height = '18px';
+        checkbox.style.margin = '0';
+        checkbox.style.cursor = 'pointer';
+        checkbox.style.accentColor = '#3498db';
 
-		// Name cell
-		const nameCell = document.createElement('td');
-		nameCell.style.cursor = 'pointer';
-		nameCell.style.borderRight = '1px solid #ccc'; // vertical line to devNote
-		nameCell.style.textAlign = 'left';
+        const itemIdStr = item.id !== undefined && item.id !== null ? String(item.id) : null;
+        const isChecked = (itemIdStr && initialSet.has(itemIdStr)) || initialSet.has(String(item.name));
+        checkbox.checked = !!isChecked;
 
-		let displayLabel = item.name;
-		if (item.extensionTech) displayLabel += ' [Ext]';
-		nameCell.textContent = displayLabel;
-		row.appendChild(nameCell);
+        cbCell.appendChild(checkbox);
+        row.appendChild(cbCell);
 
-		// Note/devNote cell
-		const noteCell = document.createElement('td');
-		noteCell.textContent = Array.isArray(item.devNote) ?
-			item.devNote.join(' ') :
-			item.devNote || item.note || '';
-		row.appendChild(noteCell);
+        // Name cell
+        const nameCell = document.createElement('td');
+        nameCell.style.fontWeight = '600';
+        nameCell.style.padding = '0 8px';
+        nameCell.style.cursor = 'pointer';
 
-		tbody.appendChild(row);
+        let displayLabel = item.name;
+        if (item.extensionTech) displayLabel += ' [Ext]';
+        nameCell.textContent = displayLabel;
+        row.appendChild(nameCell);
 
-		checkboxes.push({
-			checkbox,
-			item
-		});
+        // Note/devNote cell
+        const noteCell = document.createElement('td');
+        noteCell.style.color = '#666';
+        noteCell.style.fontSize = '12px';
+        noteCell.style.lineHeight = '1.4';
+        noteCell.style.padding = '0 12px 0 8px';
+        noteCell.style.cursor = 'pointer';
+        
+        const noteText = Array.isArray(item.devNote)
+            ? item.devNote.join(' ')
+            : item.devNote || item.note || '';
+        noteCell.textContent = noteText;
+        row.appendChild(noteCell);
 
-		// Make entire first two cells clickable to toggle checkbox
-		[cbCell, nameCell].forEach(cell => {
-			cell.addEventListener('click', () => {
-				checkbox.checked = !checkbox.checked;
-			});
-		});
+        tbody.appendChild(row);
 
-		(item.extensionTechs || []).forEach(ext => renderItemRow(ext, depth + 1));
-	}
+        checkboxes.push({ checkbox, item });
 
-	for (const [categoryName, catObj] of map.entries()) {
-		const catRow = document.createElement('tr');
-		const catCell = document.createElement('td');
-		catCell.colSpan = 3;
-		catCell.textContent = categoryName;
-		catCell.style.fontWeight = 'bold';
-		catCell.style.borderBottom = '2px solid #bbb';
-		catRow.appendChild(catCell);
-		tbody.appendChild(catRow);
+        // Add hover effect
+        row.addEventListener('mouseenter', () => {
+            if (label.toLowerCase() === 'tech') {
+                row.style.backgroundColor = 'rgba(51, 153, 255, 0.12)';
+            } else {
+                row.style.backgroundColor = 'rgba(245, 66, 108, 0.12)';
+            }
+        });
 
-		(catObj.items || []).forEach(item => renderItemRow(item));
-	}
+        row.addEventListener('mouseleave', () => {
+            row.style.backgroundColor = '';
+        });
 
-	searchInput.addEventListener('input', () => {
-		const filter = searchInput.value.toLowerCase();
-		tbody.querySelectorAll('tr').forEach(row => {
-			const nameCell = row.querySelector('td:nth-child(2)');
-			const noteCell = row.querySelector('td:nth-child(3)');
-			if (!nameCell) return;
-			const textToCheck = nameCell.textContent + ' ' + (noteCell ? noteCell.textContent : '');
-			row.style.display = textToCheck.toLowerCase().includes(filter) ? '' : 'none';
-		});
-	});
+        // Make entire row clickable to toggle checkbox
+        row.addEventListener('click', (e) => {
+            // Only toggle if we didn't click directly on the checkbox
+            if (e.target !== checkbox) {
+                checkbox.checked = !checkbox.checked;
+                // Dispatch change event to trigger any listeners
+                const changeEvent = new Event('change', { bubbles: true });
+                checkbox.dispatchEvent(changeEvent);
+            }
+        });
 
-	collapseButton.addEventListener('click', () => {
-		const isHidden = table.style.display === 'none';
-		table.style.display = isHidden ? '' : 'none';
-		searchInput.style.display = isHidden ? '' : 'none';
-		collapseButton.textContent = isHidden ? 'Hide List ▼' : 'Show List ▶';
-	});
+        // Handle extension techs recursively
+        (item.extensionTechs || []).forEach(ext => renderItemRow(ext, depth + 1));
+    }
 
-	container.getSelectedValues = () => {
-		return checkboxes.filter(cb => cb.checkbox.checked).map(cb => cb.item.name);
-	};
+    function buildTable() {
+        tbody.innerHTML = '';
+        checkboxes.length = 0; // Clear the array
 
-	return container;
+        if (!map || map.size === 0) {
+            const emptyRow = document.createElement('tr');
+            const emptyCell = document.createElement('td');
+            emptyCell.colSpan = 3;
+            emptyCell.textContent = `(no ${label.toLowerCase()} available)`;
+            emptyCell.style.fontStyle = 'italic';
+            emptyCell.style.textAlign = 'center';
+            emptyCell.style.padding = '16px';
+            emptyCell.style.color = '#666';
+            emptyRow.appendChild(emptyCell);
+            tbody.appendChild(emptyRow);
+            return;
+        }
+
+        for (const [categoryName, catObj] of map.entries()) {
+            // Category header row
+            const catRow = document.createElement('tr');
+            catRow.style.display = 'block';
+            catRow.style.width = '100%';
+            
+            const catCell = document.createElement('td');
+            catCell.colSpan = 3;
+            catCell.textContent = categoryName;
+            catCell.style.fontWeight = 'bold';
+            catCell.style.borderBottom = '2px solid #bbb';
+            catCell.style.padding = '8px 12px';
+            catCell.style.background = '#f0f2f5';
+            catCell.style.cursor = 'default';
+            catCell.style.display = 'block';
+            catRow.appendChild(catCell);
+            tbody.appendChild(catRow);
+
+            // Add items for this category
+            (catObj.items || []).forEach(item => renderItemRow(item));
+        }
+    }
+
+    // Search functionality
+    searchInput.addEventListener('input', () => {
+        const filter = searchInput.value.toLowerCase();
+        tbody.querySelectorAll('tr').forEach(row => {
+            // Skip category headers
+            const catHeader = row.querySelector('td[colspan="3"]');
+            if (catHeader) {
+                row.style.display = 'block';
+                return;
+            }
+
+            const nameCell = row.querySelector('td:nth-child(2)');
+            const noteCell = row.querySelector('td:nth-child(3)');
+            if (!nameCell) return;
+            
+            const textToCheck = nameCell.textContent + ' ' + (noteCell ? noteCell.textContent : '');
+            row.style.display = textToCheck.toLowerCase().includes(filter) ? '' : 'none';
+        });
+    });
+
+    // Collapse functionality
+    collapseButton.addEventListener('click', () => {
+        const isHidden = tableWrapper.style.display === 'none';
+        tableWrapper.style.display = isHidden ? '' : 'none';
+        searchInput.style.display = isHidden ? '' : 'none';
+        collapseButton.textContent = isHidden ? 'Hide List ▼' : 'Show List ▶';
+    });
+
+    // Build initial table
+    buildTable();
+
+    // Rebuild when global data changes
+    const unsubscribe = window.EditorGlobals.addListener(() => {
+        // Get current selections before rebuilding
+        const currentSelections = container.getSelectedValues();
+        
+        // Update the initial set with current selections
+        initialSet.clear();
+        currentSelections.forEach(sel => initialSet.add(String(sel)));
+        
+        // Rebuild the table
+        buildTable();
+    });
+
+    // Store cleanup function
+    container._destroy = unsubscribe;
+
+    // Expose method to get selected values
+    container.getSelectedValues = () => {
+        return checkboxes.filter(cb => cb.checkbox.checked).map(cb => cb.item.name);
+    };
+
+    return container;
 }
 
 // =============================================================================
@@ -753,11 +891,11 @@ function getCurrentEnemyGroups() {
 function createUnifiedCheckboxList(items, title, selectedItems = [], options = {}) {
 	const {
 		maxSelected = Infinity,
-			filterBy = null,
-			displayProperty = 'name',
-			valueProperty = 'id',
-			showToggleButton = true,
-			columns = ['Enabled', 'Name']
+		filterBy = null,
+		displayProperty = 'name',
+		valueProperty = 'id',
+		showToggleButton = true,
+		columns = ['Enabled', 'Name']
 	} = options;
 
 	const container = document.createElement('div');
@@ -782,41 +920,31 @@ function createUnifiedCheckboxList(items, title, selectedItems = [], options = {
 	searchInput.className = 'checkbox-search-input';
 	listWrapper.appendChild(searchInput);
 
-	const table = document.createElement('table');
-	table.className = 'checkbox-table';
-	listWrapper.appendChild(table);
+	const checkboxContainer = document.createElement('div');
+	checkboxContainer.className = 'improved-checkbox-container';
+	listWrapper.appendChild(checkboxContainer);
 
-	const thead = document.createElement('thead');
-	const headerRow = document.createElement('tr');
-	columns.forEach(text => {
-		const th = document.createElement('th');
-		th.textContent = text;
-		headerRow.appendChild(th);
-	});
-	thead.appendChild(headerRow);
-	table.appendChild(thead);
-
-	const tbody = document.createElement('tbody');
-	table.appendChild(tbody);
+	let checkboxes = [];
+	let eventListenersAdded = false;
 
 	function buildTable() {
-		tbody.innerHTML = '';
+		checkboxContainer.innerHTML = '';
+		checkboxes = [];
 
 		if (!items.length) {
-			const emptyRow = document.createElement('tr');
-			const emptyCell = document.createElement('td');
-			emptyCell.colSpan = columns.length;
-			emptyCell.textContent = `(no ${title.toLowerCase()} available)`;
-			emptyCell.style.fontStyle = 'italic';
-			emptyRow.appendChild(emptyCell);
-			tbody.appendChild(emptyRow);
+			const emptyDiv = document.createElement('div');
+			emptyDiv.textContent = `(no ${title.toLowerCase()} available)`;
+			emptyDiv.style.fontStyle = 'italic';
+			emptyDiv.style.textAlign = 'center';
+			emptyDiv.style.padding = '12px';
+			emptyDiv.style.color = '#666';
+			checkboxContainer.appendChild(emptyDiv);
 
 			container.getSelectedValues = () => [];
 			return;
 		}
 
 		const selectedSet = new Set(selectedItems.map(String));
-		const checkboxes = [];
 
 		items.forEach(item => {
 			// Apply filter if specified
@@ -824,37 +952,37 @@ function createUnifiedCheckboxList(items, title, selectedItems = [], options = {
 				return;
 			}
 
-			const row = document.createElement('tr');
-			row.className = 'checkbox-row';
+			const row = document.createElement('div');
+			row.className = 'improved-checkbox-row checkbox-row';
 
-			const checkboxCell = document.createElement('td');
-			checkboxCell.style.textAlign = 'center';
-			checkboxCell.style.cursor = 'pointer';
+			const checkboxCell = document.createElement('div');
+			checkboxCell.className = 'improved-checkbox-cell';
 
 			const checkbox = document.createElement('input');
 			checkbox.type = 'checkbox';
+			checkbox.className = 'improved-checkbox-input';
 
 			const itemValue = typeof item === 'string' ? item : (item[valueProperty] || item[displayProperty]);
 			checkbox.checked = selectedSet.has(String(itemValue));
+			checkbox.dataset.itemValue = itemValue;
 			checkboxCell.appendChild(checkbox);
 
-			const nameCell = document.createElement('td');
-			nameCell.style.cursor = 'pointer';
+			const labelCell = document.createElement('div');
+			labelCell.className = 'improved-checkbox-label';
 			const displayText = typeof item === 'string' ? item : (item.displayName || item[displayProperty] || itemValue);
-			nameCell.textContent = displayText;
+			labelCell.textContent = displayText;
 
-			// Make cells clickable
-			[checkboxCell, nameCell].forEach(cell => {
-				cell.addEventListener('click', () => {
+			// Make entire row clickable
+			row.addEventListener('click', (e) => {
+				if (e.target !== checkbox) {
 					checkbox.checked = !checkbox.checked;
-					updateRowVisibility();
-					enforceMaxSelected();
-				});
+					checkbox.dispatchEvent(new Event('change'));
+				}
 			});
 
 			row.appendChild(checkboxCell);
-			row.appendChild(nameCell);
-			tbody.appendChild(row);
+			row.appendChild(labelCell);
+			checkboxContainer.appendChild(row);
 
 			checkboxes.push({
 				checkbox,
@@ -873,14 +1001,18 @@ function createUnifiedCheckboxList(items, title, selectedItems = [], options = {
 			checkboxes.forEach(cb => {
 				if (!cb.checkbox.checked) {
 					cb.checkbox.disabled = checkedCount >= maxSelected;
-					cb.checkbox.parentElement.style.opacity = cb.checkbox.disabled ? '0.5' : '1';
+					const row = cb.checkbox.closest('.improved-checkbox-row');
+					if (row) {
+						row.style.opacity = cb.checkbox.disabled ? '0.5' : '1';
+						row.style.cursor = cb.checkbox.disabled ? 'not-allowed' : 'pointer';
+					}
 				}
 			});
 		}
 
 		function updateRowVisibility() {
 			let anyVisible = false;
-			tbody.querySelectorAll('tr.checkbox-row').forEach(row => {
+			checkboxContainer.querySelectorAll('.checkbox-row').forEach(row => {
 				const checkbox = row.querySelector('input[type="checkbox"]');
 				const hideUnchecked = toggleBtn && toggleBtn.dataset.hidden === 'true';
 
@@ -892,28 +1024,32 @@ function createUnifiedCheckboxList(items, title, selectedItems = [], options = {
 				}
 			});
 
-			table.style.display = anyVisible ? 'table' : 'none';
+			checkboxContainer.style.display = anyVisible ? 'block' : 'none';
 			if (searchInput) {
 				searchInput.style.display = anyVisible ? '' : 'none';
 			}
 		}
 
-		searchInput.addEventListener('input', () => {
-			const filter = searchInput.value.toLowerCase();
-			tbody.querySelectorAll('tr.checkbox-row').forEach(row => {
-				const nameCell = row.querySelector('td:nth-child(2)');
-				if (!nameCell) return;
-				row.style.display = nameCell.textContent.toLowerCase().includes(filter) ? '' : 'none';
+		// Add event listeners only once
+		if (!eventListenersAdded) {
+			searchInput.addEventListener('input', () => {
+				const filter = searchInput.value.toLowerCase();
+				checkboxContainer.querySelectorAll('.checkbox-row').forEach(row => {
+					const labelText = row.querySelector('.improved-checkbox-label').textContent.toLowerCase();
+					row.style.display = labelText.includes(filter) ? '' : 'none';
+				});
 			});
-		});
 
-		if (toggleBtn) {
-			toggleBtn.addEventListener('click', () => {
-				const currentlyHidden = toggleBtn.dataset.hidden === 'true';
-				toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
-				toggleBtn.textContent = currentlyHidden ? `▼ Hide Unchecked ${title}` : `▶ Show All ${title}`;
-				updateRowVisibility();
-			});
+			if (toggleBtn) {
+				toggleBtn.addEventListener('click', () => {
+					const currentlyHidden = toggleBtn.dataset.hidden === 'true';
+					toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
+					toggleBtn.textContent = currentlyHidden ? `▼ Hide Unchecked ${title}` : `▶ Show All ${title}`;
+					updateRowVisibility();
+				});
+			}
+
+			eventListenersAdded = true;
 		}
 
 		updateRowVisibility();

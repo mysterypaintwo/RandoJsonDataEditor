@@ -303,5 +303,7 @@ export class RoomManager {
 	/**
 	 * Handle Room Properties Editor Updates
 	 */
-	async handleRoomPropertiesUpdate(payload) {}
+	async handleRoomPropertiesUpdate(payload) {
+		console.log(`Payload update: ${payload}`);
+	}
 }

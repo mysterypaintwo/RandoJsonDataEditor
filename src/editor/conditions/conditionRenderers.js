@@ -464,7 +464,6 @@ class SpecialValueRenderer {
 // =============================================================================
 // Enemy Kill Renderer
 // =============================================================================
-
 class EnemyKillRenderer {
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
@@ -491,8 +490,64 @@ class EnemyKillRenderer {
 		addGroupBtn.style.marginTop = '8px';
 		enemyGroupsContainer.appendChild(addGroupBtn);
 
-		// Get enemy groups from EnemyEditor instances
-		const availableEnemyGroups = getCurrentEnemyGroups();
+		// Get enemy groups from EnemyEditor instances - SAFELY
+		let availableEnemyGroups = [];
+		try {
+			availableEnemyGroups = getCurrentEnemyGroups() || [];
+		} catch (error) {
+			console.warn('Failed to get current enemy groups:', error);
+			availableEnemyGroups = [];
+		}
+
+		const updateAvailableGroups = () => {
+			try {
+				const previousGroups = [...availableEnemyGroups];
+				availableEnemyGroups = getCurrentEnemyGroups() || [];
+				
+				// Check if any previously selected groups are no longer available
+				const previousIds = new Set(previousGroups.map(g => g.id));
+				const currentIds = new Set(availableEnemyGroups.map(g => g.id));
+				const removedIds = [...previousIds].filter(id => !currentIds.has(id));
+				
+				// Update all existing dropdowns and clear invalid selections
+				updateAllEnemySelects(removedIds);
+			} catch (error) {
+				console.warn('Error updating available groups:', error);
+			}
+		};
+
+		const updateAllEnemySelects = (removedIds = []) => {
+			try {
+				const allEnemySelects = groupsWrapper.querySelectorAll('select');
+				allEnemySelects.forEach(select => {
+					const currentValue = select.value;
+					
+					// Clear selection if it was removed
+					const shouldClear = removedIds.includes(currentValue);
+					
+					select.innerHTML = '';
+
+					const emptyOption = document.createElement('option');
+					emptyOption.value = '';
+					emptyOption.textContent = availableEnemyGroups.length > 0 ? 
+						'(select enemy group)' : 
+						'(no enemy groups defined - add enemies to this room first)';
+					select.appendChild(emptyOption);
+
+					availableEnemyGroups.forEach(group => {
+						const option = document.createElement('option');
+						option.value = group.id;
+						option.textContent = group.displayName;
+						select.appendChild(option);
+					});
+
+					// Restore value only if it's still valid
+					select.value = shouldClear ? '' : currentValue;
+				});
+			} catch (error) {
+				console.warn('Error updating enemy selects:', error);
+			}
+		};
 
 		const createEnemyGroup = (initialEnemies = []) => {
 			const groupDiv = document.createElement('div');
@@ -513,12 +568,9 @@ class EnemyKillRenderer {
 
 			const removeGroupBtn = document.createElement('button');
 			removeGroupBtn.textContent = '× Remove Group';
-			removeGroupBtn.style.background = '#ff6b6b';
-			removeGroupBtn.style.color = 'white';
-			removeGroupBtn.style.border = 'none';
-			removeGroupBtn.style.borderRadius = '3px';
+			removeGroupBtn.className = 'remove-btn';
+			removeGroupBtn.style.fontSize = '12px';
 			removeGroupBtn.style.padding = '4px 8px';
-			removeGroupBtn.style.cursor = 'pointer';
 			removeGroupBtn.onclick = () => groupDiv.remove();
 
 			groupHeader.appendChild(groupTitle);
@@ -547,7 +599,9 @@ class EnemyKillRenderer {
 
 				const emptyOption = document.createElement('option');
 				emptyOption.value = '';
-				emptyOption.textContent = availableEnemyGroups.length > 0 ? '(select enemy group)' : '(no enemy groups defined - add enemies to this room first)';
+				emptyOption.textContent = availableEnemyGroups.length > 0 ? 
+					'(select enemy group)' : 
+					'(no enemy groups defined - add enemies to this room first)';
 				enemySelect.appendChild(emptyOption);
 
 				availableEnemyGroups.forEach(group => {
@@ -563,13 +617,10 @@ class EnemyKillRenderer {
 
 				const removeEnemyBtn = document.createElement('button');
 				removeEnemyBtn.textContent = '×';
-				removeEnemyBtn.style.background = '#ff6b6b';
-				removeEnemyBtn.style.color = 'white';
-				removeEnemyBtn.style.border = 'none';
-				removeEnemyBtn.style.borderRadius = '3px';
+				removeEnemyBtn.className = 'remove-btn';
+				removeEnemyBtn.style.fontSize = '12px';
 				removeEnemyBtn.style.width = '24px';
 				removeEnemyBtn.style.height = '24px';
-				removeEnemyBtn.style.cursor = 'pointer';
 				removeEnemyBtn.onclick = () => enemyDiv.remove();
 
 				enemyDiv.appendChild(enemySelect);
@@ -613,7 +664,85 @@ class EnemyKillRenderer {
 			groupsWrapper.appendChild(groupDiv);
 		};
 
-		// Optional properties section
+		// Subscribe to enemy changes - listen to DOM mutations in enemies container
+		// Make this more defensive to prevent freezing
+		let mutationObserver = null;
+		try {
+			const enemiesContainer = document.getElementById('enemiesContainer');
+			if (enemiesContainer) {
+				mutationObserver = new MutationObserver((mutations) => {
+					let shouldUpdate = false;
+					try {
+						mutations.forEach(mutation => {
+							if (mutation.type === 'childList' || 
+								(mutation.type === 'characterData' && 
+									mutation.target.parentElement?.matches('input[placeholder*="Group Name"]'))) {
+								shouldUpdate = true;
+							}
+						});
+						if (shouldUpdate) {
+							// Debounce the update to prevent excessive calls
+							clearTimeout(updateAvailableGroups.timeout);
+							updateAvailableGroups.timeout = setTimeout(updateAvailableGroups, 100);
+						}
+					} catch (error) {
+						console.warn('Error in mutation observer:', error);
+					}
+				});
+
+				mutationObserver.observe(enemiesContainer, {
+					childList: true,
+					subtree: true,
+					characterData: true
+				});
+			}
+		} catch (error) {
+			console.warn('Failed to set up mutation observer:', error);
+		}
+
+		// Store observer for cleanup - make sure it exists before storing
+		if (mutationObserver) {
+			editor.subscriptions.push(() => {
+				try {
+					mutationObserver.disconnect();
+				} catch (error) {
+					console.warn('Error disconnecting mutation observer:', error);
+				}
+			});
+		}
+
+		// Also listen for input changes on enemy name fields - more defensive
+		const handleEnemyNameChange = () => {
+			clearTimeout(handleEnemyNameChange.timeout);
+			handleEnemyNameChange.timeout = setTimeout(updateAvailableGroups, 100); // Debounced
+		};
+
+		// Add event delegation for input changes - make it safer
+		try {
+			const enemiesContainer = document.getElementById('enemiesContainer');
+			if (enemiesContainer) {
+				const inputHandler = (e) => {
+					if (e.target.matches('input[placeholder*="Group Name"]')) {
+						handleEnemyNameChange();
+					}
+				};
+				
+				enemiesContainer.addEventListener('input', inputHandler);
+				
+				// Store cleanup for input handler too
+				editor.subscriptions.push(() => {
+					try {
+						enemiesContainer.removeEventListener('input', inputHandler);
+					} catch (error) {
+						console.warn('Error removing input handler:', error);
+					}
+				});
+			}
+		} catch (error) {
+			console.warn('Failed to set up input handler:', error);
+		}
+
+		// Optional properties section - create once to avoid duplication
 		const optionsContainer = document.createElement('div');
 		optionsContainer.style.marginTop = '12px';
 		optionsContainer.style.border = '1px solid #ddd';
@@ -626,10 +755,16 @@ class EnemyKillRenderer {
 		optionsTitle.style.marginBottom = '8px';
 		optionsContainer.appendChild(optionsTitle);
 
-		// Explicit weapons
+		// Explicit weapons - with remove functionality
 		const explicitWeaponsContainer = createDynamicList(
 			'Explicit Weapons',
-			() => {
+			(weaponData = null) => {
+				const wrapper = document.createElement('div');
+				wrapper.style.display = 'flex';
+				wrapper.style.gap = '8px';
+				wrapper.style.alignItems = 'center';
+				wrapper.style.marginBottom = '4px';
+
 				const select = document.createElement('select');
 				select.style.flex = '1';
 
@@ -645,18 +780,37 @@ class EnemyKillRenderer {
 					select.appendChild(option);
 				});
 
-				select.getValue = () => select.value.trim() || null;
-				return select;
+				if (weaponData && weaponData.value) {
+					select.value = weaponData.value;
+				}
+
+				const removeBtn = document.createElement('button');
+				removeBtn.textContent = '×';
+				removeBtn.className = 'remove-btn';
+				removeBtn.style.fontSize = '12px';
+				removeBtn.style.width = '24px';
+				removeBtn.style.height = '24px';
+				removeBtn.onclick = () => wrapper.remove();
+
+				wrapper.appendChild(select);
+				wrapper.appendChild(removeBtn);
+
+				wrapper.getValue = () => select.value.trim() || null;
+				return wrapper;
 			},
-			(initialCondition?.enemyKill?.explicitWeapons || []).map(w => ({
-				value: w
-			}))
+			(initialCondition?.enemyKill?.explicitWeapons || []).map(w => ({ value: w }))
 		);
 
-		// Excluded weapons
+		// Excluded weapons - with remove functionality
 		const excludedWeaponsContainer = createDynamicList(
 			'Excluded Weapons',
-			() => {
+			(weaponData = null) => {
+				const wrapper = document.createElement('div');
+				wrapper.style.display = 'flex';
+				wrapper.style.gap = '8px';
+				wrapper.style.alignItems = 'center';
+				wrapper.style.marginBottom = '4px';
+
 				const select = document.createElement('select');
 				select.style.flex = '1';
 
@@ -672,19 +826,33 @@ class EnemyKillRenderer {
 					select.appendChild(option);
 				});
 
-				select.getValue = () => select.value.trim() || null;
-				return select;
+				if (weaponData && weaponData.value) {
+					select.value = weaponData.value;
+				}
+
+				const removeBtn = document.createElement('button');
+				removeBtn.textContent = '×';
+				removeBtn.className = 'remove-btn';
+				removeBtn.style.fontSize = '12px';
+				removeBtn.style.width = '24px';
+				removeBtn.style.height = '24px';
+				removeBtn.onclick = () => wrapper.remove();
+
+				wrapper.appendChild(select);
+				wrapper.appendChild(removeBtn);
+
+				wrapper.getValue = () => select.value.trim() || null;
+				return wrapper;
 			},
-			(initialCondition?.enemyKill?.excludedWeapons || []).map(w => ({
-				value: w
-			}))
+			(initialCondition?.enemyKill?.excludedWeapons || []).map(w => ({ value: w }))
 		);
 
 		// Farmable ammo using unified checkbox list
 		const farmableAmmoContainer = createUnifiedCheckboxList(
 			AMMO_TYPES,
 			'Farmable Ammo',
-			initialCondition?.enemyKill?.farmableAmmo || [], {
+			initialCondition?.enemyKill?.farmableAmmo || [],
+			{
 				showToggleButton: false,
 				columns: ['Enabled', 'Ammo Type']
 			}
@@ -718,12 +886,12 @@ class EnemyKillRenderer {
 		};
 
 		// Add optional properties if they have values
-		const explicitWeapons = editor.inputs.explicitWeaponsContainer?.getValue() || [];
+		const explicitWeapons = (editor.inputs.explicitWeaponsContainer?.getValue() || []).filter(w => w);
 		if (explicitWeapons.length > 0) {
 			result.enemyKill.explicitWeapons = explicitWeapons;
 		}
 
-		const excludedWeapons = editor.inputs.excludedWeaponsContainer?.getValue() || [];
+		const excludedWeapons = (editor.inputs.excludedWeaponsContainer?.getValue() || []).filter(w => w);
 		if (excludedWeapons.length > 0) {
 			result.enemyKill.excludedWeapons = excludedWeapons;
 		}
@@ -776,7 +944,13 @@ class PartialRefillRenderer {
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
 
+		const inputsWrapper = document.createElement('div');
+		inputsWrapper.style.display = 'flex';
+		inputsWrapper.style.gap = '8px';
+		inputsWrapper.style.alignItems = 'center';
+
 		const typeSelect = document.createElement('select');
+		typeSelect.style.flex = '1';
 		RESOURCE_TYPES.forEach(resourceType => {
 			const option = document.createElement('option');
 			option.value = resourceType;
@@ -787,16 +961,17 @@ class PartialRefillRenderer {
 		const limitInput = document.createElement('input');
 		limitInput.type = 'number';
 		limitInput.min = '0';
-		limitInput.placeholder = 'Value this partial refill stops at';
-		limitInput.style.marginLeft = '8px';
+		limitInput.placeholder = 'Limit';
+		limitInput.style.flex = '1';
 
 		if (initialCondition && initialCondition.partialRefill) {
 			typeSelect.value = initialCondition.partialRefill.type || 'Energy';
-			limitInput.value = initialCondition.partialRefill.limit || 0;
+			limitInput.value = initialCondition.partialRefill.limit || '';
 		}
 
-		container.appendChild(typeSelect);
-		container.appendChild(limitInput);
+		inputsWrapper.appendChild(typeSelect);
+		inputsWrapper.appendChild(limitInput);
+		container.appendChild(inputsWrapper);
 		editor.childrenContainer.appendChild(container);
 
 		editor.inputs.partialRefillTypeSelect = typeSelect;
@@ -823,24 +998,41 @@ class ShinesparkRenderer {
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
 
+		const framesWrapper = document.createElement('div');
+		framesWrapper.style.display = 'flex';
+		framesWrapper.style.gap = '8px';
+		framesWrapper.style.alignItems = 'center';
+		framesWrapper.style.marginBottom = '6px';
+
 		const framesInput = document.createElement('input');
 		framesInput.type = 'number';
 		framesInput.min = '0';
-		framesInput.placeholder = 'Frames';
+		framesInput.placeholder = 'Required frames';
+		framesInput.style.flex = '1';
 
 		const excessInput = document.createElement('input');
 		excessInput.type = 'number';
 		excessInput.min = '0';
-		excessInput.placeholder = `[Optional] Duration (in frames) that *aren't* required to complete this shinespark objective.`;
-		excessInput.style.marginLeft = '8px';
+		excessInput.placeholder = 'Excess frames (optional)';
+		excessInput.style.flex = '1';
 
 		if (initialCondition && initialCondition.shinespark) {
-			framesInput.value = initialCondition.shinespark.frames || 0;
+			framesInput.value = initialCondition.shinespark.frames || '';
 			excessInput.value = initialCondition.shinespark.excessFrames || '';
 		}
 
-		container.appendChild(framesInput);
-		container.appendChild(excessInput);
+		framesWrapper.appendChild(framesInput);
+		framesWrapper.appendChild(excessInput);
+		container.appendChild(framesWrapper);
+
+		// Add explanation text
+		const helpText = document.createElement('div');
+		helpText.style.fontSize = '12px';
+		helpText.style.color = '#666';
+		helpText.style.fontStyle = 'italic';
+		helpText.textContent = 'Excess frames: duration that isn\'t required to complete the objective';
+		container.appendChild(helpText);
+
 		editor.childrenContainer.appendChild(container);
 
 		editor.inputs.shinesparkFramesInput = framesInput;
@@ -873,12 +1065,17 @@ class EnemyDamageRenderer {
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
 
+		const inputsWrapper = document.createElement('div');
+		inputsWrapper.style.display = 'flex';
+		inputsWrapper.style.gap = '8px';
+		inputsWrapper.style.alignItems = 'center';
+
 		const enemyInput = document.createElement('select');
-		enemyInput.style.width = '100%';
+		enemyInput.style.flex = '2';
 
 		const emptyOption = document.createElement('option');
 		emptyOption.value = '';
-		emptyOption.textContent = `(select enemy)`;
+		emptyOption.textContent = '(select enemy)';
 		enemyInput.appendChild(emptyOption);
 
 		const options = (window.EditorGlobals.enemyList || []).sort();
@@ -889,31 +1086,27 @@ class EnemyDamageRenderer {
 			enemyInput.appendChild(opt);
 		});
 
-		// Set initial value
-		if (initialCondition && initialCondition[type]) {
-			enemyInput.value = initialCondition[type];
-		}
-
 		const typeInput = document.createElement('input');
 		typeInput.type = 'text';
 		typeInput.placeholder = 'Attack type';
-		typeInput.style.marginLeft = '8px';
+		typeInput.style.flex = '1';
 
 		const hitsInput = document.createElement('input');
 		hitsInput.type = 'number';
 		hitsInput.min = '1';
 		hitsInput.placeholder = 'Hits';
-		hitsInput.style.marginLeft = '8px';
+		hitsInput.style.flex = '1';
 
 		if (initialCondition && initialCondition.enemyDamage) {
 			enemyInput.value = initialCondition.enemyDamage.enemy || '';
 			typeInput.value = initialCondition.enemyDamage.type || '';
-			hitsInput.value = initialCondition.enemyDamage.hits || 1;
+			hitsInput.value = initialCondition.enemyDamage.hits || '';
 		}
 
-		container.appendChild(enemyInput);
-		container.appendChild(typeInput);
-		container.appendChild(hitsInput);
+		inputsWrapper.appendChild(enemyInput);
+		inputsWrapper.appendChild(typeInput);
+		inputsWrapper.appendChild(hitsInput);
+		container.appendChild(inputsWrapper);
 		editor.childrenContainer.appendChild(container);
 
 		editor.inputs.enemyDamageEnemyInput = enemyInput;
@@ -943,24 +1136,31 @@ class AutoReserveRenderer {
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
 
+		const inputsWrapper = document.createElement('div');
+		inputsWrapper.style.display = 'flex';
+		inputsWrapper.style.gap = '8px';
+		inputsWrapper.style.alignItems = 'center';
+
 		const minInput = document.createElement('input');
 		minInput.type = 'number';
 		minInput.min = '0';
-		minInput.placeholder = 'Min reserve energy (default: 1)';
+		minInput.placeholder = 'Min reserve (default: 1)';
+		minInput.style.flex = '1';
 
 		const maxInput = document.createElement('input');
 		maxInput.type = 'number';
 		maxInput.min = '0';
-		maxInput.placeholder = 'Max reserve energy (default: 400)';
-		maxInput.style.marginLeft = '8px';
+		maxInput.placeholder = 'Max reserve (default: 400)';
+		maxInput.style.flex = '1';
 
 		if (initialCondition && initialCondition.autoReserveTrigger) {
 			minInput.value = initialCondition.autoReserveTrigger.minReserveEnergy || '';
 			maxInput.value = initialCondition.autoReserveTrigger.maxReserveEnergy || '';
 		}
 
-		container.appendChild(minInput);
-		container.appendChild(maxInput);
+		inputsWrapper.appendChild(minInput);
+		inputsWrapper.appendChild(maxInput);
+		container.appendChild(inputsWrapper);
 		editor.childrenContainer.appendChild(container);
 
 		editor.inputs.autoReserveMinInput = minInput;
@@ -987,33 +1187,60 @@ class RunwayRenderer {
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
 
+		// Main inputs wrapper
+		const mainWrapper = document.createElement('div');
+		mainWrapper.style.display = 'flex';
+		mainWrapper.style.gap = '8px';
+		mainWrapper.style.alignItems = 'center';
+		mainWrapper.style.marginBottom = '8px';
+
 		const tilesInput = document.createElement('input');
 		tilesInput.type = 'number';
 		tilesInput.min = '1';
 		tilesInput.max = '45';
 		tilesInput.step = '0.5';
 		tilesInput.placeholder = type === 'speedBall' ? 'Runway length' : 'Used tiles';
+		tilesInput.style.flex = '1';
 
 		const openEndInput = document.createElement('input');
 		openEndInput.type = 'number';
 		openEndInput.min = '0';
 		openEndInput.max = '2';
 		openEndInput.placeholder = 'Open ends';
-		openEndInput.style.marginLeft = '8px';
+		openEndInput.style.flex = '1';
 
-		// Optional slope inputs
+		mainWrapper.appendChild(tilesInput);
+		mainWrapper.appendChild(openEndInput);
+		container.appendChild(mainWrapper);
+
+		// Optional slope inputs - grouped and labeled
+		const slopeLabel = document.createElement('div');
+		slopeLabel.textContent = 'Optional slope properties:';
+		slopeLabel.style.fontSize = '12px';
+		slopeLabel.style.fontWeight = '600';
+		slopeLabel.style.marginBottom = '4px';
+		slopeLabel.style.color = '#666';
+		container.appendChild(slopeLabel);
+
 		const slopeContainer = document.createElement('div');
-		slopeContainer.style.marginTop = '8px';
 		slopeContainer.style.display = 'grid';
 		slopeContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
-		slopeContainer.style.gap = '4px';
+		slopeContainer.style.gap = '6px';
 
 		const slopeInputs = {};
-		['gentleUpTiles', 'gentleDownTiles', 'steepUpTiles', 'steepDownTiles', 'startingDownTiles'].forEach(slope => {
+		const slopeLabels = {
+			'gentleUpTiles': 'Gentle up',
+			'gentleDownTiles': 'Gentle down',
+			'steepUpTiles': 'Steep up',
+			'steepDownTiles': 'Steep down',
+			'startingDownTiles': 'Starting down'
+		};
+
+		Object.entries(slopeLabels).forEach(([slope, label]) => {
 			const input = document.createElement('input');
 			input.type = 'number';
 			input.min = '0';
-			input.placeholder = slope.replace(/([A-Z])/g, ' $1').toLowerCase();
+			input.placeholder = label;
 			slopeContainer.appendChild(input);
 			slopeInputs[slope] = input;
 		});
@@ -1029,8 +1256,6 @@ class RunwayRenderer {
 			});
 		}
 
-		container.appendChild(tilesInput);
-		container.appendChild(openEndInput);
 		container.appendChild(slopeContainer);
 		editor.childrenContainer.appendChild(container);
 
@@ -1259,7 +1484,10 @@ class RidleyKillRenderer {
 class DefaultRenderer {
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
-		container.innerHTML = `<em>Renderer not yet implemented for ${type}</em>`;
+		if (type != '')
+			container.innerHTML = `<em>Renderer not yet implemented for ${type}</em>`;
+		else
+			container.innerHTML = ``;
 		editor.childrenContainer.appendChild(container);
 	}
 

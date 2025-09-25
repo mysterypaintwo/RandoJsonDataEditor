@@ -265,11 +265,11 @@ ipcMain.on('open-door-editor', (event, doorData) => {
 		doorWin.webContents.send('init-door-data', doorData);
 	});
 });
-// Handle requests to save door editor changes
-ipcMain.on('save-door-data', (event, payload) => {
-	console.log('Received door data save request:', payload);
+// Handle requests to save room properties editor changes
+ipcMain.on('save-room-properties-data', (event, payload) => {
+	console.log('Received room properties editor save request:', payload);
 	if (mainWindow && mainWindow.webContents) {
-		mainWindow.webContents.send('update-door-data', payload);
+		mainWindow.webContents.send('update-room-properties', payload);
 	}
 });
 // Handle requests to save door editor changes

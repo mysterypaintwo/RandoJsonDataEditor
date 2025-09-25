@@ -314,49 +314,349 @@ button:hover {
     background: currentColor;
 }
 
-/* Enhanced Condition Types with Proper Colors */
-.condition-block.and { background-color: #a0c4e8; color: #0066cc; border: 1px solid rgba(51,153,255,0.4); }
-.condition-block.or { background-color: #fff1b8; color: #cc8400; border: 1px solid rgba(255,204,51,0.4); }
-.condition-block.not { background-color: #f0a0a0; color: #ff3333; border: 1px solid rgba(255,102,102,0.4); }
+/* =============================================================================
+   Complete Condition Type Colors
+   ============================================================================= */
 
-.condition-block.item { background-color: #d4b3ff; color: #7a3fff; border: 1px solid rgba(161,119,255,0.4); }
-.condition-block.event { background-color: #ffb3c4; color: #ff3380; border: 1px solid rgba(255,128,192,0.4); }
-.condition-block.tech { background-color: #a0c4e8; color: #0066cc; border: 1px solid rgba(51,153,255,0.4); }
-.condition-block.helper { background-color: #ebabb0; color: #f5426c; border: 1px solid rgba(247,108,141,0.4); }
+/* Base condition block styling */
+.condition-block {
+    position: relative;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    font-weight: 600;
+    color: rgba(0,0,0,0.85);
+    overflow: hidden;
+}
 
-.condition-block.ammo { background-color: #ffcc99; color: #cc6600; border: 1px solid rgba(255,153,51,0.4); }
-.condition-block.ammoDrain { background-color: #ccddff; color: #3366cc; border: 1px solid rgba(102,153,255,0.4); }
-.condition-block.enemyKill { background-color: #ff9999; color: #cc0000; border: 1px solid rgba(255,51,51,0.4); }
-.condition-block.refill { background-color: #99ff99; color: #009900; border: 1px solid rgba(51,204,51,0.4); }
-.condition-block.partialRefill { background-color: #ccffcc; color: #66cc66; border: 1px solid rgba(102,204,102,0.4); }
+/* Left vertical bar for condition type indicator */
+.condition-block::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    background: currentColor;
+    opacity: 0.8;
+}
 
-.condition-block.shinespark { background-color: #ffff99; color: #cccc00; border: 1px solid rgba(204,204,51,0.4); }
-.condition-block.acidFrames { background-color: #99ff99; color: #009900; border: 1px solid rgba(51,204,51,0.4); }
-.condition-block.gravitylessAcidFrames { background-color: #66ff66; color: #00cc00; border: 1px solid rgba(0,204,0,0.4); }
-.condition-block.draygonElectricityFrames { background-color: #ffff66; color: #cccc00; border: 1px solid rgba(204,204,0,0.4); }
-.condition-block.enemyDamage { background-color: #ffaa99; color: #cc6600; border: 1px solid rgba(204,102,51,0.4); }
-.condition-block.heatFrames { background-color: #ff6666; color: #cc0000; border: 1px solid rgba(204,0,0,0.4); }
-.condition-block.lavaFrames { background-color: #ff4400; color: #cc2200; border: 1px solid rgba(204,34,0,0.4); }
+/* Hover effects for all conditions */
+.condition-block:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
 
-.condition-block.canShineCharge { background-color: #ffff99; color: #cccc00; border: 1px solid rgba(204,204,51,0.4); }
-.condition-block.getBlueSpeed { background-color: #99ccff; color: #0099cc; border: 1px solid rgba(51,153,255,0.4); }
-.condition-block.speedBall { background-color: #ffcc99; color: #cc9900; border: 1px solid rgba(204,153,51,0.4); }
+/* Logical operators */
+.condition-block.and { 
+    background-color: #a0c4e8; 
+    color: #0066cc; 
+    border: 1px solid rgba(51,153,255,0.4); 
+}
+.condition-block.or { 
+    background-color: #fff1b8; 
+    color: #cc8400; 
+    border: 1px solid rgba(255,204,51,0.4); 
+}
+.condition-block.not { 
+    background-color: #f0a0a0; 
+    color: #ff3333; 
+    border: 1px solid rgba(255,102,102,0.4); 
+}
 
-.condition-block.doorUnlockedAtNode { background-color: #cccc99; color: #999900; border: 1px solid rgba(153,153,51,0.4); }
-.condition-block.obstaclesCleared { background-color: #99ff99; color: #009900; border: 1px solid rgba(51,204,51,0.4); }
-.condition-block.obstaclesNotCleared { background-color: #ff9999; color: #cc0000; border: 1px solid rgba(255,51,51,0.4); }
-.condition-block.resetRoom { background-color: #cccccc; color: #666666; border: 1px solid rgba(102,102,102,0.4); }
+/* Items and events */
+.condition-block.item { 
+    background-color: #d4b3ff; 
+    color: #7a3fff; 
+    border: 1px solid rgba(161,119,255,0.4); 
+}
+.condition-block.event { 
+    background-color: #ffb3c4; 
+    color: #ff3380; 
+    border: 1px solid rgba(255,128,192,0.4); 
+}
+.condition-block.tech { 
+    background-color: #a0c4e8; 
+    color: #0066cc; 
+    border: 1px solid rgba(51,153,255,0.4); 
+}
+.condition-block.helper { 
+    background-color: #ebabb0; 
+    color: #f5426c; 
+    border: 1px solid rgba(247,108,141,0.4); 
+}
 
-.condition-block.gainFlashSuit { background-color: #ffffcc; color: #cccc66; border: 1px solid rgba(204,204,102,0.4); }
-.condition-block.useFlashSuit { background-color: #ffff99; color: #cccc00; border: 1px solid rgba(204,204,51,0.4); }
-.condition-block.noFlashSuit { background-color: #ffcccc; color: #cc6666; border: 1px solid rgba(204,102,102,0.4); }
+/* Special conditions */
+.condition-block.free { 
+    background-color: #a4d8a2; 
+    color: #00aa00; 
+    border: 1px solid rgba(77,210,77,0.4); 
+}
+.condition-block.never { 
+    background-color: #e69a9a; 
+    color: #cc0000; 
+    border: 1px solid rgba(224,51,51,0.4); 
+}
 
-.condition-block.notable { background-color: #ffddaa; color: #cc9966; border: 1px solid rgba(204,153,102,0.4); }
-.condition-block.disableEquipment { background-color: #ccaaff; color: #9966cc; border: 1px solid rgba(153,102,204,0.4); }
-.condition-block.ridleyKill { background-color: #ff6666; color: #cc0000; border: 1px solid rgba(204,0,0,0.4); }
+/* Ammo and combat */
+.condition-block.ammo { 
+    background-color: #ffcc99; 
+    color: #cc6600; 
+    border: 1px solid rgba(255,153,51,0.4); 
+}
+.condition-block.ammoDrain { 
+    background-color: #ccddff; 
+    color: #3366cc; 
+    border: 1px solid rgba(102,153,255,0.4); 
+}
+.condition-block.enemyKill { 
+    background-color: #ff9999; 
+    color: #cc0000; 
+    border: 1px solid rgba(255,51,51,0.4); 
+}
 
-.condition-block.free { background-color: #a4d8a2; color: #00aa00; border: 1px solid rgba(77,210,77,0.4); }
-.condition-block.never { background-color: #e69a9a; color: #cc0000; border: 1px solid rgba(224,51,51,0.4); }
+/* Resource management */
+.condition-block.refill { 
+    background-color: #99ff99; 
+    color: #009900; 
+    border: 1px solid rgba(51,204,51,0.4); 
+}
+.condition-block.partialRefill { 
+    background-color: #ccffcc; 
+    color: #66cc66; 
+    border: 1px solid rgba(102,204,102,0.4); 
+}
+.condition-block.resourceAtMost { 
+    background-color: #ffccff; 
+    color: #cc66cc; 
+    border: 1px solid rgba(204,102,204,0.4); 
+}
+.condition-block.resourceCapacity { 
+    background-color: #99ccff; 
+    color: #3399cc; 
+    border: 1px solid rgba(51,153,204,0.4); 
+}
+.condition-block.resourceMaxCapacity { 
+    background-color: #cc99ff; 
+    color: #9933cc; 
+    border: 1px solid rgba(153,51,204,0.4); 
+}
+.condition-block.resourceAvailable { 
+    background-color: #99ffcc; 
+    color: #33cc66; 
+    border: 1px solid rgba(51,204,102,0.4); 
+}
+.condition-block.resourceConsumed { 
+    background-color: #ffcc99; 
+    color: #cc9933; 
+    border: 1px solid rgba(204,153,51,0.4); 
+}
+.condition-block.resourceMissingAtMost { 
+    background-color: #ccffcc; 
+    color: #66cc99; 
+    border: 1px solid rgba(102,204,153,0.4); 
+}
+
+/* Health and damage */
+.condition-block.shinespark { 
+    background-color: #ffff99; 
+    color: #cccc00; 
+    border: 1px solid rgba(204,204,51,0.4); 
+}
+.condition-block.acidFrames { 
+    background-color: #99ff99; 
+    color: #009900; 
+    border: 1px solid rgba(51,204,51,0.4); 
+}
+.condition-block.gravitylessAcidFrames { 
+    background-color: #66ff66; 
+    color: #00cc00; 
+    border: 1px solid rgba(0,204,0,0.4); 
+}
+.condition-block.draygonElectricityFrames { 
+    background-color: #ffff66; 
+    color: #cccc00; 
+    border: 1px solid rgba(204,204,0,0.4); 
+}
+.condition-block.enemyDamage { 
+    background-color: #ffaa99; 
+    color: #cc6600; 
+    border: 1px solid rgba(204,102,51,0.4); 
+}
+.condition-block.heatFrames { 
+    background-color: #ff6666; 
+    color: #cc0000; 
+    border: 1px solid rgba(204,0,0,0.4); 
+}
+.condition-block.simpleHeatFrames { 
+    background-color: #ff9999; 
+    color: #cc3333; 
+    border: 1px solid rgba(204,51,51,0.4); 
+}
+.condition-block.heatFramesWithEnergyDrops { 
+    background-color: #ff99aa; 
+    color: #cc3366; 
+    border: 1px solid rgba(204,51,102,0.4); 
+}
+.condition-block.gravitylessHeatFrames { 
+    background-color: #ff3333; 
+    color: #cc0000; 
+    border: 1px solid rgba(204,0,0,0.4); 
+}
+.condition-block.lavaFrames { 
+    background-color: #ff4400; 
+    color: #cc2200; 
+    border: 1px solid rgba(204,34,0,0.4); 
+}
+.condition-block.gravitylessLavaFrames { 
+    background-color: #ff2200; 
+    color: #cc1100; 
+    border: 1px solid rgba(204,17,0,0.4); 
+}
+.condition-block.lavaFramesWithEnergyDrops { 
+    background-color: #ff6600; 
+    color: #cc4400; 
+    border: 1px solid rgba(204,68,0,0.4); 
+}
+.condition-block.shineChargeFrames { 
+    background-color: #ffffaa; 
+    color: #cccc66; 
+    border: 1px solid rgba(204,204,102,0.4); 
+}
+.condition-block.hibashiHits { 
+    background-color: #ff8800; 
+    color: #cc6600; 
+    border: 1px solid rgba(204,102,0,0.4); 
+}
+.condition-block.samusEaterFrames { 
+    background-color: #cc6699; 
+    color: #993366; 
+    border: 1px solid rgba(153,51,102,0.4); 
+}
+.condition-block.metroidFrames { 
+    background-color: #9966cc; 
+    color: #663399; 
+    border: 1px solid rgba(102,51,153,0.4); 
+}
+.condition-block.spikeHits { 
+    background-color: #999999; 
+    color: #666666; 
+    border: 1px solid rgba(102,102,102,0.4); 
+}
+.condition-block.thornHits { 
+    background-color: #669966; 
+    color: #336633; 
+    border: 1px solid rgba(51,102,51,0.4); 
+}
+.condition-block.electricityHits { 
+    background-color: #6666ff; 
+    color: #3333cc; 
+    border: 1px solid rgba(51,51,204,0.4); 
+}
+.condition-block.autoReserveTrigger { 
+    background-color: #ff99cc; 
+    color: #cc3399; 
+    border: 1px solid rgba(204,51,153,0.4); 
+}
+
+/* Timing and cycles */
+.condition-block.cycleFrames { 
+    background-color: #ccccff; 
+    color: #6666cc; 
+    border: 1px solid rgba(102,102,204,0.4); 
+}
+.condition-block.simpleCycleFrames { 
+    background-color: #ddddff; 
+    color: #7777cc; 
+    border: 1px solid rgba(119,119,204,0.4); 
+}
+
+/* Movement and momentum */
+.condition-block.canShineCharge { 
+    background-color: #ffff99; 
+    color: #cccc00; 
+    border: 1px solid rgba(204,204,51,0.4); 
+}
+.condition-block.getBlueSpeed { 
+    background-color: #99ccff; 
+    color: #0099cc; 
+    border: 1px solid rgba(51,153,255,0.4); 
+}
+.condition-block.speedBall { 
+    background-color: #ffcc99; 
+    color: #cc9900; 
+    border: 1px solid rgba(204,153,51,0.4); 
+}
+
+/* Doors and obstacles */
+.condition-block.doorUnlockedAtNode { 
+    background-color: #cccc99; 
+    color: #999900; 
+    border: 1px solid rgba(153,153,51,0.4); 
+}
+.condition-block.obstaclesCleared { 
+    background-color: #99ff99; 
+    color: #009900; 
+    border: 1px solid rgba(51,204,51,0.4); 
+}
+.condition-block.obstaclesNotCleared { 
+    background-color: #ff9999; 
+    color: #cc0000; 
+    border: 1px solid rgba(255,51,51,0.4); 
+}
+.condition-block.resetRoom { 
+    background-color: #cccccc; 
+    color: #666666; 
+    border: 1px solid rgba(102,102,102,0.4); 
+}
+.condition-block.itemNotCollectedAtNode { 
+    background-color: #ffcccc; 
+    color: #cc6666; 
+    border: 1px solid rgba(204,102,102,0.4); 
+}
+.condition-block.itemCollectedAtNode { 
+    background-color: #ccffcc; 
+    color: #66cc66; 
+    border: 1px solid rgba(102,204,102,0.4); 
+}
+
+/* Flash suit */
+.condition-block.gainFlashSuit { 
+    background-color: #ffffcc; 
+    color: #cccc66; 
+    border: 1px solid rgba(204,204,102,0.4); 
+}
+.condition-block.useFlashSuit { 
+    background-color: #ffff99; 
+    color: #cccc00; 
+    border: 1px solid rgba(204,204,51,0.4); 
+}
+.condition-block.noFlashSuit { 
+    background-color: #ffcccc; 
+    color: #cc6666; 
+    border: 1px solid rgba(204,102,102,0.4); 
+}
+
+/* Special requirements */
+.condition-block.notable { 
+    background-color: #ffddaa; 
+    color: #cc9966; 
+    border: 1px solid rgba(204,153,102,0.4); 
+}
+.condition-block.disableEquipment { 
+    background-color: #ccaaff; 
+    color: #9966cc; 
+    border: 1px solid rgba(153,102,204,0.4); 
+}
+.condition-block.ridleyKill { 
+    background-color: #ff6666; 
+    color: #cc0000; 
+    border: 1px solid rgba(204,0,0,0.4); 
+}
 
 /* =============================================================================
    Checkbox Grid System
@@ -405,95 +705,249 @@ button:hover {
 /* =============================================================================
    Clickable Checkboxes
    ============================================================================= */
-
    .clickable-checkbox-grid {
     display: grid;
-    grid-template-columns: 40px 1fr; /* left = checkbox, right = text */
-    align-items: center; /* vertical center */
+    grid-template-columns: 40px 1fr;
+    align-items: center;
     cursor: pointer;
-    padding: 6px 8px;
+    padding: 8px 12px;
     margin-bottom: 4px;
     border: 1px solid #e0e0e0;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: background-color 0.2s;
     font-size: 14px;
+    background: rgba(255, 255, 255, 0.9);
 }
 
 .clickable-checkbox-grid:hover {
-    background-color: #f5f5f5;
+    background-color: #f8f9fa;
 }
 
 .clickable-checkbox-grid .checkbox-cell {
-    justify-self: center; /* center checkbox in its grid cell */
-    width: 20px;          /* bigger checkbox */
-    height: 24px;
+    justify-self: center;
+    width: 20px;
+    height: 20px;
     cursor: pointer;
+    accent-color: #3498db;
 }
 
 .clickable-checkbox-grid .label-cell {
-    justify-self: start;  /* left-align text */
+    justify-self: start;
     user-select: none;
+    line-height: 1.3;
+}
+
+/* Improved checkbox container for all checkbox lists */
+.improved-checkbox-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 8px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Individual checkbox row */
+.improved-checkbox-row {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    align-items: center;
+    padding: 8px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    min-height: 32px;
+}
+
+.improved-checkbox-row:hover {
+    background-color: #f8f9fa;
+}
+
+.improved-checkbox-row:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.improved-checkbox-row:nth-child(even):hover {
+    background-color: #f0f2f5;
+}
+
+/* Checkbox cell - centered */
+.improved-checkbox-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Enhanced checkbox styling */
+.improved-checkbox-input {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #3498db;
+    transform: scale(1.1);
+}
+
+/* Label cell - left aligned */
+.improved-checkbox-label {
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    line-height: 1.3;
+    padding: 2px 0;
+    user-select: none;
+    word-break: break-word;
+}
+
+.improved-checkbox-label:hover {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+/* Empty state styling */
+.improved-checkbox-container .no-match-placeholder {
+    text-align: center;
+    padding: 16px;
+    font-style: italic;
+    color: #666;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    margin: 4px 0;
+}
+
+/* Scrollbar styling for checkbox containers */
+.improved-checkbox-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.improved-checkbox-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.improved-checkbox-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.improved-checkbox-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Special styling for disabled rows */
+.improved-checkbox-row[style*="opacity: 0.5"] {
+    cursor: not-allowed;
+}
+
+.improved-checkbox-row[style*="opacity: 0.5"] .improved-checkbox-label {
+    cursor: not-allowed;
+    color: #999;
 }
 
 /* =============================================================================
    Enhanced Checkbox Map Container (Tech/Helper Lists)
    ============================================================================= */
-.checkbox-map-container {
+   .checkbox-map-container {
     margin: 8px 0;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.95);
     overflow: hidden;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.checkbox-map-container > button {
+    margin: 8px;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.checkbox-map-container > input {
+    margin: 0 8px 8px 8px;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
 }
 
 .checkbox-map-container table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    flex: 1;
+    overflow-y: auto;
 }
 
-.checkbox-map-container td {
-    padding: 8px 12px;
+.checkbox-map-container tbody tr {
+    display: grid;
+    grid-template-columns: 40px 200px 1fr;
+    align-items: center;
+    padding: 8px 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    vertical-align: top;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
-.checkbox-map-container tr:last-child td { 
-    border-bottom: none; 
+.checkbox-map-container tbody tr:hover {
+    background-color: rgba(52, 152, 219, 0.08);
 }
 
-.checkbox-map-container tr td:first-child { 
-    text-align: center;
-    width: 40px;
+.checkbox-map-container tbody tr td:first-child {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 12px;
 }
 
-.checkbox-map-container tr td:nth-child(2) { 
+.checkbox-map-container tbody tr td:nth-child(2) {
     font-weight: 600;
-    width: 200px;
+    padding: 0 8px;
 }
 
-.checkbox-map-container tr td:nth-child(3) { 
+.checkbox-map-container tbody tr td:nth-child(3) {
     color: #666;
     font-size: 12px;
     line-height: 1.4;
+    padding: 0 12px 0 8px;
 }
 
-.checkbox-map-container tr:hover td {
-    background: rgba(52, 152, 219, 0.08);
+.checkbox-map-container.tech tbody tr:hover {
+    background-color: rgba(51, 153, 255, 0.12);
 }
 
-.checkbox-map-container.tech tr:hover td {
-    background: rgba(51, 153, 255, 0.12);
-}
-
-.checkbox-map-container.helper tr:hover td {
-    background: rgba(245, 66, 108, 0.12);
+.checkbox-map-container.helper tbody tr:hover {
+    background-color: rgba(245, 66, 108, 0.12);
 }
 
 .checkbox-map-container input[type="radio"] {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     accent-color: #3498db;
+    cursor: pointer;
+}
+
+/* Category headers in tech/helper maps */
+.checkbox-map-container tbody tr td[colspan="3"] {
+    display: block !important;
+    font-weight: bold;
+    border-bottom: 2px solid #bbb;
+    padding: 8px 12px;
+    background-color: #f0f2f5;
+    cursor: default;
+}
+
+.checkbox-map-container tbody tr:has(td[colspan="3"]):hover {
+    background-color: #f0f2f5;
 }
 
 /* Inputs / dropdowns inherit parent block colors but with better readability */
@@ -507,6 +961,7 @@ button:hover {
     color: #333;
     font-weight: 500;
     font-size: 13px;
+    transition: all 0.2s ease;
 }
 
 .condition-block select:focus,
@@ -515,23 +970,51 @@ button:hover {
     background: white;
     border-color: #3498db;
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    outline: none;
 }
 
-/* Door Entry Components */
-.door-entry {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    border: 1px solid #e0e0e0;
+
+/* Consistent button styling within conditions */
+.condition-block button {
+    transition: all 0.2s ease;
 }
 
-.door-entry select {
-    flex: 1;
-    margin-bottom: 0;
+.condition-block button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Help text styling */
+.condition-block .help-text {
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.6);
+    font-style: italic;
+    margin-top: 4px;
+    line-height: 1.3;
+}
+
+/* Collapsed condition styling */
+.condition-block.collapsed {
+    opacity: 0.7;
+    transform: scale(0.98);
+}
+
+.condition-block.collapsed .children {
+    display: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .condition-block {
+        padding: 6px 10px;
+        margin-bottom: 4px;
+    }
+    
+    .condition-block select,
+    .condition-block input {
+        font-size: 12px;
+        padding: 4px 6px;
+    }
 }
 
 /* Enemy top row layout */

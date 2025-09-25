@@ -298,24 +298,90 @@ class RoomPropertiesEditor {
 		// Collect data from all containers with auto-assigned IDs
 		const collectedData = {};
 		Object.keys(this.editorConfigs).forEach(type => {
-			collectedData[type] = collectAndAssignIDs(
+			const rawData = collectAndAssignIDs(
 				this.containers[type],
 				type,
 				this.editorConfigs[type]
 			);
+			
+			// Clean and validate each item's data structure
+			collectedData[type] = rawData
+				.map(item => {
+					if (item && typeof item === 'object') {
+						// Validate conditions within each item
+						const validatedItem = { ...item };
+						
+						// Validate condition fields if they exist
+						if (item.requires) {
+							const cleanedRequires = this.validateConditionOutput(item.requires);
+							if (cleanedRequires) validatedItem.requires = cleanedRequires;
+						}
+						if (item.spawn) {
+							const cleanedSpawn = this.validateConditionOutput(item.spawn);
+							if (cleanedSpawn) validatedItem.spawn = cleanedSpawn;
+						}
+						if (item.stopSpawn) {
+							const cleanedStopSpawn = this.validateConditionOutput(item.stopSpawn);
+							if (cleanedStopSpawn) validatedItem.stopSpawn = cleanedStopSpawn;
+						}
+						if (item.entranceCondition) {
+							const cleanedEntrance = this.validateConditionOutput(item.entranceCondition);
+							if (cleanedEntrance) validatedItem.entranceCondition = cleanedEntrance;
+						}
+						if (item.exitCondition) {
+							const cleanedExit = this.validateConditionOutput(item.exitCondition);
+							if (cleanedExit) validatedItem.exitCondition = cleanedExit;
+						}
+						
+						return cleanObject(validatedItem);
+					}
+					return item;
+				})
+				.filter(item => item !== null && Object.keys(item).length > 0);
 		});
 
 		const payload = {
-			// Preserve room identification
+			// Preserve room identification and structure
+			$schema: data.$schema,
 			id: data.id,
+			name: data.name,
 			area: data.area,
 			subarea: data.subarea,
-			name: data.name,
-			...collectedData
+			roomEnvironments: data.roomEnvironments,
+			mapTileMask: data.mapTileMask,
+			nodes: data.nodes,
+			links: data.links,
+			
+			// Add collected editor data - only include non-empty sections
+			...Object.fromEntries(
+				Object.entries(collectedData).filter(([key, value]) => 
+					Array.isArray(value) && value.length > 0
+				)
+			)
 		};
 
-		console.log('Saving Room Properties data:', payload);
+		// Add optional room-level properties only if they exist
+		if (data.subsubarea) payload.subsubarea = data.subsubarea;
+		if (data.roomImageFile) payload.roomImageFile = data.roomImageFile;
+		if (data.roomAddress) payload.roomAddress = data.roomAddress;
+		if (data.nextStratId) payload.nextStratId = data.nextStratId;
+		if (data.nextNotableId) payload.nextNotableId = data.nextNotableId;
+		if (data.note) payload.note = data.note;
+		if (data.devNote) payload.devNote = data.devNote;
+
+		console.log('Saving Room Properties data:', JSON.stringify(payload, null, 2));
 		ipcRenderer.send('save-room-properties-data', payload);
 		window.close();
+	}
+
+	// Helper function to validate condition outputs match schema
+	validateConditionOutput(condition) {
+		if (!condition || typeof condition !== 'object') return condition;
+
+		// Handle string conditions (tech names, item names, etc.)
+		if (typeof condition === 'string') return condition;
+
+		const cleaned = cleanObject(condition);
+		return Object.keys(cleaned).length > 0 ? cleaned : null;
 	}
 }

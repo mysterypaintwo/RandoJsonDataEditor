@@ -181,17 +181,50 @@
 
 	getValue() {
 		if (!this.groupInput.value.trim() && !this.enemySelect.value) return null;
-		return {
+		
+		const result = {
 			groupName: this.groupInput.value.trim(),
-			enemyName: this.enemySelect.value,
+			enemyName: window.EditorGlobals.enemyList[this.enemySelect.value].name,
 			quantity: parseInt(this.quantityInput.value) || 1,
-			homeNodes: this.homeNodesList.getSelectedValues(),
-			betweenNodes: this.betweenNodesList.getSelectedValues(),
-			spawnCondition: this.spawnCondition.getValue(),
-			stopSpawnCondition: this.stopSpawnCondition.getValue(),
-			note: this.noteArea.value.trim(),
-			devNote: this.devNoteInput.value.trim()
 		};
+
+		// Handle node assignments - schema expects either homeNodes OR betweenNodes, not both
+		const homeNodes = this.homeNodesList.getSelectedValues().map(n => parseInt(n)).filter(n => !isNaN(n));
+		const betweenNodes = this.betweenNodesList.getSelectedValues().map(n => parseInt(n)).filter(n => !isNaN(n));
+
+		if (betweenNodes.length > 0) {
+			// betweenNodes takes precedence and must be exactly 2 nodes
+			if (betweenNodes.length === 2) {
+				result.betweenNodes = betweenNodes;
+			} else {
+				console.warn('betweenNodes must contain exactly 2 nodes, falling back to homeNodes');
+				if (homeNodes.length > 0) {
+					result.homeNodes = homeNodes;
+				}
+			}
+		} else if (homeNodes.length > 0) {
+			result.homeNodes = homeNodes;
+		}
+
+		// Handle conditions - schema expects 'spawn' and 'stopSpawn', not 'spawnCondition'
+		const spawnCondition = this.spawnCondition?.getValue();
+		if (spawnCondition) {
+			result.spawn = spawnCondition;
+		}
+
+		const stopSpawnCondition = this.stopSpawnCondition?.getValue();
+		if (stopSpawnCondition) {
+			result.stopSpawn = stopSpawnCondition;
+		}
+
+		// Add optional fields only if they have values
+		const note = this.noteArea.value.trim();
+		if (note) result.note = note;
+
+		const devNote = this.devNoteInput.value.trim();
+		if (devNote) result.devNote = devNote;
+
+		return cleanObject(result);
 	}
 
 	remove() {
