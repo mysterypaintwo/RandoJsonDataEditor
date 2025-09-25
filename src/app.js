@@ -165,7 +165,7 @@ class RandoJsonDataEditor {
 				this.uiManager.showAlert('No room data to edit properties!');
 				return false;
 			}
-			window.api.openRoomPropertiesEditor(this.roomManager.state.currentRoomData, this.roomManager.state.getEnemyList(), this.roomManager.state.getItemList(), this.roomManager.state.getEventList(), this.roomManager.state.getTechMap(), this.roomManager.state.getHelperMap());
+			window.api.openRoomPropertiesEditor(this.roomManager.state.currentRoomData, this.roomManager.state.getEnemyList(), this.roomManager.state.getItemList(), this.roomManager.state.getEventList(), this.roomManager.state.getWeaponList(), this.roomManager.state.getTechMap(), this.roomManager.state.getHelperMap());
 		});
 		console.log('Room Properties button initialized');
 	}

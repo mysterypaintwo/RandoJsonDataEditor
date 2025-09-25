@@ -3,11 +3,13 @@
    
    Coordinates the various editor types and handles data flow between the main
    process and editor components. Manages initialization, save/load operations,
-   and container management.
+   and container management. Updated to use new modular condition system.
    ============================================================================= */
+
    const {
 	ipcRenderer
 } = require('electron');
+
 window.addEventListener('DOMContentLoaded', () => {
 	console.log('DOMContentLoaded fired - about to initialize with delay');
 	setTimeout(() => {
@@ -16,7 +18,9 @@ window.addEventListener('DOMContentLoaded', () => {
 		editor.initialize();
 	}, 0);
 });
+
 console.log('DOMContentLoaded listener set up');
+
 class RoomPropertiesEditor {
 	constructor() {
 		this.currentRoomData = null;
@@ -25,6 +29,7 @@ class RoomPropertiesEditor {
 		this.enemyList = {};
 		this.itemList = [];
 		this.eventList = [];
+		this.weaponList = [];
 		this.techMap = {};
 		this.helperMap = {};
 		this.editorInstances = {
@@ -33,6 +38,7 @@ class RoomPropertiesEditor {
 			strats: new Map(),
 			notables: new Map()
 		};
+
 		// Editor configurations
 		this.editorConfigs = {
 			obstacles: {
@@ -73,12 +79,14 @@ class RoomPropertiesEditor {
 			}
 		};
 	}
+
 	initialize() {
 		console.log('Initializing Room Properties Editor');
 		this.cacheContainerReferences();
 		this.setupIPCListeners();
 		this.setupEventHandlers();
 	}
+
 	cacheContainerReferences() {
 		this.containers = {
 			obstacles: document.getElementById('obstaclesContainer'),
@@ -87,52 +95,91 @@ class RoomPropertiesEditor {
 			notables: document.getElementById('notablesContainer')
 		};
 	}
+
 	setupIPCListeners() {
 		console.log('Setting up IPC listeners');
-		ipcRenderer.on('init-room-properties-data', (event, data, enemyList, itemList, eventList, techMap, helperMap) => {
-			this.handleRoomDataReceived(data, enemyList, itemList, eventList, techMap, helperMap);
+		ipcRenderer.on('init-room-properties-data', (event, data, enemyList, itemList, eventList, weaponList, techMap, helperMap) => {
+			this.handleRoomDataReceived(data, enemyList, itemList, eventList, weaponList, techMap, helperMap);
 		});
+
 		// Tell main process we're ready to receive data
 		console.log('Sending room-properties-editor-ready signal');
 		ipcRenderer.send('room-properties-editor-ready');
 	}
+
 	setupEventHandlers() {
 		// Save/close buttons
 		document.getElementById('saveBtn').addEventListener('click', () => this.handleSave());
 		document.getElementById('closeBtn').addEventListener('click', () => window.close());
+
 		// Keyboard shortcuts
 		document.addEventListener('keydown', (event) => {
 			if (event.key === 'Escape') {
 				window.close();
 			}
 		});
+
 		// Add buttons for each editor type
 		Object.keys(this.editorConfigs).forEach(type => {
 			const addBtnId = `add${type.charAt(0).toUpperCase() + type.slice(1)}Btn`;
-			//const addBtnId = `add${type.charAt(0).toUpperCase() + type.slice(1, -1)}Btn`;
 			const addBtn = document.getElementById(addBtnId);
 			if (addBtn) {
 				addBtn.addEventListener('click', () => this.addNewEditor(type));
 			}
 		});
 	}
-	handleRoomDataReceived(data, enemyList, itemList, eventList, techMap, helperMap) {
-		console.log('Room Properties Editor received data:', data, enemyList, itemList, eventList, techMap, helperMap);
+
+	handleRoomDataReceived(data, enemyList, itemList, eventList, weaponList, techMap, helperMap) {
+		console.log('Room Properties Editor received data:', data, enemyList, itemList, eventList, weaponList, techMap, helperMap);
 		this.currentRoomData = data || {};
 		this.enemyList = enemyList || {};
 		this.itemList = itemList || [];
 		this.eventList = eventList || [];
+		this.weaponList = weaponList || [];
 		this.techMap = techMap || {};
 		this.helperMap = helperMap || {};
-		
+
 		// Prepare node list for dropdowns
 		this.validRoomNodes = (this.currentRoomData.nodes || []).map(node => ({
 			id: node.id,
-			name: node.name || `Node ${node.id}`
+			name: node.name || `Node ${node.id}`,
+			nodeType: node.nodeType,
+			nodeSubType: node.nodeSubType
 		}));
+
+		// Update global data sources for the new modular condition system
+		window.EditorGlobals.updateAll(
+			this.itemList,
+			this.eventList,
+			this.weaponList,
+			this.convertToMap(this.techMap),
+			this.convertToMap(this.helperMap),
+			this.enemyList, // Convert to array for compatibility
+			this.validRoomNodes
+		);
+
 		this.updateHeaderInfo();
 		this.populateEditors();
 	}
+
+	/**
+	 * Convert legacy flat objects to Map structures expected by new system
+	 */
+	convertToMap(obj) {
+		const map = new Map();
+		if (!obj || typeof obj !== 'object') return map;
+
+		// If it's already a Map, return as-is
+		if (obj instanceof Map) return obj;
+
+		// Convert object structure to Map
+		Object.entries(obj).forEach(([key, value]) => {
+			map.set(key, value);
+		});
+
+		return map;
+	}
+
 	updateHeaderInfo() {
 		console.log('Updating header info with:', this.currentRoomData);
 		const elements = {
@@ -145,12 +192,14 @@ class RoomPropertiesEditor {
 			if (element) element.textContent = value;
 		});
 	}
+
 	populateEditors() {
 		// Clear existing content and instances
 		Object.values(this.containers).forEach(container => {
 			if (container) container.innerHTML = '';
 		});
 		Object.values(this.editorInstances).forEach(map => map.clear());
+
 		// Populate each editor type
 		Object.keys(this.editorConfigs).forEach(type => {
 			const dataArray = this.currentRoomData[type] || [];
@@ -158,53 +207,83 @@ class RoomPropertiesEditor {
 				this.createEditor(type, itemData);
 			});
 		});
+
 		// Broadcast initial obstacle state for cross-editor dependencies
 		ObstacleEditor.broadcastObstaclesChanged();
 		NotableEditor.broadcastNotablesChanged();
 	}
+
 	createEditor(type, initialData = {}) {
 		const config = this.editorConfigs[type];
 		const container = this.containers[type];
 		if (!container || !config) return null;
+
 		let editor;
 
 		switch (type) {
 			case 'enemies':
-				editor = new config.editorClass(initialData, this.validRoomNodes, this.enemyList, this.itemList, this.eventList, this.techMap, this.helperMap);
+				editor = new config.editorClass(
+					initialData,
+					this.validRoomNodes,
+					this.enemyList,
+					this.itemList,
+					this.eventList,
+					this.weaponList,
+					this.techMap,
+					this.helperMap
+				);
 				break;
 			case 'strats':
-				editor = new config.editorClass(initialData, this.validRoomNodes, this.enemyList, this.itemList, this.eventList, this.techMap, this.helperMap);
+				editor = new config.editorClass(
+					initialData,
+					this.validRoomNodes,
+					this.enemyList,
+					this.itemList,
+					this.eventList,
+					this.weaponList,
+					this.techMap,
+					this.helperMap
+				);
 				break;
 			default:
 				editor = new config.editorClass(initialData);
 				break;
 		}
+
 		// Set up removal callback
 		editor.onRemove = () => {
 			this.editorInstances[type].delete(editor._uid);
 			this.renumberContainer(type);
 		};
+
 		// Attach to container with drag support
 		editor.attachToContainer(container, () => this.renumberContainer(type));
+
 		// Store reference
 		this.editorInstances[type].set(editor._uid, editor);
+
 		// Initial numbering
 		this.renumberContainer(type);
+
 		return editor;
 	}
+
 	addNewEditor(type) {
 		return this.createEditor(type, {});
 	}
+
 	renumberContainer(type) {
 		const container = this.containers[type];
 		const config = this.editorConfigs[type];
 		if (!container || !config) return;
+
 		Array.from(container.children).forEach((card, index) => {
 			const newId = generateID(index, config);
 			if (card.setAssignedId) {
 				card.setAssignedId(newId);
 			}
 		});
+
 		// Broadcast changes for dependent editors
 		if (type === 'obstacles') {
 			ObstacleEditor.broadcastObstaclesChanged();
@@ -212,8 +291,10 @@ class RoomPropertiesEditor {
 			NotableEditor.broadcastNotablesChanged();
 		}
 	}
+
 	handleSave() {
 		const data = this.currentRoomData || {};
+
 		// Collect data from all containers with auto-assigned IDs
 		const collectedData = {};
 		Object.keys(this.editorConfigs).forEach(type => {
@@ -223,6 +304,7 @@ class RoomPropertiesEditor {
 				this.editorConfigs[type]
 			);
 		});
+
 		const payload = {
 			// Preserve room identification
 			id: data.id,
@@ -231,6 +313,7 @@ class RoomPropertiesEditor {
 			name: data.name,
 			...collectedData
 		};
+
 		console.log('Saving Room Properties data:', payload);
 		ipcRenderer.send('save-room-properties-data', payload);
 		window.close();

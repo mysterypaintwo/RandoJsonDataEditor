@@ -1,72 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Super Metroid: X-Fusion - Room Properties Editor</title>
-		<link rel="stylesheet" href="roomPropertiesEditor.css">
-	</head>
-	<body>
-		<!-- =======================================================
-         Header: Location Context Display
-         Shows current sector/region/room being edited
-         ======================================================= -->
-		<div id="header"> 🌍 <span id="sector">Loading...</span> / <span id="region">Loading...</span> / <span id="roomName">Loading...</span>
-		</div>
-		<!-- =======================================================
-         Main Content Area
-         Contains all editor sections and controls
-         ======================================================= -->
-		<div id="form">
-			<!-- Obstacles Section -->
-			<section>
-				<h3>🪨 Obstacles</h3>
-				<div id="obstaclesContainer" class="editor-container"></div>
-				<button id="addObstaclesBtn" class="add-btn">+ Add Obstacle</button>
-			</section>
-			<!-- Enemies Section -->
-			<section>
-				<h3>👾 Enemies</h3>
-				<div id="enemiesContainer" class="editor-container"></div>
-				<button id="addEnemiesBtn" class="add-btn">+ Add Enemy</button>
-			</section>
-			<!-- Strats Section -->
-			<section>
-				<h3>📘 Strats</h3>
-				<div id="stratsContainer" class="editor-container"></div>
-				<button id="addStratsBtn" class="add-btn">+ Add Strat</button>
-			</section>
-			<!-- Notable Strats Section -->
-			<section>
-				<h3>⭐ Notable Strats</h3>
-				<div id="notablesContainer" class="editor-container"></div>
-				<button id="addNotablesBtn" class="add-btn">+ Add Notable</button>
-			</section>
-		</div>
-		<!-- =======================================================
-         Footer: Action Buttons
-         Save/Cancel operations
-         ======================================================= -->
-		<div id="footer">
-			<button id="closeBtn" class="secondary-btn">❌ Close without Saving</button>
-			<button id="saveBtn" class="primary-btn">💾 Save & Close</button>
-		</div>
-		<!-- =======================================================
-         Script Dependencies
-         Load in order: data files, then utilities, then main
-         ======================================================= -->
-		<!-- Base classes first -->
-		<script src="../base/baseEditor.js"></script>
-		<!-- Utility functions -->
-		<script src="../../core/editorUtils.js"></script>
-		<!-- Condition editor -->
-		<script src="../conditions/conditionEditor.js"></script>
-		<!-- Specific editor classes -->
-		<script src="../obstacles/obstacleEditor.js"></script>
-		<script src="../enemies/enemyEditor.js"></script>
-		<script src="../strats/stratEditor.js"></script>
-		<script src="../notables/notableEditor.js"></script>
-		<!-- Main controller -->
-		<script src="./roomPropertiesEditor.js"></script>
-	</body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Metroid: X-Fusion - Room Properties Editor</title>
+    <link rel="stylesheet" href="roomPropertiesEditor.css">
+  </head>
+  <body>
+    <!-- =======================================================
+		     Header: Location Context Display
+		     Shows current sector/region/room being edited
+		     ======================================================= -->
+    <div id="header"> 🌍 <span id="sector">Loading...</span> / <span id="region">Loading...</span> / <span id="roomName">Loading...</span>
+    </div>
+    <!-- =======================================================
+		     Main Content Area
+		     Contains all editor sections and controls
+		     ======================================================= -->
+    <div id="form">
+      <!-- Obstacles Section -->
+      <section>
+        <h3>🪨 Obstacles</h3>
+        <div id="obstaclesContainer" class="editor-container"></div>
+        <button id="addObstaclesBtn" class="add-btn">+ Add Obstacle</button>
+      </section>
+      <!-- Enemies Section -->
+      <section>
+        <h3>👾 Enemies</h3>
+        <div id="enemiesContainer" class="editor-container"></div>
+        <button id="addEnemiesBtn" class="add-btn">+ Add Enemy</button>
+      </section>
+      <!-- Strats Section -->
+      <section>
+        <h3>📘 Strats</h3>
+        <div id="stratsContainer" class="editor-container"></div>
+        <button id="addStratsBtn" class="add-btn">+ Add Strat</button>
+      </section>
+      <!-- Notable Strats Section -->
+      <section>
+        <h3>⭐ Notable Strats</h3>
+        <div id="notablesContainer" class="editor-container"></div>
+        <button id="addNotablesBtn" class="add-btn">+ Add Notable</button>
+      </section>
+    </div>
+    <!-- =======================================================
+		     Footer: Action Buttons
+		     Save/Cancel operations
+		     ======================================================= -->
+    <div id="footer">
+      <button id="closeBtn" class="secondary-btn">❌ Close without Saving</button>
+      <button id="saveBtn" class="primary-btn">💾 Save & Close</button>
+    </div>
+    <!-- =======================================================
+		     Script Dependencies - Updated modular structure
+		     Load in order: config, utilities, condition system, editors, main
+		     ======================================================= -->
+    <!-- Base classes first -->
+    <script src="../base/baseEditor.js"></script>
+    <!-- Utility functions -->
+    <script src="../../core/editorUtils.js"></script>
+    <!-- New modular condition system -->
+    <script src="../conditions/conditionConfig.js"></script>
+    <script src="../conditions/sharedUtils.js"></script>
+    <script src="../conditions/conditionRenderers.js"></script>
+    <script src="../conditions/conditionEditorBase.js"></script>
+    <!-- Specific editor classes -->
+    <script src="../obstacles/obstacleEditor.js"></script>
+    <script src="../enemies/enemyEditor.js"></script>
+    <script src="../strats/stratEditor.js"></script>
+    <script src="../notables/notableEditor.js"></script>
+    <!-- Main controller -->
+    <script src="./roomPropertiesEditor.js"></script>
+  </body>
 </html>

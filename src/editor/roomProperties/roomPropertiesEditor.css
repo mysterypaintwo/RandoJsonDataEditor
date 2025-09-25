@@ -1,8 +1,8 @@
 /* =============================================================================
-   Super Metroid: X-Fusion Room Properties Editor Styles (Refactored)
+   Super Metroid: X-Fusion Room Properties Editor Styles (Updated)
    
-   Optimized stylesheet for the modular room properties editor interface.
-   Removed unused styles and consolidated common patterns.
+   Enhanced stylesheet with fixes for condition editor formatting and 
+   checkbox/grid layouts for better readability.
    ============================================================================= */
 
 /* Base Layout & Typography */
@@ -287,9 +287,9 @@ button:hover {
 }
 
 /* =============================================================================
-   Condition System Blocks
+   Condition System Blocks - Enhanced
    ============================================================================= */
-   .condition-block {
+.condition-block {
     position: relative;
     border-radius: 6px;
     padding: 8px 12px;
@@ -314,62 +314,207 @@ button:hover {
     background: currentColor;
 }
 
-/* Condition Types */
-.condition-block.and { color: #0066cc; border: 1px solid rgba(51,153,255,0.4); }
-.condition-block.or { color: #cc8400; border: 1px solid rgba(255,204,51,0.4); }
-.condition-block.not { color: #ff3333; border: 1px solid rgba(255,102,102,0.4); }
+/* Enhanced Condition Types with Proper Colors */
+.condition-block.and { background-color: #a0c4e8; color: #0066cc; border: 1px solid rgba(51,153,255,0.4); }
+.condition-block.or { background-color: #fff1b8; color: #cc8400; border: 1px solid rgba(255,204,51,0.4); }
+.condition-block.not { background-color: #f0a0a0; color: #ff3333; border: 1px solid rgba(255,102,102,0.4); }
 
-.condition-block.item { color: #7a3fff; border: 1px solid rgba(161,119,255,0.4); }
-.condition-block.event { color: #ff3380; border: 1px solid rgba(255,128,192,0.4); }
-.condition-block.strat { color: #3399ff; border: 1px solid rgba(102,178,255,0.4); }
-.condition-block.environment { color: #009977; border: 1px solid rgba(51,170,136,0.4); }
-.condition-block.tech { color: #0066cc; border: 1px solid rgba(51,153,255,0.4); }
-.condition-block.helper { color: #f5426c; border: 1px solid rgba(247,108,141,0.4); }
-.condition-block.damageRun { color: #b0703f; border: 1px solid rgba(224,168,92,0.4); }
+.condition-block.item { background-color: #d4b3ff; color: #7a3fff; border: 1px solid rgba(161,119,255,0.4); }
+.condition-block.event { background-color: #ffb3c4; color: #ff3380; border: 1px solid rgba(255,128,192,0.4); }
+.condition-block.tech { background-color: #a0c4e8; color: #0066cc; border: 1px solid rgba(51,153,255,0.4); }
+.condition-block.helper { background-color: #ebabb0; color: #f5426c; border: 1px solid rgba(247,108,141,0.4); }
 
-.condition-block.free { color: #00aa00; border: 1px solid rgba(77,210,77,0.4); }
-.condition-block.never { color: #cc0000; border: 1px solid rgba(224,51,51,0.4); }
+.condition-block.ammo { background-color: #ffcc99; color: #cc6600; border: 1px solid rgba(255,153,51,0.4); }
+.condition-block.ammoDrain { background-color: #ccddff; color: #3366cc; border: 1px solid rgba(102,153,255,0.4); }
+.condition-block.enemyKill { background-color: #ff9999; color: #cc0000; border: 1px solid rgba(255,51,51,0.4); }
+.condition-block.refill { background-color: #99ff99; color: #009900; border: 1px solid rgba(51,204,51,0.4); }
+.condition-block.partialRefill { background-color: #ccffcc; color: #66cc66; border: 1px solid rgba(102,204,102,0.4); }
+
+.condition-block.shinespark { background-color: #ffff99; color: #cccc00; border: 1px solid rgba(204,204,51,0.4); }
+.condition-block.acidFrames { background-color: #99ff99; color: #009900; border: 1px solid rgba(51,204,51,0.4); }
+.condition-block.gravitylessAcidFrames { background-color: #66ff66; color: #00cc00; border: 1px solid rgba(0,204,0,0.4); }
+.condition-block.draygonElectricityFrames { background-color: #ffff66; color: #cccc00; border: 1px solid rgba(204,204,0,0.4); }
+.condition-block.enemyDamage { background-color: #ffaa99; color: #cc6600; border: 1px solid rgba(204,102,51,0.4); }
+.condition-block.heatFrames { background-color: #ff6666; color: #cc0000; border: 1px solid rgba(204,0,0,0.4); }
+.condition-block.lavaFrames { background-color: #ff4400; color: #cc2200; border: 1px solid rgba(204,34,0,0.4); }
+
+.condition-block.canShineCharge { background-color: #ffff99; color: #cccc00; border: 1px solid rgba(204,204,51,0.4); }
+.condition-block.getBlueSpeed { background-color: #99ccff; color: #0099cc; border: 1px solid rgba(51,153,255,0.4); }
+.condition-block.speedBall { background-color: #ffcc99; color: #cc9900; border: 1px solid rgba(204,153,51,0.4); }
+
+.condition-block.doorUnlockedAtNode { background-color: #cccc99; color: #999900; border: 1px solid rgba(153,153,51,0.4); }
+.condition-block.obstaclesCleared { background-color: #99ff99; color: #009900; border: 1px solid rgba(51,204,51,0.4); }
+.condition-block.obstaclesNotCleared { background-color: #ff9999; color: #cc0000; border: 1px solid rgba(255,51,51,0.4); }
+.condition-block.resetRoom { background-color: #cccccc; color: #666666; border: 1px solid rgba(102,102,102,0.4); }
+
+.condition-block.gainFlashSuit { background-color: #ffffcc; color: #cccc66; border: 1px solid rgba(204,204,102,0.4); }
+.condition-block.useFlashSuit { background-color: #ffff99; color: #cccc00; border: 1px solid rgba(204,204,51,0.4); }
+.condition-block.noFlashSuit { background-color: #ffcccc; color: #cc6666; border: 1px solid rgba(204,102,102,0.4); }
+
+.condition-block.notable { background-color: #ffddaa; color: #cc9966; border: 1px solid rgba(204,153,102,0.4); }
+.condition-block.disableEquipment { background-color: #ccaaff; color: #9966cc; border: 1px solid rgba(153,102,204,0.4); }
+.condition-block.ridleyKill { background-color: #ff6666; color: #cc0000; border: 1px solid rgba(204,0,0,0.4); }
+
+.condition-block.free { background-color: #a4d8a2; color: #00aa00; border: 1px solid rgba(77,210,77,0.4); }
+.condition-block.never { background-color: #e69a9a; color: #cc0000; border: 1px solid rgba(224,51,51,0.4); }
 
 /* =============================================================================
-   Checkbox / Tree Lists
+   Checkbox Grid System
    ============================================================================= */
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    column-gap: 12px;
+    row-gap: 8px;
+    align-items: start;
+    margin: 12px 0;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.editor-checkbox-wrapper {
+    display: contents;
+}
+
+.editor-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #3498db;
+    margin: 2px 0;
+    cursor: pointer;
+}
+
+.editor-checkbox-label {
+    display: block;
+    line-height: 1.4;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+    padding: 2px 0;
+    word-wrap: break-word;
+    hyphens: auto;
+}
+
+.editor-checkbox-label:hover {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+/* =============================================================================
+   Clickable Checkboxes
+   ============================================================================= */
+
+   .clickable-checkbox-grid {
+    display: grid;
+    grid-template-columns: 40px 1fr; /* left = checkbox, right = text */
+    align-items: center; /* vertical center */
+    cursor: pointer;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.clickable-checkbox-grid:hover {
+    background-color: #f5f5f5;
+}
+
+.clickable-checkbox-grid .checkbox-cell {
+    justify-self: center; /* center checkbox in its grid cell */
+    width: 20px;          /* bigger checkbox */
+    height: 24px;
+    cursor: pointer;
+}
+
+.clickable-checkbox-grid .label-cell {
+    justify-self: start;  /* left-align text */
+    user-select: none;
+}
+
+/* =============================================================================
+   Enhanced Checkbox Map Container (Tech/Helper Lists)
+   ============================================================================= */
+.checkbox-map-container {
+    margin: 8px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+}
+
 .checkbox-map-container table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 500;
-    color: rgba(0,0,0,0.85);
+    font-size: 13px;
 }
 
 .checkbox-map-container td {
-    padding: 6px 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-    border-right: 1px solid rgba(255,255,255,0.15);
-    background: inherit;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    vertical-align: top;
 }
 
-.checkbox-map-container tr:last-child td { border-bottom: none; }
-.checkbox-map-container tr td:first-child { text-align: center; }
-.checkbox-map-container tr td:nth-child(2) { border-right: 1px solid rgba(255,255,255,0.15); }
-.checkbox-map-container tr td[colspan="3"] { font-weight: 600; border-bottom: 2px solid rgba(255,255,255,0.25); }
-
-.checkbox-map-container.tech td:hover {
-    background: rgba(51, 153, 255, 0.5); /* strong blue hover */
+.checkbox-map-container tr:last-child td { 
+    border-bottom: none; 
 }
 
-.checkbox-map-container.helper td:hover {
-    background: rgba(245, 66, 108, 0.35); /* stronger pink hover */
+.checkbox-map-container tr td:first-child { 
+    text-align: center;
+    width: 40px;
 }
 
-/* Inputs / dropdowns inherit parent block colors */
+.checkbox-map-container tr td:nth-child(2) { 
+    font-weight: 600;
+    width: 200px;
+}
+
+.checkbox-map-container tr td:nth-child(3) { 
+    color: #666;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.checkbox-map-container tr:hover td {
+    background: rgba(52, 152, 219, 0.08);
+}
+
+.checkbox-map-container.tech tr:hover td {
+    background: rgba(51, 153, 255, 0.12);
+}
+
+.checkbox-map-container.helper tr:hover td {
+    background: rgba(245, 66, 108, 0.12);
+}
+
+.checkbox-map-container input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #3498db;
+}
+
+/* Inputs / dropdowns inherit parent block colors but with better readability */
 .condition-block select,
 .condition-block input[type="text"],
 .condition-block input[type="number"] {
-    background: inherit;
-    border: 1px solid rgba(0,0,0,0.15);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
     border-radius: 4px;
-    padding: 4px 6px;
-    color: inherit;
+    padding: 6px 8px;
+    color: #333;
     font-weight: 500;
+    font-size: 13px;
+}
+
+.condition-block select:focus,
+.condition-block input[type="text"]:focus,
+.condition-block input[type="number"]:focus {
+    background: white;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
 /* Door Entry Components */
@@ -424,41 +569,6 @@ button:hover {
     content: "Drop here";
 }
 
-/* Boolean Checkbox Grid Styling */
-.checkbox-grid {
-    display: grid;
-    grid-template-columns: 24px 1fr;
-    column-gap: 8px;
-    row-gap: 4px;
-    align-items: center;
-    margin-top: 8px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 6px;
-}
-
-.editor-checkbox-wrapper {
-    display: contents;
-}
-
-.editor-checkbox {
-    width: 18px;
-    height: 18px;
-    accent-color: #3498db;
-    border-right: 1px solid rgba(0,0,0,0.2); /* vertical separator */
-    padding-right: 6px;
-    margin-right: 6px; /* spacing between checkbox and label */
-}
-
-.editor-checkbox-label {
-    display: block;
-    line-height: 1.2;
-    word-break: break-word;
-    font-size: 12px;
-    color: #333;
-}
-
-
 /* Footer */
 #footer {
     padding: 16px 20px;
@@ -503,5 +613,11 @@ button:hover {
     .enemy-top-row {
         flex-direction: column;
         gap: 8px;
+    }
+    
+    .checkbox-grid {
+        grid-template-columns: 20px 1fr;
+        column-gap: 8px;
+        row-gap: 6px;
     }
 }

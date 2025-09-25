@@ -13,7 +13,6 @@
    
    Dependencies:
    - Electron IPC for communication with main process
-   - conditionEditor.js for entrance/exit condition editing
    - Various condition data files (conditionItems.js, etc.)
    ============================================================================= */
    const {

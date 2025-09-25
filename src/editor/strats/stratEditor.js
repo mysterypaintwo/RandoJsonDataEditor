@@ -1,11 +1,12 @@
 /* =============================================================================
    Strat Editor
-   
-   Editor for room strategies. Handles conditions, obstacle interactions,
-   door unlocking, and real-time title updates.
+
+   Editor for room strats. Handles conditions, obstacle interactions,
+   and real-time title updates. Uses a modular condition system.
    ============================================================================= */
+
    class StratEditor extends BaseEditor {
-	constructor(initialData = {}, validRoomNodes = [], enemyList, itemList, eventList, techMap, helperMap) {
+	constructor(initialData = {}, validRoomNodes = []) {
 		const config = {
 			type: 'strats',
 			className: 'strat',
@@ -16,14 +17,16 @@
 		};
 		super(initialData, config);
 		this.validRoomNodes = validRoomNodes;
-		this.enemyList = enemyList;
-		this.itemList = itemList;
-		this.eventList = eventList;
-		this.techMap = techMap;
-		this.helperMap = helperMap;
-		
-		this.refreshAllConditionEditors();
+
+		// Subscribe to global data changes for dynamic obstacle updates
+		this.globalUnsubscribe = window.EditorGlobals.addListener(() => {
+			// Strat editor mainly needs obstacle updates, which are handled
+			// automatically by the obstacle checkbox lists
+			this.refreshCollectsItemsEditor();
+			this.refreshSetsFlagsEditor();
+		});
 	}
+
 	normalizeData(data) {
 		return {
 			name: normalizeStringField(data, 'name'),
@@ -34,9 +37,7 @@
 			clearsObstacles: normalizeArrayField(data, 'clearsObstacles'),
 			resetsObstacles: normalizeArrayField(data, 'resetsObstacles'),
 			comesThroughToilet: normalizeBooleanField(data, 'comesThroughToilet'),
-			//gModeRegainMobility: normalizeBooleanField(data, 'gModeRegainMobility'),
 			bypassesDoorShell: normalizeBooleanField(data, 'bypassesDoorShell'),
-			unlocksDoors: normalizeArrayField(data, 'unlocksDoors'),
 			collectsItems: normalizeArrayField(data, 'collectsItems'),
 			setsFlags: normalizeArrayField(data, 'setsFlags'),
 			wallJumpAvoid: normalizeBooleanField(data, 'wallJumpAvoid'),
@@ -44,304 +45,361 @@
 			id: data?.id
 		};
 	}
+
 	populateFields() {
 		this.nameInput = createInput('text', 'Strat Name', this.initialData.name);
 		this.devNoteInput = createInput('text', 'Dev Note', this.initialData.devNote);
-		
-		this._conditionEditors = [];
 
-		// Condition sections
-		this.conditionEditors = {
-			entrance: this.createConditionSection('Entrance Condition', this.initialData.entranceCondition, editor => this._conditionEditors.push(editor)),
-			requires: this.createConditionSection('Requirements', this.initialData.requires, editor => this._conditionEditors.push(editor)),
-			exit: this.createConditionSection('Exit Condition', this.initialData.exitCondition, editor => this._conditionEditors.push(editor))
-		};
+		// Create placeholder divs for conditions
+		this.entranceConditionDiv = createDiv([]);
+		this.requiresConditionDiv = createDiv([]);
+		this.exitConditionDiv = createDiv([]);
 
 		// Obstacle tables
-		this.clearsObstaclesList = this.createObstacleCheckboxList(this.initialData.clearsObstacles, 'Clears Obstacles');
-		this.resetsObstaclesList = this.createObstacleCheckboxList(this.initialData.resetsObstacles, 'Resets Obstacles');
-		// Boolean checkboxes
-		this.comesThroughToilet = createCheckbox('Toilet comes between this room and the other room (If this strat involves a door)', this.initialData.comesThroughToilet);
-		//this.gModeRegainMobility = createCheckbox('Allows regaining mobility when entering with G-mode immobile', this.initialData.gModeRegainMobility);
-		this.bypassesDoorShell = createCheckbox('Allows exiting without opening the door', this.initialData.bypassesDoorShell);
+		this.clearsObstaclesList = createObstacleCheckboxList(this.initialData.clearsObstacles, 'Clears Obstacles');
+		this.resetsObstaclesList = createObstacleCheckboxList(this.initialData.resetsObstacles, 'Resets Obstacles');
+
+		// Boolean checkboxes with robust click handling
+		this.comesThroughToilet = this.createClickableCheckbox('Toilet comes between this room and the other room (If this strat involves a door)', this.initialData.comesThroughToilet);
+		this.bypassesDoorShell = this.createClickableCheckbox('Allows exiting without opening the door', this.initialData.bypassesDoorShell);
+		this.wallJumpAvoid = this.createClickableCheckbox('Wall jump avoid (technical flag)', this.initialData.wallJumpAvoid);
+		this.flashSuitChecked = this.createClickableCheckbox('Flash suit compatibility has been verified', this.initialData.flashSuitChecked);
+
 		const boolCheckboxes = [
 			this.comesThroughToilet,
-			//this.gModeRegainMobility,
-			this.bypassesDoorShell
+			this.bypassesDoorShell,
+			this.wallJumpAvoid,
+			this.flashSuitChecked
 		];
-		const boolGrid = createCheckboxGrid(boolCheckboxes);
-		// Doors unlocking
-		this.unlocksEditor = this.createUnlocksDoorsEditor(this.initialData.unlocksDoors);
+
+		// Create vertical layout for checkboxes instead of grid
+		const boolContainer = document.createElement('div');
+		boolContainer.style.display = 'flex';
+		boolContainer.style.flexDirection = 'column';
+		boolContainer.style.gap = '0px';
+		boolCheckboxes.forEach(checkbox => {
+			boolContainer.appendChild(checkbox);
+		});
+
+		// Items/Flags collection with dedicated editors
+		this.collectsItemsEditor = this.createCollectsItemsEditor(this.initialData.collectsItems);
+		this.setsFlagsEditor = this.createSetsFlagsEditor(this.initialData.setsFlags);
+
 		const content = createDiv([
 			this.nameInput,
 			this.devNoteInput,
-			...Object.values(this.conditionEditors),
+			createLabel('Entrance Condition:', this.entranceConditionDiv),
+			createLabel('Requirements:', this.requiresConditionDiv),
+			createLabel('Exit Condition:', this.exitConditionDiv),
 			'hr',
 			createLabel('Clears Obstacles:', this.clearsObstaclesList),
 			createLabel('Resets Obstacles:', this.resetsObstaclesList),
 			'hr',
-			boolGrid,
+			boolContainer,
 			'hr',
-			this.unlocksEditor,
+			this.collectsItemsEditor,
+			this.setsFlagsEditor,
 			this.createRemoveButton('Remove Strat')
 		]);
 		this.contentArea.appendChild(content);
 
-		// Now that _conditionEditors exist, populate their lists
-		this.refreshAllConditionEditors();
+		// Defer condition editor creation
+		setTimeout(() => this.createConditionEditors(), 0);
 	}
+
+	createConditionEditors() {
+		if (typeof makeConditionEditor === 'undefined') {
+			console.error('makeConditionEditor not available, retrying...');
+			setTimeout(() => this.createConditionEditors(), 100);
+			return;
+		}
+
+		this.conditionEditors = {
+			entrance: this.createConditionSection(this.entranceConditionDiv, this.initialData.entranceCondition),
+			requires: this.createConditionSection(this.requiresConditionDiv, this.initialData.requires),
+			exit: this.createConditionSection(this.exitConditionDiv, this.initialData.exitCondition)
+		};
+	}
+
 	setupTitleUpdates() {
 		this.nameInput.addEventListener('input', () => {
 			this.updateTitle(this.nameInput.value.trim());
 		});
 	}
+
 	getTitleFromData() {
 		return this.nameInput?.value?.trim() || '';
 	}
-	
-	createConditionSection(title, initialCondition, pushCallback) {
-		const container = createDiv([]);
-		const label = createLabel(`${title}:`, null);
-		container.appendChild(label);
-	
+
+	createConditionSection(containerDiv, initialCondition) {
 		const conditionDiv = createDiv([]);
 		const conditionEditor = makeConditionEditor(conditionDiv, initialCondition, 0, true);
-	
-		// Store reference for later updates
-    	if (pushCallback) pushCallback(conditionEditor);
-	
-		container.appendChild(conditionDiv);
-		container.getValue = () => conditionEditor.getValue();
+
+		containerDiv.appendChild(conditionDiv);
+		containerDiv.getValue = () => conditionEditor.getValue();
+		return containerDiv;
+	}
+
+	/**
+	 * Create a checkbox with clickable text label for better UX - single line format
+	 */
+	createClickableCheckbox(labelText, initialValue) {
+		const container = document.createElement('div');
+		container.className = 'clickable-checkbox-grid';
+
+		const checkbox = document.createElement('input');
+		checkbox.type = 'checkbox';
+		checkbox.checked = !!initialValue;
+		checkbox.className = 'checkbox-cell';
+
+		const label = document.createElement('span');
+		label.textContent = labelText;
+		label.className = 'label-cell';
+
+		// Make the entire row clickable
+		container.addEventListener('click', (e) => {
+			if (e.target !== checkbox) {
+				checkbox.checked = !checkbox.checked;
+			}
+		});
+
+		container.appendChild(checkbox);
+		container.appendChild(label);
+
+		container.getValue = () => checkbox.checked;
+
 		return container;
 	}
-	
-	createObstacleCheckboxList(initialSelectedIds, title) {
+
+	createCollectsItemsEditor(initialItems) {
+		const card = document.createElement('div');
+		card.className = 'editor-card unlocks-doors-card';
+
+		const header = document.createElement('div');
+		header.className = 'editor-card-header';
+		header.textContent = '📦 Items collected by this Strat';
+		card.appendChild(header);
+
+		// Container for checkbox list
+		const itemsListContainer = document.createElement('div');
+		itemsListContainer.style.marginBottom = '8px';
+
+		// Create checkbox list for item nodes
+		const initialNodeIds = (initialItems || []).map(String);
+		this.collectsItemsCheckboxList = createNodeCheckboxList(
+			initialNodeIds,
+			'Item Nodes',
+			Infinity, // Allow multiple selections
+			'item' // Filter to only item nodes
+		);
+
+		itemsListContainer.appendChild(this.collectsItemsCheckboxList);
+
+		const content = createDiv([itemsListContainer]);
+		card.appendChild(content);
+
+		card.getValue = () => {
+			const selectedNodes = this.collectsItemsCheckboxList?.getSelectedValues() || [];
+			return selectedNodes.map(nodeId => parseInt(nodeId)).filter(id => !isNaN(id));
+		};
+
+		return card;
+	}
+
+	createSetsFlagsEditor(initialFlags) {
+		const card = document.createElement('div');
+		card.className = 'editor-card unlocks-doors-card';
+
+		const header = document.createElement('div');
+		header.className = 'editor-card-header';
+		header.textContent = '🚩 Flags set by this Strat';
+		card.appendChild(header);
+
+		// Container for checkbox list
+		const flagsListContainer = document.createElement('div');
+		flagsListContainer.style.marginBottom = '8px';
+
+		// Create checkbox list for flags using event list
+		this.setsFlagsCheckboxList = this.createFlagCheckboxList(initialFlags || []);
+		flagsListContainer.appendChild(this.setsFlagsCheckboxList);
+
+		const content = createDiv([flagsListContainer]);
+		card.appendChild(content);
+
+		card.getValue = () => {
+			return this.setsFlagsCheckboxList?.getSelectedValues() || [];
+		};
+
+		return card;
+	}
+
+	/**
+	 * Create a checkbox list for flags using the event list
+	 */
+	createFlagCheckboxList(selectedFlags) {
 		const container = document.createElement('div');
-		container.className = 'obstacle-checkbox-container';
-		// Track selection by UID to survive renumbering
-		const selectedUIDs = new Set();
-		// Map initial IDs to UIDs using current snapshot
-		ObstacleEditor.getObstacleSnapshot()
-			.filter(o => initialSelectedIds.map(String).includes(String(o.id)))
-			.forEach(o => selectedUIDs.add(o.uid));
+		container.className = 'flag-checkbox-container';
+
 		const toggleBtn = document.createElement('button');
 		toggleBtn.className = 'node-toggle-btn';
-		toggleBtn.textContent = '▼ Hide Unchecked Obstacles';
-		toggleBtn.dataset.hidden = 'false';
+		toggleBtn.textContent = '▼ Hide Unchecked Flags';
 		container.appendChild(toggleBtn);
+
 		const listWrapper = document.createElement('div');
 		listWrapper.className = 'node-list-wrapper';
 		container.appendChild(listWrapper);
-		const searchInput = createInput('text', 'Filter obstacles (id/name)…');
+
+		const searchInput = document.createElement('input');
+		searchInput.type = 'text';
+		searchInput.placeholder = 'Filter flags...';
 		searchInput.className = 'node-search-input';
 		listWrapper.appendChild(searchInput);
+
 		const table = document.createElement('table');
 		table.className = 'node-table';
 		listWrapper.appendChild(table);
+
 		const thead = document.createElement('thead');
 		const headerRow = document.createElement('tr');
-		['Enabled', 'ID', 'Name'].forEach(text => {
+		['Enabled', 'Flag Name'].forEach(text => {
 			const th = document.createElement('th');
 			th.textContent = text;
 			headerRow.appendChild(th);
 		});
 		thead.appendChild(headerRow);
 		table.appendChild(thead);
+
 		const tbody = document.createElement('tbody');
 		table.appendChild(tbody);
 
-		function buildRows(snapshot) {
+		function buildTable() {
 			tbody.innerHTML = '';
-			if (!snapshot.length) {
+
+			const eventList = window.EditorGlobals.eventList || [];
+			if (!eventList.length) {
 				const emptyRow = document.createElement('tr');
 				const emptyCell = document.createElement('td');
-				emptyCell.colSpan = 3;
-				emptyCell.textContent = '(no obstacles in this room)';
+				emptyCell.colSpan = 2;
+				emptyCell.textContent = '(no flags available)';
 				emptyCell.style.fontStyle = 'italic';
 				emptyRow.appendChild(emptyCell);
 				tbody.appendChild(emptyRow);
-				updateTableVisibility();
+
+				container.getSelectedValues = () => [];
 				return;
 			}
-			snapshot.forEach(obs => {
+
+			const selectedSet = new Set(selectedFlags.map(String));
+			const checkboxes = [];
+
+			eventList.forEach(flag => {
 				const row = document.createElement('tr');
-				row.className = 'obstacle-row';
-				const chkCell = document.createElement('td');
-				chkCell.style.textAlign = 'center';
-				const chk = document.createElement('input');
-				chk.type = 'checkbox';
-				chk.checked = selectedUIDs.has(obs.uid);
-				chk.dataset.uid = obs.uid;
-				chkCell.appendChild(chk);
-				const idCell = document.createElement('td');
-				idCell.textContent = obs.id ?? '';
+				row.className = 'flag-row';
+
+				const checkboxCell = document.createElement('td');
+				const checkbox = document.createElement('input');
+				checkbox.type = 'checkbox';
+				checkbox.checked = selectedSet.has(String(flag));
+				checkboxCell.appendChild(checkbox);
+
 				const nameCell = document.createElement('td');
-				nameCell.textContent = obs.name || `(Obstacle ${obs.id ?? ''})`;
-				row.appendChild(chkCell);
-				row.appendChild(idCell);
+				nameCell.textContent = flag;
+
+				row.appendChild(checkboxCell);
 				row.appendChild(nameCell);
 				tbody.appendChild(row);
-				chk.addEventListener('change', () => {
-					if (chk.checked) selectedUIDs.add(obs.uid);
-					else selectedUIDs.delete(obs.uid);
+
+				checkboxes.push(checkbox);
+
+				checkbox.addEventListener('change', () => {
 					updateRowVisibility();
-					updateTableVisibility();
 				});
 			});
-			updateRowVisibility();
-			updateTableVisibility();
-		}
 
-		function updateRowVisibility() {
-			const hideUnchecked = toggleBtn.dataset.hidden === 'true';
-			const filter = (searchInput.value || '').toLowerCase();
-			const rows = tbody.querySelectorAll('tr.obstacle-row');
-			if (!rows.length) {
-				listWrapper.style.display = 'none';
-				return;
-			} else {
-				listWrapper.style.display = '';
+			function updateRowVisibility() {
+				let anyVisible = false;
+				tbody.querySelectorAll('tr.flag-row').forEach(row => {
+					const checkbox = row.querySelector('input[type="checkbox"]');
+					if (toggleBtn.dataset.hidden === 'true' && !checkbox.checked) {
+						row.style.display = 'none';
+					} else {
+						row.style.display = '';
+						anyVisible = true;
+					}
+				});
+				table.style.display = anyVisible ? 'table' : 'none';
+				searchInput.style.display = (anyVisible && toggleBtn.dataset.hidden === 'true') ? '' : (anyVisible ? '' : 'none');
 			}
-			let anyVisible = false;
-			rows.forEach(row => {
-				const checkbox = row.querySelector('input[type="checkbox"]');
-				const idTxt = row.children[1]?.textContent?.toLowerCase() || '';
-				const nameTxt = row.children[2]?.textContent?.toLowerCase() || '';
-				const matchesFilter = !filter || idTxt.includes(filter) || nameTxt.includes(filter);
-				const passesToggle = !hideUnchecked || (checkbox && checkbox.checked);
-				row.style.display = matchesFilter && passesToggle ? '' : 'none';
-				if (row.style.display !== 'none') anyVisible = true;
+
+			searchInput.addEventListener('input', () => {
+				const filter = searchInput.value.toLowerCase();
+				tbody.querySelectorAll('tr.flag-row').forEach(row => {
+					const nameCell = row.querySelector('td:nth-child(2)');
+					if (!nameCell) return;
+					row.style.display = nameCell.textContent.toLowerCase().includes(filter) ? '' : 'none';
+				});
 			});
-			let placeholder = tbody.querySelector('.no-match-row');
-			if (rows.length && !anyVisible) {
-				if (!placeholder) {
-					placeholder = document.createElement('tr');
-					placeholder.className = 'no-match-row';
-					const td = document.createElement('td');
-					td.colSpan = 3;
-					td.style.fontStyle = 'italic';
-					td.textContent = '(no obstacles match filter)';
-					placeholder.appendChild(td);
-					tbody.appendChild(placeholder);
-				}
-				placeholder.style.display = '';
-			} else if (placeholder) {
-				placeholder.style.display = 'none';
-			}
-			searchInput.style.display = rows.length > 0 ? '' : 'none';
+
+			toggleBtn.addEventListener('click', () => {
+				const currentlyHidden = toggleBtn.dataset.hidden === 'true';
+				toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
+				toggleBtn.textContent = currentlyHidden ? '▼ Hide Unchecked Flags' : '▶ Show All Flags';
+				updateRowVisibility();
+			});
+
+			toggleBtn.dataset.hidden = 'false';
+			updateRowVisibility();
+
+			container.getSelectedValues = () => {
+				return checkboxes
+					.filter(cb => cb.checked)
+					.map(cb => {
+						const row = cb.closest('tr');
+						return row.querySelector('td:nth-child(2)').textContent;
+					});
+			};
 		}
 
-		function updateTableVisibility() {
-			const hideUnchecked = toggleBtn.dataset.hidden === 'true';
-			const anyChecked = selectedUIDs.size > 0;
-			if (hideUnchecked && !anyChecked) {
-				tbody.style.display = 'none';
-			} else {
-				tbody.style.display = '';
-			}
-			searchInput.style.display = '';
-		}
-		searchInput.addEventListener('input', () => {
-			updateRowVisibility();
-			updateTableVisibility();
-		});
-		toggleBtn.addEventListener('click', () => {
-			const hidden = toggleBtn.dataset.hidden === 'true';
-			toggleBtn.dataset.hidden = hidden ? 'false' : 'true';
-			toggleBtn.textContent = hidden ? '▼ Hide Unchecked Obstacles' : '▶ Show All Obstacles';
-			updateRowVisibility();
-			updateTableVisibility();
-		});
-		// Subscribe to obstacle changes
-		const unsubscribe = ObstacleEditor.onObstaclesChanged(buildRows);
-		// Expose method to get selected IDs
-		container.getSelectedIds = () => {
-			const snap = ObstacleEditor.getObstacleSnapshot();
-			const byUid = new Map(snap.map(o => [o.uid, o.id]));
-			return Array.from(selectedUIDs)
-				.map(uid => byUid.get(uid))
-				.filter(id => id != null)
-				.map(String);
+		// Build initial table
+		buildTable();
+
+		// Store cleanup function
+		container._destroy = () => {
+			// No specific cleanup needed for this implementation
 		};
-		container._destroy = () => unsubscribe();
+
 		return container;
 	}
-	createUnlocksDoorsEditor(initialDoors) {
-		const card = document.createElement('div');
-		card.className = 'editor-card unlocks-doors-card';
-		const header = document.createElement('div');
-		header.className = 'editor-card-header';
-		header.textContent = '🔑 Doors unlocked by this Strat';
-		card.appendChild(header);
-		const itemsContainer = createDiv([], 'door-entries');
 
-		function addDoorEntry(entry = null) {
-			const entryDiv = createDiv([], 'door-entry');
-			const typesSelect = createSelect([{
-					value: 'super',
-					text: 'Super Missiles'
-				},
-				{
-					value: 'missiles',
-					text: 'Missiles'
-				},
-				{
-					value: 'powerbomb',
-					text: 'Power Bombs'
-				},
-				{
-					value: 'ammo',
-					text: 'Ammo'
-				}
-			], entry?.types || [], true);
-			const requiresSelect = createSelect([{
-					value: 'never',
-					text: 'Never'
-				},
-				{
-					value: 'canPrepareForNextRoom',
-					text: 'Can Prepare for Next Room'
-				},
-				{
-					value: 'SpaceJump',
-					text: 'Space Jump'
-				},
-				{
-					value: 'canWalljump',
-					text: 'Can Walljump'
-				}
-			], entry?.requires || [], true);
-			const removeBtn = createRemoveButton('Remove Door Unlock', () => entryDiv.remove());
-			entryDiv.appendChild(typesSelect);
-			entryDiv.appendChild(requiresSelect);
-			entryDiv.appendChild(removeBtn);
-			itemsContainer.appendChild(entryDiv);
-		}
-		// Add existing doors
-		(initialDoors || []).forEach(door => addDoorEntry(door));
-		const addBtn = document.createElement('button');
-		addBtn.textContent = '+ Add Door Unlock';
-		addBtn.className = 'add-btn';
-		addBtn.addEventListener('click', () => addDoorEntry());
-		const content = createDiv([itemsContainer, addBtn]);
-		card.appendChild(content);
-		card.getValue = () => {
-			return Array.from(itemsContainer.children).map(entryDiv => {
-				const selects = entryDiv.querySelectorAll('select');
-				if (selects.length < 2) return null;
-				const types = Array.from(selects[0].selectedOptions).map(opt => opt.value);
-				const requires = Array.from(selects[1].selectedOptions).map(opt => opt.value);
-				return types.length > 0 ? {
-					types,
-					requires
-				} : null;
-			}).filter(Boolean);
-		};
-		return card;
+	refreshCollectsItemsEditor() {
+		// The node checkbox list will automatically refresh when EditorGlobals changes
+		// No additional action needed due to the new global system
 	}
+
+	refreshSetsFlagsEditor() {
+		if (this.setsFlagsCheckboxList) {
+			// Get current selections
+			const currentSelections = this.setsFlagsCheckboxList.getSelectedValues();
+
+			// Find the container and rebuild
+			const container = this.setsFlagsCheckboxList.parentNode;
+			if (container) {
+				// Clean up old list
+				if (this.setsFlagsCheckboxList._destroy) {
+					this.setsFlagsCheckboxList._destroy();
+				}
+
+				container.removeChild(this.setsFlagsCheckboxList);
+				this.setsFlagsCheckboxList = this.createFlagCheckboxList(currentSelections);
+				container.appendChild(this.setsFlagsCheckboxList);
+			}
+		}
+	}
+
 	getValue() {
 		const name = this.nameInput.value.trim();
 		if (!name) return null;
+
 		return {
 			name,
 			devNote: this.devNoteInput.value.trim(),
@@ -351,21 +409,37 @@
 			clearsObstacles: this.clearsObstaclesList.getSelectedIds(),
 			resetsObstacles: this.resetsObstaclesList.getSelectedIds(),
 			comesThroughToilet: this.comesThroughToilet.getValue(),
-			//gModeRegainMobility: this.gModeRegainMobility.getValue(),
 			bypassesDoorShell: this.bypassesDoorShell.getValue(),
-			unlocksDoors: this.unlocksEditor.getValue()
+			collectsItems: this.collectsItemsEditor.getValue(),
+			setsFlags: this.setsFlagsEditor.getValue(),
+			wallJumpAvoid: this.wallJumpAvoid.getValue(),
+			flashSuitChecked: this.flashSuitChecked.getValue()
 		};
 	}
 
-	refreshAllConditionEditors() {
-		this._conditionEditors.forEach(editor => {
-			editor.setLists({
-				itemList: this.itemList,
-				eventList: this.eventList,
-				techMap: this.techMap,
-				helperMap: this.helperMap
-			});
-		});
-	}	
-	
+	remove() {
+		// Clean up global data subscription
+		if (this.globalUnsubscribe) {
+			this.globalUnsubscribe();
+			this.globalUnsubscribe = null;
+		}
+
+		// Clean up obstacle lists
+		if (this.clearsObstaclesList && this.clearsObstaclesList._destroy) {
+			this.clearsObstaclesList._destroy();
+		}
+		if (this.resetsObstaclesList && this.resetsObstaclesList._destroy) {
+			this.resetsObstaclesList._destroy();
+		}
+
+		// Clean up item/flag lists
+		if (this.collectsItemsCheckboxList && this.collectsItemsCheckboxList._destroy) {
+			this.collectsItemsCheckboxList._destroy();
+		}
+		if (this.setsFlagsCheckboxList && this.setsFlagsCheckboxList._destroy) {
+			this.setsFlagsCheckboxList._destroy();
+		}
+
+		super.remove();
+	}
 }

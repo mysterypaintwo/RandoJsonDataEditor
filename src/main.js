@@ -191,8 +191,8 @@ function validateProperty(value, schema, propName) {
 }
 /* Room Properties Editor IPCs */
 // Handle request to open Room Properties Editor
-ipcMain.on('open-room-properties-editor', (event, roomPropertiesData, enemyList, itemList, eventList, techMap, helperMap) => {
-	console.log('Opening Room Properties Editor with data:', roomPropertiesData, enemyList, itemList, eventList, techMap, helperMap);
+ipcMain.on('open-room-properties-editor', (event, roomPropertiesData, enemyList, itemList, eventList, weaponList, techMap, helperMap) => {
+	console.log('Opening Room Properties Editor with data:', event, roomPropertiesData, enemyList, itemList, eventList, weaponList, techMap, helperMap);
 	const roomPropertiesWin = new BrowserWindow({
 		width: 700,
 		height: 800,
@@ -212,6 +212,7 @@ ipcMain.on('open-room-properties-editor', (event, roomPropertiesData, enemyList,
 	roomPropertiesWin.enemyList = enemyList;
 	roomPropertiesWin.itemList = itemList;
 	roomPropertiesWin.eventList = eventList;
+	roomPropertiesWin.weaponList = weaponList;
 	roomPropertiesWin.techMap = techMap;
 	roomPropertiesWin.helperMap = helperMap;
 	
@@ -225,19 +226,20 @@ ipcMain.on('room-properties-editor-ready', (event) => {
 	console.log('Received room-properties-editor-ready signal');
 	const win = BrowserWindow.fromWebContents(event.sender);
 	if (win && win.roomPropertiesData && win.enemyList) {
-		console.log('Sending Room Properties Editor data:', win.roomPropertiesData, win.enemyList, win.itemList, win.eventList, win.techMap, win.helperMap);
-		event.sender.send('init-room-properties-data', win.roomPropertiesData, win.enemyList, win.itemList, win.eventList, win.techMap, win.helperMap);
+		console.log('Sending Room Properties Editor data:', win.roomPropertiesData, win.enemyList, win.itemList, win.eventList, win.weaponList, win.techMap, win.helperMap);
+		event.sender.send('init-room-properties-data', win.roomPropertiesData, win.enemyList, win.itemList, win.eventList, win.weaponList, win.techMap, win.helperMap);
 		// Clean up the temporary data
 		delete win.roomPropertiesData;
 		delete win.enemyList;
 		delete win.itemList;
 		delete win.eventList;
+		delete win.weaponList;
 		delete win.techMap;
 		delete win.helperMap;
 	} else {
 		console.log('No window or no data found:', {
 			hasWindow: !!win,
-			hasData: !!(win && win.roomPropertiesData && win.enemyList && win.itemList && win.eventList && win.techMap && win.helperMap)
+			hasData: !!(win && win.roomPropertiesData && win.enemyList && win.itemList && win.eventList && win.weaponList && win.techMap && win.helperMap)
 		});
 	}
 });
