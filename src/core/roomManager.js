@@ -304,6 +304,8 @@ export class RoomManager {
 	 * Handle Room Properties Editor Updates
 	 */
 	async handleRoomPropertiesUpdate(payload) {
-		console.log(`Payload update: ${payload}`);
+		//console.log(`Payload update: ${payload}`);
+		this.state.currentRoomData = payload;
+		this.uiManager.updateJsonDisplay(this.state.currentRoomData);
 	}
 }
