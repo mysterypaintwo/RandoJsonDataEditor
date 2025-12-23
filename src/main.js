@@ -1,3 +1,4 @@
+//main.js
 const {
 	app,
 	BrowserWindow,
@@ -245,8 +246,8 @@ ipcMain.on('room-properties-editor-ready', (event) => {
 });
 /* Door Editor IPCs */
 // Handle request to open door editor
-ipcMain.on('open-door-editor', (event, doorData) => {
-	console.log('Opening door editor with data:', doorData);
+ipcMain.on('open-door-editor', (event, payload) => {
+	console.log('Opening door editor with data:', payload);
 	const doorWin = new BrowserWindow({
 		width: 700,
 		height: 800,
@@ -261,8 +262,8 @@ ipcMain.on('open-door-editor', (event, doorData) => {
 	doorWin.loadFile(path.join(__dirname, 'editor/doors/doorEditor.html'));
 	// Send data once the window is ready
 	doorWin.webContents.once('did-finish-load', () => {
-		console.log('Sending door editor data:', doorData);
-		doorWin.webContents.send('init-door-data', doorData);
+		console.log('Sending door editor data:', payload);
+		doorWin.webContents.send('init-door-data', payload);
 	});
 });
 // Handle requests to save room properties editor changes
@@ -276,6 +277,6 @@ ipcMain.on('save-room-properties-data', (event, payload) => {
 ipcMain.on('save-door-data', (event, payload) => {
 	console.log('Received door data save request:', payload);
 	if (mainWindow && mainWindow.webContents) {
-		mainWindow.webContents.send('update-door-data', payload);
+		mainWindow.webContents.send('update-door-node', payload);
 	}
 });

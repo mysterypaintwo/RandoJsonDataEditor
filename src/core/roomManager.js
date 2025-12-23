@@ -266,7 +266,8 @@ export class RoomManager {
 			region: this.state.currentSubarea,
 			roomName: roomData.name || 'Unknown Room',
 			connection: connection,
-			doorNode: doorNode
+			doorNode: doorNode,
+			allRoomsMetadata: this.state.allRoomsMetadata
 		};
 		console.log('Opening door editor with data:', editorData);
 		window.api.openDoorEditor(editorData);
@@ -297,9 +298,31 @@ export class RoomManager {
 		await this.uiManager.updateDoorButtons(this.state.currentRoomData);
 	}
 	/**
-	 * Handle Door Updates
+	 * Handle Door Node Updates
 	 */
-	async handleDoorUpdate(payload) {}
+	async handleDoorNodeUpdate(payload) {
+		const { nodeId, updatedNode } = payload;
+		
+		if (!this.state.currentRoomData || !this.state.currentRoomData.nodes) {
+			console.error('No room data available for door node update');
+			return;
+		}
+		
+		// Find and update the door node
+		const nodeIndex = this.state.currentRoomData.nodes.findIndex(n => n.id === nodeId);
+		if (nodeIndex === -1) {
+			console.error(`Door node ${nodeId} not found in current room`);
+			return;
+		}
+		
+		// Update the node
+		this.state.currentRoomData.nodes[nodeIndex] = updatedNode;
+		
+		// Save the updated room data
+		await this.saveCurrentRoom();
+		
+		console.log(`Door node ${nodeId} updated successfully`);
+	}
 	/**
 	 * Handle Room Properties Editor Updates
 	 */

@@ -85,8 +85,8 @@ class RandoJsonDataEditor {
 			);
 		});
 		// Door Editor updates
-		window.api.onUpdateDoorData((payload) => {
-			this.roomManager.handleDoorUpdate(payload);
+		window.api.onUpdateDoorNode((payload) => {
+			this.roomManager.handleDoorNodeUpdate(payload);
 		});
 		// Room Properties Editor updates
 		window.api.onUpdateRoomProperties((payload) => {

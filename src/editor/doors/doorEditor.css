@@ -1,8 +1,8 @@
 /* =============================================================================
-   Super Metroid: X-Fusion Room Properties Editor Styles (Refactored)
+   Super Metroid: X-Fusion Door Properties Editor Styles
    
-   Optimized stylesheet for the modular room properties editor interface.
-   Removed unused styles and consolidated common patterns.
+   Complete styling for the door editor interface including TileMap editor,
+   lock cards, environment cards, and condition system integration.
    ============================================================================= */
 
 /* Base Layout & Typography */
@@ -30,14 +30,15 @@ body {
 #form {
     padding: 20px;
     overflow-y: auto;
-    min-height: calc(100vh - 120px);
+    min-height: calc(100vh - 140px);
+    max-height: calc(100vh - 140px);
     box-sizing: border-box;
 }
 
 /* Section Headings */
 h3 {
     margin: 30px 0 15px 0;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     color: #2c3e50;
     border-bottom: 3px solid #3498db;
@@ -45,6 +46,10 @@ h3 {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+section {
+    margin-bottom: 24px;
 }
 
 /* Form Controls */
@@ -110,192 +115,99 @@ button:hover {
     background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
 }
 
-/* Toggle buttons for collapse/expand */
-.toggle-btn {
-    background: transparent;
-    border: none;
-    font-size: 12px;
-    cursor: pointer;
-    color: #666;
-    min-width: 20px;
-    padding: 2px;
+.secondary-btn {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: white;
 }
 
-.toggle-btn:hover {
-    color: #333;
-    background: rgba(0, 0, 0, 0.1);
-    transform: none; /* Override general button hover */
+.secondary-btn:hover {
+    background: linear-gradient(135deg, #7f8c8d 0%, #6c7a7b 100%);
 }
 
-/* Editor Card System */
-.editor-card {
-    border: 2px solid #ddd;
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+.primary-btn {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    color: white;
 }
 
-.editor-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+.primary-btn:hover {
+    background: linear-gradient(135deg, #229954 0%, #27ae60 100%);
 }
 
-.editor-card-header {
-    font-weight: 700;
-    margin-bottom: 12px;
-    font-size: 16px;
-    cursor: grab;
-    user-select: none;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+/* Container Styling */
+#doorSubTypeContainer,
+#utilityContainer,
+#implicitFlagsContainer {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    border-radius: 8px;
 }
 
-.editor-card-content {
-    padding-top: 8px;
+#doorSubTypeContainer label,
+#utilityContainer label,
+#implicitFlagsContainer label {
+    transition: background-color 0.2s ease;
+    border-radius: 4px;
 }
 
-/* Collapsed state */
-.editor-card.collapsed {
-    opacity: 0.8;
+#doorSubTypeContainer label:hover,
+#utilityContainer label:hover,
+#implicitFlagsContainer label:hover {
+    background-color: rgba(52, 152, 219, 0.1);
 }
 
-.editor-card.collapsed .editor-card-content {
-    display: none;
+/* Environment Cards */
+.environment-card {
+    animation: slideIn 0.3s ease;
 }
 
-/* Card Type Specific Styling */
-.enemy-card {
-    background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
-    border-color: #f48fb1;
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.obstacle-card {
-    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-    border-color: #ffb74d;
+/* Lock Cards */
+.lock-card {
+    animation: slideIn 0.3s ease;
 }
 
-.strat-card {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    border-color: #64b5f6;
-}
-
-.notable-card {
-    background: linear-gradient(135deg, #fffde7 0%, #fff9c4 100%);
-    border-color: #fff176;
-}
-
-.unlocks-doors-card {
-    background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
-    border-color: #81c784;
-}
-
-/* Dragging State */
-.editor-card.dragging {
-    opacity: 0.85;
-    transform: scale(1.02) rotate(1deg);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-}
-
-/* Form Elements within Cards */
-.editor-card input,
-.editor-card select,
-.editor-card textarea {
-    background-color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 8px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.editor-card input:focus,
-.editor-card select:focus,
-.editor-card textarea:focus {
-    background-color: white;
-}
-
-/* Node/Obstacle Tables and Lists */
-.node-checkbox-container,
-.obstacle-checkbox-container {
+/* Connection Info Card */
+#connectionInfoContainer {
     margin-top: 8px;
 }
 
-.node-list-wrapper {
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.95);
+/* TileMap Editor Styling */
+.tilemap-editor {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.node-search-input {
-    margin-bottom: 8px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 13px;
-    width: 100%;
-    box-sizing: border-box;
+.tilemap-editor canvas {
+    transition: transform 0.2s ease;
 }
 
-.node-toggle-btn {
-    font-weight: 600;
-    margin-bottom: 8px;
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    padding: 6px 12px;
-    font-size: 12px;
+.tilemap-editor canvas:active {
+    transform: scale(0.98);
 }
 
-.node-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 6px;
-}
-
-.node-table th,
-.node-table td {
-    padding: 6px 12px;
-    border-bottom: 1px solid #ddd;
-    font-size: 13px;
-}
-
-.node-table th {
-    text-align: left;
-    font-weight: 600;
-    background: #f8f8f8;
-}
-
-.node-table td:first-child {
-    text-align: center;
-    width: 40px;
-}
-
-.node-table td:nth-child(2),
-.node-table td:nth-child(3) {
-    text-align: left;
-    white-space: nowrap;
-}
-
-.node-row:last-child td {
-    border-bottom: none;
-}
-
-/* Condition System Blocks */
+/* Condition System Integration */
 .condition-block {
     position: relative;
     border-radius: 6px;
     padding: 8px 12px;
     margin-bottom: 6px;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+    animation: slideIn 0.3s ease;
 }
 
-/* Left vertical bar for condition type indicator */
 .condition-block::before {
     content: "";
     position: absolute;
@@ -332,7 +244,7 @@ button:hover {
     background: #ef4444;
 }
 
-/* Item / Event / Strat / Environment conditions */
+/* Item / Event / Tech / Helper conditions */
 .condition-block.item {
     background: #e6ffe6;
     border: 1px solid #34d399;
@@ -349,104 +261,20 @@ button:hover {
     background: #ec4899;
 }
 
-.condition-block.strat {
+.condition-block.tech {
     background: #e3f2fd;
     border: 1px solid #64b5f6;
 }
-.condition-block.strat::before {
+.condition-block.tech::before {
     background: #2196f3;
 }
 
-.condition-block.environment {
-    background: #f0f0f0;
-    border: 1px solid #a3a3a3;
+.condition-block.helper {
+    background: #fce4ec;
+    border: 1px solid #f48fb1;
 }
-.condition-block.environment::before {
-    background: #525252;
-}
-
-/* Door Entry Components */
-.door-entry {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    border: 1px solid #e0e0e0;
-}
-
-.door-entry select {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-/* Enemy top row layout */
-.enemy-top-row {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-.enemy-top-row > * {
-    flex: 1;
-}
-
-/* Drag & Drop Placeholders */
-.card-placeholder {
-    background: repeating-linear-gradient(
-        45deg,
-        #f8f9fa,
-        #f8f9fa 10px,
-        #e9ecef 10px,
-        #e9ecef 20px
-    );
-    border: 2px dashed #adb5bd;
-    border-radius: 12px;
-    min-height: 80px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6c757d;
-    font-weight: 600;
-}
-
-.card-placeholder::after {
-    content: "Drop here";
-}
-
-/* Boolean Checkbox Grid Styling */
-.checkbox-grid {
-    display: grid;
-    grid-template-columns: 24px 1fr;
-    column-gap: 8px;
-    row-gap: 4px;
-    align-items: center;
-    margin-top: 8px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 6px;
-}
-
-.editor-checkbox-wrapper {
-    display: contents;
-}
-
-.editor-checkbox {
-    width: 18px;
-    height: 18px;
-    margin: 0 auto;
-    accent-color: #3498db;
-}
-
-.editor-checkbox-label {
-    display: block;
-    line-height: 1.2;
-    word-break: break-word;
-    font-size: 12px;
-    color: #333;
+.condition-block.helper::before {
+    background: #e91e63;
 }
 
 /* Footer */
@@ -457,6 +285,9 @@ button:hover {
     display: flex;
     justify-content: center;
     gap: 16px;
+    position: sticky;
+    bottom: 0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
 }
 
 #footer button {
@@ -465,14 +296,13 @@ button:hover {
     font-weight: 600;
 }
 
-#closeBtn {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: white;
-}
-
-#saveBtn {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
+/* Checkbox Styling */
+input[type="checkbox"],
+input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3498db;
 }
 
 /* Responsive Design */
@@ -481,17 +311,59 @@ button:hover {
         padding: 12px;
     }
 
-    .editor-card {
-        margin-bottom: 12px;
-        padding: 12px;
-    }
-
     h3 {
         font-size: 18px;
     }
 
-    .enemy-top-row {
-        flex-direction: column;
-        gap: 8px;
+    .environment-card,
+    .lock-card {
+        padding: 8px;
     }
+}
+
+/* Scrollbar Styling */
+#form::-webkit-scrollbar {
+    width: 10px;
+}
+
+#form::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#form::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+#form::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Loading States */
+.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Validation Error */
+#validationError {
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+/* Help Text */
+p[style*="color: #666"] {
+    font-style: italic;
+}
+
+/* Empty State Styling */
+em {
+    color: #999;
+    font-size: 13px;
 }

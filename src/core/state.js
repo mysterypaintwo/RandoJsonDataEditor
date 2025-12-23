@@ -24,6 +24,7 @@ class State {
 		this.currentArea = null;
 		this.currentSubarea = null;
 		// Connection data cache
+		this.allRoomsMetadata = []; // Metadata for all rooms (for twin door lookups)
 		this.connectionCache = new Map(); // area/subarea -> connection data
 		this.interConnections = null; // inter-area connections
 		this.intraConnections = new Map(); // area -> intra connections
@@ -53,6 +54,72 @@ class State {
 			"DMX": "DMX/Opening Segment/DMX Entrance"
 		};
 	}
+	async loadAllRoomsMetadata() {
+		if (!this.workingDir) return;
+
+		this.allRoomsMetadata = [];
+
+		// Iterate through all areas
+		const areas = ['L-X', 'MDK', 'SRX', 'TRO', 'PYR', 'AQA', 'ARC', 'NOC', 'DMX'];
+
+		for (const area of areas) {
+			const areaPath = `${this.workingDir}/region/${area}`;
+
+			try {
+				// Get all subareas
+				const subareas = await window.api.readDirectory(areaPath);
+
+				for (const subarea of subareas) {
+					const subareaPath = `${areaPath}/${subarea}`;
+
+					let roomFiles;
+					try {
+						// Get all room JSON files in this subarea
+						roomFiles = await window.api.readDirectory(subareaPath);
+					} catch {
+						// Not a directory (or unreadable) — skip
+						continue;
+					}
+
+					for (const roomFile of roomFiles) {
+						if (!roomFile.endsWith('.json')) continue;
+
+						const roomPath = `${subareaPath}/${roomFile}`;
+
+						try {
+							const room = await window.api.loadJson(roomPath);
+
+							if (!room || !room.nodes) continue;
+
+							// Extract metadata from this room
+							const doors = room.nodes
+								.filter(n => n.nodeType === 'door')
+								.map(door => ({
+									address: door.nodeAddress,
+									orientation: door.doorOrientation,
+									name: door.name
+								}));
+
+							this.allRoomsMetadata.push({
+								name: room.name,
+								area: area,
+								subarea: subarea,
+								address: room.roomAddress,
+								doors: doors
+							});
+						} catch (err) {
+							console.warn(`Failed to load room file ${roomPath}:`, err);
+						}
+					}
+				}
+			} catch (err) {
+				console.warn(`Failed to read area directory ${areaPath}:`, err);
+			}
+		}
+		console.log(`Loaded metadata for ${this.allRoomsMetadata.length} rooms`);
+	}
+
+
 	/**
 	 * Set the working directory
 	 * @param {string} dir - Path to working directory
@@ -63,6 +130,10 @@ class State {
 		this.connectionCache.clear();
 		this.interConnections = null;
 		this.intraConnections.clear();
+
+		// Initialize the rooms metadata
+		await this.loadAllRoomsMetadata();
+
 		// Initialize the Enemy database
 		await this.initEnemyDatabase();
 		// Initialize the Items and Events database
