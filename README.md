@@ -42,12 +42,13 @@ This project is heavily inspired by [sm-json-data](https://github.com/vg-json-da
 ```bash
 git clone https://github.com/mysterypaintwo/RandoJsonDataEditor.git
 cd RandoJsonDataEditor
+cd src
 ```
 
 2. Install dependencies:
 
 ```bash
-npm install
+npm install   # Remember to install from the /src/ directory, not the repo root!
 ```
 
 3. Run the app:
