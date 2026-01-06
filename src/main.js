@@ -19,7 +19,7 @@ function createWindow() {
 			preload: path.join(__dirname, 'preload.js')
 		}
 	});
-	mainWindow.loadFile('ui/index.html');
+	mainWindow.loadFile(path.join(__dirname, 'ui', 'index.html'));
 }
 app.whenReady().then(createWindow);
 ipcMain.handle('select-working-directory', async () => {
