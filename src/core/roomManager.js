@@ -84,6 +84,22 @@ export class RoomManager {
 		}
 	}
 	/**
+	 * Redraw the room renderer using the current application state.
+	 * Re-renders the room image, node graph, selection state, and scale.
+	 *
+	 * @returns {void}
+	 */
+	redrawRenderer() {
+		// Redraw with new image
+		this.renderer.redraw(
+			this.state.currentRoomImage,
+			this.state.nodes,
+			this.state.selectedNode,
+			this.state.currentRect,
+			this.state.scale
+		);
+	}
+	/**
 	 * Resolve schema path relative to JSON file with game-specific handling
 	 * @param {string} schemaRef - Schema reference from JSON
 	 * @param {string} jsonPath - Path to JSON file
@@ -109,14 +125,10 @@ export class RoomManager {
 				// Update canvas size and reset view
 				this.renderer.updateCanvasSize(img, this.state.scale);
 				this.renderer.resetScrollPosition();
-				// Redraw with new image
-				this.renderer.redraw(
-					this.state.currentRoomImage,
-					this.state.nodes,
-					this.state.selectedNode,
-					this.state.currentRect,
-					this.state.scale
-				);
+				
+				// Redraw the renderer
+				this.redrawRenderer();
+
 				resolve(img);
 			};
 			img.onerror = () => {
@@ -321,6 +333,9 @@ export class RoomManager {
 		// Save the updated room data
 		await this.saveCurrentRoom();
 		
+		// Redraw the renderer in case any data changed
+		this.redrawRenderer();
+
 		console.log(`Door node ${nodeId} updated successfully`);
 	}
 	/**
@@ -329,6 +344,10 @@ export class RoomManager {
 	async handleRoomPropertiesUpdate(payload) {
 		//console.log(`Payload update: ${payload}`);
 		this.state.currentRoomData = payload;
+		this.state.updateRoomNodes(payload.nodes);
 		this.uiManager.updateJsonDisplay(this.state.currentRoomData);
+
+		// Redraw the renderer in case any data changed
+		this.redrawRenderer();
 	}
 }

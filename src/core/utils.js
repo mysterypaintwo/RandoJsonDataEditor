@@ -41,6 +41,20 @@ export function formatDirection(originalDirection) {
 	return directionName;
 }
 /**
+ * Normalize the button direction to connection direction
+ * @param {string} dir - direction string (like "northwest")
+ * @returns {string} formatted ui direction
+ */
+export function normalizeUiDirForKeys(dir) {
+	const map = {
+		left: 'west',
+		right: 'east',
+		up: 'north',
+		down: 'south'
+	};
+	return map[dir] || dir;
+}
+/**
  * Parse room path in new format: area/subarea/roomName
  * @param {string} roomPath - Room path string
  * @returns {Object} Parsed path components
@@ -225,10 +239,11 @@ export function updateToolButtonStates(activeToolId) {
  * @param {number} y - Y position
  */
 export function showTooltip(tooltip, text, x, y) {
-	tooltip.textContent = text;
+	tooltip.innerHTML = text;
 	tooltip.style.left = x + 10 + 'px';
 	tooltip.style.top = y - 30 + 'px';
 	tooltip.style.display = 'block';
+	tooltip.style.whiteSpace = 'pre-line';
 }
 /**
  * Hide tooltip

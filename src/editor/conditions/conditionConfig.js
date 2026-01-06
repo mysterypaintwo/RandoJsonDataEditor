@@ -119,7 +119,7 @@ const CONDITION_CONFIG = {
 			color: '#66ff66',
 			description: 'Acid damage without Gravity Suit'
 		},
-		'draygonElectricityFrames': {
+		'electricityFrames': {
 			label: 'Draygon turret electricity',
 			icon: '⚡',
 			color: '#ffff66',
@@ -172,6 +172,24 @@ const CONDITION_CONFIG = {
 			icon: '🔥',
 			color: '#ff99aa',
 			description: 'Heat damage with energy drops'
+		},
+		'coldFrames': {
+			label: 'Time in cold room',
+			icon: '❄️',
+			color: '#66ccff',
+			description: 'Time spent in cold room'
+		},
+		'simpleColdFrames': {
+			label: 'Simple cold room time',
+			icon: '❄️',
+			color: '#99ddff',
+			description: 'Simple cold time (no leniency)'
+		},
+		'coldFramesWithEnergyDrops': {
+			label: 'Cold damage with energy drops',
+			icon: '❄️',
+			color: '#99ccff',
+			description: 'Cold damage with energy drops'
 		},
 		'lavaFramesWithEnergyDrops': {
 			label: 'Lava damage with energy drops',
@@ -387,12 +405,14 @@ const AMMO_TYPES = [
 const CONDITION_PLACEHOLDERS = {
 	acidFrames: 'Frames in acid',
 	gravitylessAcidFrames: 'Frames in acid (no gravity)',
-	draygonElectricityFrames: 'Frames of electricity',
+	electricityFrames: 'Frames of electricity',
 	shineChargeFrames: 'Shinecharge frames (0-180)',
+	coldFrames: 'Cold damage frames',
 	cycleFrames: 'Cycle time frames',
 	simpleCycleFrames: 'Simple cycle frames',
 	heatFrames: 'Heat damage frames',
 	simpleHeatFrames: 'Simple heat frames',
+	simpleColdFrames: 'Simple cold frames',
 	gravitylessHeatFrames: 'Heat frames (no gravity)',
 	hibashiHits: 'Number of hibashi hits',
 	lavaFrames: 'Frames in lava',

@@ -1541,11 +1541,13 @@ ConditionRenderers.register([
 ConditionRenderers.register([
 	'acidFrames',
 	'gravitylessAcidFrames',
-	'draygonElectricityFrames',
+	'electricityFrames',
 	'shineChargeFrames',
 	'cycleFrames',
 	'simpleCycleFrames',
+	'coldFrames',
 	'heatFrames',
+	'simpleColdFrames',
 	'simpleHeatFrames',
 	'gravitylessHeatFrames',
 	'hibashiHits',
@@ -1590,7 +1592,7 @@ ConditionRenderers.register(['canShineCharge', 'getBlueSpeed', 'speedBall'], Run
 ConditionRenderers.register('resetRoom', ResetRoomRenderer);
 
 // Heat/Lava with drops
-ConditionRenderers.register(['heatFramesWithEnergyDrops', 'lavaFramesWithEnergyDrops'], FramesWithDropsRenderer);
+ConditionRenderers.register(['heatFramesWithEnergyDrops', 'coldFramesWithEnergyDrops', 'lavaFramesWithEnergyDrops'], FramesWithDropsRenderer);
 
 // Boss requirements
 ConditionRenderers.register('ridleyKill', RidleyKillRenderer);

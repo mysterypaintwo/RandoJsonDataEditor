@@ -30,6 +30,10 @@ export class InteractionHandler {
 		this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
 		this.canvas.addEventListener('contextmenu', this.handleRightClick.bind(this));
 		this.canvas.addEventListener('wheel', this.handleWheel.bind(this));
+
+		// Double-click event for node renaming
+		this.canvas.addEventListener('dblclick', this.handleDoubleClick.bind(this));
+		
 		// Global keyboard events
 		document.addEventListener('keydown', this.handleKeydown.bind(this));
 		// Window resize
@@ -39,10 +43,47 @@ export class InteractionHandler {
 				this.state.nodes,
 				this.state.selectedNode,
 				this.state.currentRect,
-				this.state.scale
+				this.state.scale,
+				this.state.currentRoomData?.enemies || []
 			);
 		});
 	}
+
+	/**
+	 * Handle double-click events - rename nodes in select mode
+	 * @param {MouseEvent} e - Mouse event
+	 */
+	async handleDoubleClick(e) {
+		// Only allow double-click renaming for Select and Move Node editing modes
+		switch(this.state.mode) {
+			default:
+				return;
+			case "select":
+			case "move":
+				break;
+		}
+
+		// Prevent multiple rename dialogs
+		if (document.querySelector('.modal-overlay')) return;
+		
+		const { x, y } = getMousePos(e, this.canvas, this.mapContainer, this.state.scale);
+		const nodeToRename = findNodeAtPosition(this.state.nodes, x, y);
+		
+		if (nodeToRename && nodeToRename.nodeType === 'junction') {
+			const newName = await this.uiManager.promptRename(
+				'Rename junction node',
+				nodeToRename.name
+			);
+
+			if (newName && newName.trim()) {
+				nodeToRename.name = newName.trim();
+				this.state.currentRoomData.nodes = this.state.nodes;
+				this.uiManager.updateJsonDisplay(this.state.currentRoomData);
+				this.redraw();
+			}
+		}
+	}
+		
 	/**
 	 * Handle mouse down events - initiate drawing, moving, or selecting
 	 * @param {MouseEvent} e - Mouse event
@@ -375,7 +416,8 @@ export class InteractionHandler {
 			this.state.nodes,
 			this.state.selectedNode,
 			this.state.currentRect,
-			this.state.scale
+			this.state.scale,
+			this.state.currentRoomData?.enemies || []
 		);
 	}
 }

@@ -477,7 +477,7 @@ button:hover {
     color: #00cc00; 
     border: 1px solid rgba(0,204,0,0.4); 
 }
-.condition-block.draygonElectricityFrames { 
+.condition-block.electricityFrames { 
     background-color: #ffff66; 
     color: #cccc00; 
     border: 1px solid rgba(204,204,0,0.4); 
@@ -502,6 +502,25 @@ button:hover {
     color: #cc3366; 
     border: 1px solid rgba(204,51,102,0.4); 
 }
+
+.condition-block.coldFrames { 
+    background-color: #66ccff; 
+    color: #0066cc; 
+    border: 1px solid rgba(0,102,204,0.4); 
+}
+
+.condition-block.simpleColdFrames { 
+    background-color: #99ddff; 
+    color: #3388cc; 
+    border: 1px solid rgba(51,136,204,0.4); 
+}
+
+.condition-block.coldFramesWithEnergyDrops { 
+    background-color: #99ccff; 
+    color: #3366cc; 
+    border: 1px solid rgba(51,102,204,0.4); 
+}
+
 .condition-block.gravitylessHeatFrames { 
     background-color: #ff3333; 
     color: #cc0000; 

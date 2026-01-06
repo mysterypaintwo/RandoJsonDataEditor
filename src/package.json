@@ -16,7 +16,7 @@
         "ajv": "^6.12.6"
     },
     "devDependencies": {
-        "electron": "^26.0.0",
+        "electron": "^39.2.7",
         "electron-builder": "^24.13.3"
     },
     "build": {

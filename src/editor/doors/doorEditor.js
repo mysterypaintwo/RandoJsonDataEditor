@@ -66,20 +66,6 @@ const IMPLICIT_FLAGS = [
     { key: 'useImplicitDoorUnlocks', label: 'Door Unlocks', description: 'Generate standard unlock strats', default: true }
 ];
 
-// Direction formatting utility
-function formatDirection(dir) {
-    const map = {
-        up: "North", down: "South", right: "East", left: "West",
-        north: "North", south: "South", east: "East", west: "West",
-        northwest: "North-West", westnorth: "West-North",
-        northeast: "North-East", eastnorth: "East-North",
-        southwest: "South-West", westsouth: "West-South",
-        southeast: "South-East", eastsouth: "East-South",
-        westupper: "West-Upper", eastupper: "East-Upper"
-    };
-    return map[dir?.toLowerCase()] || dir;
-}
-
 // ============================================================================
 // Initialization
 // ============================================================================

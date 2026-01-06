@@ -31,6 +31,7 @@
 		return {
 			name: normalizeStringField(data, 'name'),
 			devNote: normalizeStringField(data, 'devNote'),
+        	link: data?.link || null,
 			entranceCondition: data?.entranceCondition || null,
 			exitCondition: data?.exitCondition || null,
 			requires: data?.requires || null,
@@ -49,6 +50,45 @@
 	populateFields() {
 		this.nameInput = createInput('text', 'Strat Name', this.initialData.name);
 		this.devNoteInput = createInput('text', 'Dev Note', this.initialData.devNote);
+
+		// Link (From/To) node selection
+		const linkContainer = document.createElement('div');
+		linkContainer.style.marginBottom = '12px';
+		
+		const linkLabel = document.createElement('label');
+		linkLabel.textContent = 'Link (From → To):';
+		linkLabel.style.fontWeight = '600';
+		linkLabel.style.display = 'block';
+		linkLabel.style.marginBottom = '6px';
+		linkContainer.appendChild(linkLabel);
+		
+		const linkInputs = document.createElement('div');
+		linkInputs.style.display = 'flex';
+		linkInputs.style.gap = '8px';
+		linkInputs.style.alignItems = 'center';
+		
+		this.fromNodeSelect = document.createElement('select');
+		this.fromNodeSelect.style.flex = '1';
+		this.toNodeSelect = document.createElement('select');
+		this.toNodeSelect.style.flex = '1';
+		
+		const arrow = document.createElement('span');
+		arrow.textContent = '→';
+		arrow.style.fontSize = '18px';
+		
+		linkInputs.appendChild(this.fromNodeSelect);
+		linkInputs.appendChild(arrow);
+		linkInputs.appendChild(this.toNodeSelect);
+		linkContainer.appendChild(linkInputs);
+		
+		// At the end of populateFields, after creating node selects:
+		this.populateNodeSelects();
+
+		// Set initial values from link data
+		if (this.initialData.link && Array.isArray(this.initialData.link) && this.initialData.link.length === 2) {
+			this.fromNodeSelect.value = this.initialData.link[0];
+			this.toNodeSelect.value = this.initialData.link[1];
+		}
 
 		// Create placeholder divs for conditions
 		this.entranceConditionDiv = createDiv([]);
@@ -72,7 +112,6 @@
 			this.flashSuitChecked
 		];
 
-		// Create vertical layout for checkboxes instead of grid
 		const boolContainer = document.createElement('div');
 		boolContainer.style.display = 'flex';
 		boolContainer.style.flexDirection = 'column';
@@ -88,6 +127,7 @@
 		const content = createDiv([
 			this.nameInput,
 			this.devNoteInput,
+			linkContainer,
 			createLabel('Entrance Condition:', this.entranceConditionDiv),
 			createLabel('Requirements:', this.requiresConditionDiv),
 			createLabel('Exit Condition:', this.exitConditionDiv),
@@ -105,6 +145,65 @@
 
 		// Defer condition editor creation
 		setTimeout(() => this.createConditionEditors(), 0);
+	}
+
+	populateNodeSelects() {
+		// Store current values if they exist
+		const currentFrom = this.fromNodeSelect ? this.fromNodeSelect.value : null;
+		const currentTo = this.toNodeSelect ? this.toNodeSelect.value : null;
+		
+		// Clear existing options
+		this.fromNodeSelect.innerHTML = '';
+		this.toNodeSelect.innerHTML = '';
+		
+		// Add empty option
+		const emptyFrom = document.createElement('option');
+		emptyFrom.value = '';
+		emptyFrom.textContent = '(select from node)';
+		this.fromNodeSelect.appendChild(emptyFrom);
+		
+		const emptyTo = document.createElement('option');
+		emptyTo.value = '';
+		emptyTo.textContent = '(select to node)';
+		this.toNodeSelect.appendChild(emptyTo);
+		
+		// Populate with available nodes
+		window.EditorGlobals.validRoomNodes.forEach(node => {
+			const optionFrom = document.createElement('option');
+			optionFrom.value = node.id;
+			optionFrom.textContent = `${node.id}: ${node.name}`;
+			this.fromNodeSelect.appendChild(optionFrom);
+			
+			const optionTo = document.createElement('option');
+			optionTo.value = node.id;
+			optionTo.textContent = `${node.id}: ${node.name}`;
+			this.toNodeSelect.appendChild(optionTo);
+		});
+		
+		// Restore previous values if available
+		if (currentFrom !== null) {
+			this.fromNodeSelect.value = currentFrom;
+		} else if (this.initialData.link && this.initialData.link.length === 2) {
+			this.fromNodeSelect.value = this.initialData.link[0];
+		}
+		
+		if (currentTo !== null) {
+			this.toNodeSelect.value = currentTo;
+		} else if (this.initialData.link && this.initialData.link.length === 2) {
+			this.toNodeSelect.value = this.initialData.link[1];
+		}
+	}
+	
+	refreshNodeSelects() {
+		if (this.fromNodeSelect && this.toNodeSelect) {
+			const fromValue = this.fromNodeSelect.value;
+			const toValue = this.toNodeSelect.value;
+			
+			this.populateNodeSelects();
+			
+			this.fromNodeSelect.value = fromValue;
+			this.toNodeSelect.value = toValue;
+		}
 	}
 
 	createConditionEditors() {
@@ -379,8 +478,8 @@
 	}
 
 	refreshCollectsItemsEditor() {
-		// The node checkbox list will automatically refresh when EditorGlobals changes
-		// No additional action needed due to the new global system
+		// Refresh node selects when nodes change
+		this.refreshNodeSelects();
 	}
 
 	refreshSetsFlagsEditor() {
@@ -410,6 +509,13 @@
 		const result = {
 			name
 		};
+
+		// Add link if both nodes are selected
+		const fromNode = parseInt(this.fromNodeSelect.value);
+		const toNode = parseInt(this.toNodeSelect.value);
+		if (!isNaN(fromNode) && !isNaN(toNode)) {
+			result.link = [fromNode, toNode];
+		}
 
 		// Add required 'requires' field (can be null)
 		const requires = this.conditionEditors.requires.getValue();

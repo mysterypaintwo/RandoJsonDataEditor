@@ -36,7 +36,8 @@ class RoomPropertiesEditor {
 			obstacles: new Map(),
 			enemies: new Map(),
 			strats: new Map(),
-			notables: new Map()
+			notables: new Map(),
+    		nodes: new Map()
 		};
 
 		// Editor configurations
@@ -76,6 +77,15 @@ class RoomPropertiesEditor {
 				idStyle: 'numeric',
 				idPrefix: '',
 				editorClass: NotableEditor
+			},
+			nodes: {
+				type: 'nodes',
+				className: 'node',
+				emoji: '🔀',
+				defaultName: 'Node',
+				idStyle: 'numeric',
+				idPrefix: '',
+				editorClass: JunctionNodeEditor
 			}
 		};
 	}
@@ -92,7 +102,8 @@ class RoomPropertiesEditor {
 			obstacles: document.getElementById('obstaclesContainer'),
 			enemies: document.getElementById('enemiesContainer'),
 			strats: document.getElementById('stratsContainer'),
-			notables: document.getElementById('notablesContainer')
+			notables: document.getElementById('notablesContainer'),
+			nodes: document.getElementById('nodesContainer')
 		};
 	}
 
@@ -202,17 +213,23 @@ class RoomPropertiesEditor {
 
 		// Populate each editor type
 		Object.keys(this.editorConfigs).forEach(type => {
-			const dataArray = this.currentRoomData[type] || [];
+			let dataArray = this.currentRoomData[type] || [];
+			
+			// Special handling for nodes - only show junction nodes
+			if (type === 'nodes') {
+				dataArray = dataArray.filter(node => node.nodeType === 'junction');
+			}
+			
 			dataArray.forEach(itemData => {
 				this.createEditor(type, itemData);
 			});
 		});
 
-		// Broadcast initial obstacle state for cross-editor dependencies
+		// Broadcast initial state
 		ObstacleEditor.broadcastObstaclesChanged();
 		NotableEditor.broadcastNotablesChanged();
 	}
-
+	
 	createEditor(type, initialData = {}) {
 		const config = this.editorConfigs[type];
 		const container = this.containers[type];
@@ -244,6 +261,9 @@ class RoomPropertiesEditor {
 					this.techMap,
 					this.helperMap
 				);
+				break;
+			case 'nodes':
+				editor = new config.editorClass(initialData);
 				break;
 			default:
 				editor = new config.editorClass(initialData);
@@ -298,50 +318,57 @@ class RoomPropertiesEditor {
 		// Collect data from all containers with auto-assigned IDs
 		const collectedData = {};
 		Object.keys(this.editorConfigs).forEach(type => {
-			const rawData = collectAndAssignIDs(
-				this.containers[type],
-				type,
-				this.editorConfigs[type]
-			);
-			
-			// Clean and validate each item's data structure
-			collectedData[type] = rawData
-				.map(item => {
-					if (item && typeof item === 'object') {
-						// Validate conditions within each item
-						const validatedItem = { ...item };
-						
-						// Validate condition fields if they exist
-						if (item.requires) {
-							const cleanedRequires = this.validateConditionOutput(item.requires);
-							if (cleanedRequires) validatedItem.requires = cleanedRequires;
+			if (type === 'nodes') {
+				// Get updated junction nodes from editor
+				const updatedJunctionNodes = Array.from(this.containers[type].children)
+					.map(element => element.getValue ? element.getValue() : null)
+					.filter(Boolean);
+				
+				// Preserve all non-junction nodes and merge with updated junction nodes
+				const nonJunctionNodes = (data.nodes || []).filter(node => node.nodeType !== 'junction');
+				collectedData[type] = [...nonJunctionNodes, ...updatedJunctionNodes];
+			} else {
+				const rawData = collectAndAssignIDs(
+					this.containers[type],
+					type,
+					this.editorConfigs[type]
+				);
+				
+				collectedData[type] = rawData
+					.map(item => {
+						if (item && typeof item === 'object') {
+							const validatedItem = { ...item };
+							
+							if (item.requires) {
+								const cleanedRequires = this.validateConditionOutput(item.requires);
+								if (cleanedRequires) validatedItem.requires = cleanedRequires;
+							}
+							if (item.spawn) {
+								const cleanedSpawn = this.validateConditionOutput(item.spawn);
+								if (cleanedSpawn) validatedItem.spawn = cleanedSpawn;
+							}
+							if (item.stopSpawn) {
+								const cleanedStopSpawn = this.validateConditionOutput(item.stopSpawn);
+								if (cleanedStopSpawn) validatedItem.stopSpawn = cleanedStopSpawn;
+							}
+							if (item.entranceCondition) {
+								const cleanedEntrance = this.validateConditionOutput(item.entranceCondition);
+								if (cleanedEntrance) validatedItem.entranceCondition = cleanedEntrance;
+							}
+							if (item.exitCondition) {
+								const cleanedExit = this.validateConditionOutput(item.exitCondition);
+								if (cleanedExit) validatedItem.exitCondition = cleanedExit;
+							}
+							
+							return cleanObject(validatedItem);
 						}
-						if (item.spawn) {
-							const cleanedSpawn = this.validateConditionOutput(item.spawn);
-							if (cleanedSpawn) validatedItem.spawn = cleanedSpawn;
-						}
-						if (item.stopSpawn) {
-							const cleanedStopSpawn = this.validateConditionOutput(item.stopSpawn);
-							if (cleanedStopSpawn) validatedItem.stopSpawn = cleanedStopSpawn;
-						}
-						if (item.entranceCondition) {
-							const cleanedEntrance = this.validateConditionOutput(item.entranceCondition);
-							if (cleanedEntrance) validatedItem.entranceCondition = cleanedEntrance;
-						}
-						if (item.exitCondition) {
-							const cleanedExit = this.validateConditionOutput(item.exitCondition);
-							if (cleanedExit) validatedItem.exitCondition = cleanedExit;
-						}
-						
-						return cleanObject(validatedItem);
-					}
-					return item;
-				})
-				.filter(item => item !== null && Object.keys(item).length > 0);
+						return item;
+					})
+					.filter(item => item !== null && Object.keys(item).length > 0);
+			}
 		});
 
 		const payload = {
-			// Preserve room identification and structure
 			$schema: data.$schema,
 			id: data.id,
 			name: data.name,
@@ -349,18 +376,15 @@ class RoomPropertiesEditor {
 			subarea: data.subarea,
 			roomEnvironments: data.roomEnvironments,
 			mapTileMask: data.mapTileMask,
-			nodes: data.nodes,
+			nodes: collectedData.nodes || data.nodes,
 			links: data.links,
 			
-			// Add collected editor data - only include non-empty sections
 			...Object.fromEntries(
-				Object.entries(collectedData).filter(([key, value]) => 
-					Array.isArray(value) && value.length > 0
-				)
+				Object.entries(collectedData)
+					.filter(([key, value]) => key !== 'nodes' && Array.isArray(value) && value.length > 0)
 			)
 		};
 
-		// Add optional room-level properties only if they exist
 		if (data.subsubarea) payload.subsubarea = data.subsubarea;
 		if (data.roomImageFile) payload.roomImageFile = data.roomImageFile;
 		if (data.roomAddress) payload.roomAddress = data.roomAddress;

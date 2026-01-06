@@ -8,6 +8,19 @@ export class CanvasRenderer {
 		this.ctx = canvas.getContext("2d");
 		this.mapContainer = mapContainer;
 	}
+	withAlpha(color, alpha) {
+		if (color.startsWith('#')) {
+			const r = parseInt(color.slice(1, 3), 16);
+			const g = parseInt(color.slice(3, 5), 16);
+			const b = parseInt(color.slice(5, 7), 16);
+			return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+		}
+		if (color.startsWith('rgb(')) {
+			return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+		}
+		return color;
+	}
+
 	/**
 	 * Draw a rectangle with fill and stroke
 	 * @param {Object} rect - Rectangle with x, y, w, h properties
@@ -67,11 +80,13 @@ export class CanvasRenderer {
 	 * @param {Object} currentRect - Rectangle being drawn (if any)
 	 * @param {number} scale - Current zoom scale
 	 */
-	redraw(roomImage, nodes, selectedNode, currentRect, scale) {
+	redraw(roomImage, nodes, selectedNode, currentRect, scale, enemies) {
 		if (!roomImage) return;
+		
 		// Clear canvas
 		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		
 		// Draw background image at scaled size
 		this.ctx.drawImage(
 			roomImage,
@@ -79,15 +94,30 @@ export class CanvasRenderer {
 			roomImage.width * scale,
 			roomImage.height * scale
 		);
+		
+		// Render junction nodes with colors
 		nodes.forEach(node => {
+			if (node.nodeType !== 'junction') return;
+			
 			const scaledNode = {
 				x: node.x * scale,
 				y: node.y * scale,
 				w: node.w * scale,
 				h: node.h * scale
 			};
-			this.renderNode(scaledNode, selectedNode === node, 1); // pass 1 for scale inside drawRect
+			
+			const color = node.color || '#0000FF';
+			const fillStyle = selectedNode === node
+				? 'rgba(255,255,0,0.3)'
+				: this.withAlpha(color, 0.3);
+			const strokeStyle = selectedNode === node ? 'yellow' : color;
+			
+			this.drawRect(scaledNode, fillStyle, strokeStyle, 1);
 		});
+		
+		// Render enemy nodes
+		this.renderEnemyNodes(enemies, nodes, scale);
+		
 		if (currentRect) {
 			const scaledRect = {
 				x: currentRect.x * scale,
@@ -134,5 +164,94 @@ export class CanvasRenderer {
 		const scaleRatio = newScale / oldScale;
 		this.mapContainer.scrollLeft = (this.mapContainer.scrollLeft + centerX) * scaleRatio - centerX;
 		this.mapContainer.scrollTop = (this.mapContainer.scrollTop + centerY) * scaleRatio - centerY;
+	}
+	/**
+	 * Render enemy patrol areas as circles
+	 * @param {Array} enemies - Enemy data
+	 * @param {Array} nodes - All nodes
+	 * @param {number} scale - Current zoom scale
+	 */
+	renderEnemyNodes(enemies, nodes, scale) {
+		if (!enemies || !enemies.length) return;
+
+		enemies.forEach(enemy => {
+			// Decide which nodes this enemy uses
+			const nodeIds =
+				Array.isArray(enemy.homeNodes) && enemy.homeNodes.length
+					? enemy.homeNodes
+					: Array.isArray(enemy.betweenNodes) && enemy.betweenNodes.length === 2
+						? enemy.betweenNodes
+						: [];
+
+			if (!nodeIds.length) {
+				console.warn('[EnemyRenderer] Enemy has no patrol nodes:', enemy);
+				return;
+			}
+
+			// Resolve node objects (string/number safe)
+			const patrolNodes = nodeIds
+				.map(id => nodes.find(n => String(n.id) === String(id)))
+				.filter(Boolean);
+
+			if (!patrolNodes.length) {
+				console.warn('[EnemyRenderer] No matching nodes for enemy:', enemy, nodeIds);
+				return;
+			}
+
+			// Draw one circle per node, for homeNodes
+			if (enemy.homeNodes?.length) {
+				patrolNodes.forEach(node => {
+					this.drawEnemyAtNode(enemy, node, scale);
+				});
+				return;
+			}
+
+			// Draw at midpoint, for betweenNodes
+			if (enemy.betweenNodes?.length === 2 && patrolNodes.length === 2) {
+				const [a, b] = patrolNodes;
+
+				const centerX =
+					((a.x + a.w / 2) + (b.x + b.w / 2)) / 2 * scale;
+				const centerY =
+					((a.y + a.h / 2) + (b.y + b.h / 2)) / 2 * scale;
+
+				const radius =
+					Math.max(a.w, a.h, b.w, b.h) * scale * 0.8;
+
+				this.drawEnemyCircle(enemy, centerX, centerY, radius, scale);
+			}
+		});
+	}
+
+	drawEnemyAtNode(enemy, node, scale) {
+		const centerX = (node.x + node.w / 2) * scale;
+		const centerY = (node.y + node.h / 2) * scale;
+		const radius = Math.max(node.w, node.h) * scale * 0.7;
+
+		this.drawEnemyCircle(enemy, centerX, centerY, radius, scale);
+	}
+
+	drawEnemyCircle(enemy, x, y, radius, scale) {
+		this.ctx.fillStyle = 'rgba(255, 100, 100, 0.3)';
+		this.ctx.strokeStyle = 'rgba(255, 50, 50, 0.85)';
+		this.ctx.lineWidth = 2 / scale;
+
+		this.ctx.beginPath();
+		this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+		this.ctx.fill();
+		this.ctx.stroke();
+
+		// Label
+		const label = (enemy.groupName || '')
+			.substring(0, 4)
+			.toUpperCase();
+
+		if (label) {
+			this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+			this.ctx.font = `${12 / scale}px monospace`;
+			this.ctx.textAlign = 'center';
+			this.ctx.textBaseline = 'middle';
+			this.ctx.fillText(label, x, y);
+		}
 	}
 }

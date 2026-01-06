@@ -92,9 +92,15 @@
 		});
 		// Set initial selection
 		if (this.initialCondition) {
-			const initialType = Object.keys(this.initialCondition)[0];
+			let initialType = null;
+			if (typeof this.initialCondition === 'string') {
+				// Handle "free" and "never" cases
+				initialType = this.initialCondition;
+			} else if (typeof this.initialCondition === 'object') {
+				initialType = Object.keys(this.initialCondition)[0];
+			}
 			if (initialType && CONDITION_CONFIG.types[initialType]) {
-				this.typeSelect.value = "e: " + initialType;
+				this.typeSelect.value = initialType;
 			}
 		}
 	}

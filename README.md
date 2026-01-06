@@ -1,6 +1,8 @@
 # RandoJsonDataVisualEditor
 
-RandoJsonDataVisualEditor is a JSON editor designed for randomizers and other logic modifications, primarily for the Super Metroid ROM hack **X-Fusion** (Might support more in the future!?). This tool allows you to visually place and manipulate nodes on the map, making editing room connections, items, and other gameplay logic straightforward.
+RandoJsonDataVisualEditor is a JSON editor designed for randomizers and other logic modifications, primarily for [**Super Metroid: X-Fusion**](https://metroidconstruction.com/hack.php?id=837). (Might support more in the future!?).
+
+This tool allows us to visually place and manipulate nodes on the map, making editing room connections, items, and other gameplay logic straightforward.
 
 This project is heavily inspired by [sm-json-data](https://github.com/vg-json-data/sm-json-data).
 
@@ -14,19 +16,23 @@ This project is heavily inspired by [sm-json-data](https://github.com/vg-json-da
   - 2 → Select Nodes
   - 3 → Move Nodes
   - 4 → Resize Nodes
+- **Double Left-click (In Select/Move mode)**: Rename junction nodes
 - **Delete key**: Delete a node from the logic editor
 - **Scroll (by itself)**: Scroll vertically on the map
 - **Shift and Scroll**: Scroll horizontally
 - **CTRL and Scroll**: Zoom in/out
 - **CTRL and + / -**: Zoom in/out
+- **Left-click (On Cardinal Buttons)**: Navigate between doors
+- **Right-click (On Cardinal Buttons)**: Edit door connection properties
+- **Left-click (On Sector Buttons)**: Navigate between sectors
 
 ---
 
 ## Contributing to the project
-1. Clone the [mxf-json-data repository](https://github.com/mysterypaintwo/mxf-json-data). I highly recommend using [Github Desktop](https://desktop.github.com/download/) if you've never used git before.
+1. Clone the [mxf-json-data repository](https://github.com/vg-json-data/mxf-json-data). I highly recommend using [Github Desktop](https://desktop.github.com/download/) if you've never used git before.
 2. Download the [RandoJsonDataEditor](https://github.com/mysterypaintwo/RandoJsonDataEditor/releases/new)
 3. Run the editor and click "Set Working Directory" at the top-left.
-4. Refer to [SCHEMA.md](https://github.com/mysterypaintwo/mxf-json-data/blob/main/SCHEMA.md) for formatting expectations when contributing.
+4. Refer to [the documentation](https://github.com/vg-json-data/mxf-json-data/tree/main/documentation) for formatting expectations when contributing.
 5. When your edits are done, [create a pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) for your changes back to the main repository.
 
 ## Installation
@@ -34,8 +40,8 @@ This project is heavily inspired by [sm-json-data](https://github.com/vg-json-da
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/mysterypaintwo/x-fusion-logic-editor.git
-cd x-fusion-logic-editor
+git clone https://github.com/mysterypaintwo/RandoJsonDataEditor.git
+cd RandoJsonDataEditor
 ```
 
 2. Install dependencies:
@@ -92,7 +98,7 @@ Notes:
 
 ## Dependencies
 
-- [Electron](https://www.electronjs.org/) ^26.0.0
+- [Electron](https://www.electronjs.org/) ^39.2.7
 - [Electron Builder](https://www.electron.build/) ^24.13.3
 
 No additional dependencies are required.

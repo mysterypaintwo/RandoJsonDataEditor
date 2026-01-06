@@ -7,6 +7,7 @@ import {
 	showTooltip,
 	hideTooltip,
 	highlightNodeInJSON,
+	normalizeUiDirForKeys,
 	formatDirection,
 	connectionContainsDirection
 } from '../core/utils.js';
@@ -17,6 +18,150 @@ export class UIManager {
 		this.currentDirSpan = document.getElementById('currentDir');
 		this.state = state;
 	}
+	/**
+	 * Display a modal prompt allowing the user to rename an item
+	 * Returns the entered string, or null if the prompt is cancelled
+	 * @param {string} title - Title text displayed in the prompt
+	 * @param {string} defaultValue - Initial value shown in the input field
+	 * @returns {Promise<string|null>} User-entered value or null if cancelled
+	 */
+/**
+ * Display a modal prompt allowing the user to rename an item
+ * Returns the entered string, or null if the prompt is cancelled
+ * @param {string} title - Title text displayed in the prompt
+ * @param {string} defaultValue - Initial value shown in the input field
+ * @returns {Promise<string|null>} User-entered value or null if cancelled
+ */
+	promptRename(title, defaultValue) {
+		// Prevent multiple modals
+		if (document.querySelector('.modal-overlay')) {
+			return Promise.resolve(null);
+		}
+		
+		return new Promise(resolve => {
+			const overlay = document.createElement('div');
+			overlay.className = 'modal-overlay';
+			overlay.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background: rgba(0,0,0,0.5);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				z-index: 10000;
+			`;
+
+			const modal = document.createElement('div');
+			modal.className = 'modal';
+			modal.style.cssText = `
+				background: white;
+				padding: 20px;
+				border-radius: 8px;
+				min-width: 300px;
+				box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+			`;
+
+			const titleEl = document.createElement('div');
+			titleEl.textContent = title;
+			titleEl.style.cssText = `
+				margin-bottom: 12px;
+				font-weight: bold;
+				font-size: 16px;
+			`;
+
+			const input = document.createElement('input');
+			input.type = 'text';
+			input.value = defaultValue;
+			input.style.cssText = `
+				width: 100%;
+				padding: 8px;
+				margin-bottom: 12px;
+				border: 1px solid #ccc;
+				border-radius: 4px;
+				font-size: 14px;
+				box-sizing: border-box;
+			`;
+
+			const buttonContainer = document.createElement('div');
+			buttonContainer.style.cssText = `
+				display: flex;
+				gap: 8px;
+				justify-content: flex-end;
+			`;
+
+			const ok = document.createElement('button');
+			ok.textContent = 'OK';
+			ok.style.cssText = `
+				padding: 8px 16px;
+				background: #4CAF50;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+			`;
+
+			const cancel = document.createElement('button');
+			cancel.textContent = 'Cancel';
+			cancel.style.cssText = `
+				padding: 8px 16px;
+				background: #666;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+			`;
+
+			let resolved = false;
+
+			function cleanup(value) {
+				if (resolved) return;
+				resolved = true;
+				if (document.body.contains(overlay)) {
+					document.body.removeChild(overlay);
+				}
+				resolve(value);
+			}
+
+			ok.onclick = () => cleanup(input.value);
+			cancel.onclick = () => cleanup(null);
+
+			// Keyboard handlers
+			input.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					cleanup(input.value);
+				} else if (e.key === 'Escape') {
+					e.preventDefault();
+					cleanup(null);
+				}
+			});
+
+			// Close on overlay click
+			overlay.addEventListener('click', (e) => {
+				if (e.target === overlay) {
+					cleanup(null);
+				}
+			});
+
+			buttonContainer.appendChild(cancel);
+			buttonContainer.appendChild(ok);
+			modal.appendChild(titleEl);
+			modal.appendChild(input);
+			modal.appendChild(buttonContainer);
+			overlay.appendChild(modal);
+			document.body.appendChild(overlay);
+
+			// Focus and select text after a brief delay
+			setTimeout(() => {
+				input.focus();
+				input.select();
+			}, 0);
+		});
+	}
+
 	/**
 	 * Update the JSON textarea with formatted data
 	 * @param {Object} jsonData - The JSON data to display
@@ -42,7 +187,8 @@ export class UIManager {
 	 */
 	updateTooltip(hoverNode, clientX, clientY) {
 		if (hoverNode) {
-			showTooltip(this.tooltipDiv, hoverNode.name, clientX, clientY);
+			const text = hoverNode.name.replace(/\n/g, '<br>');
+			showTooltip(this.tooltipDiv, text, clientX, clientY);
 		} else {
 			hideTooltip(this.tooltipDiv);
 		}
@@ -73,26 +219,57 @@ export class UIManager {
 			});
 			return;
 		}
-		// Pre-fetch all door connections for the room
+
+		// Retrieve all door connections for the current room
 		const doorConnections = await this.state.getDoorConnections();
+
 		document.querySelectorAll('.door-btn').forEach(btn => {
+			// UI-facing direction identifier from the button
 			const dir = btn.dataset.dir;
-			const formattedDir = formatDirection(dir);
-			// Find the closest key match in doorConnections
-			const matchingKey = Object.keys(doorConnections).find(
-				key => key.toLowerCase().includes(formattedDir.toLowerCase())
+
+			// Normalize and format the direction to match door connection key naming
+			const formattedDir = formatDirection(normalizeUiDirForKeys(dir));
+			const formatted = formattedDir.toLowerCase();
+
+			// Attempt to locate a matching door connection key using increasingly
+			// permissive matching rules to avoid false positives (e.g. "East" vs "North-East")
+
+			// 1) Exact leading match (e.g. "East Door", "East Morph Ball Hole")
+			let matchingKey = Object.keys(doorConnections).find(key =>
+				key.toLowerCase().startsWith(formatted + ' ')
 			);
-			// Decide if it's a Morph Ball hole based on the key itself
-			const isMorphBall = matchingKey?.toLowerCase().includes("morph ball hole") || false;
-			// Expected name (either "... Door" or "... Morph Ball Hole")
-			const expectedName = formattedDir + (isMorphBall ? " Morph Ball Hole" : " Door");
-			// Try to get connection directly by node name
+
+			// 2) Hyphenated directional match (e.g. "North-East Door")
+			if (!matchingKey) {
+				matchingKey = Object.keys(doorConnections).find(key =>
+					key.toLowerCase().startsWith(formatted + '-')
+				);
+			}
+
+			// 3) Final fallback: legacy substring match
+			if (!matchingKey) {
+				matchingKey = Object.keys(doorConnections).find(key =>
+					key.toLowerCase().includes(formatted)
+				);
+			}
+
+			// Determine whether the matched connection represents a Morph Ball hole
+			const isMorphBall =
+				matchingKey?.toLowerCase().includes('morph ball hole') || false;
+
+			// Construct the expected connection key name based on direction and type
+			const expectedName =
+				formattedDir + (isMorphBall ? ' Morph Ball Hole' : ' Door');
+
+			// Attempt to resolve the connection directly from the pre-fetched map
 			let connection = doorConnections[expectedName] || null;
-			// If no connection, fallback: look in roomData.connections
+
+			// Fallback: derive connection data from room metadata if no direct match exists
 			if (!connection && roomData.connections) {
 				const match = roomData.connections.find(conn =>
 					connectionContainsDirection(conn.connectionType || '', dir)
 				);
+
 				if (match) {
 					connection = {
 						targetRoom: match.targetNode?.roomName,
@@ -103,13 +280,17 @@ export class UIManager {
 					};
 				}
 			}
-			// Update active state
+
+			// Update button visual state based on whether a valid connection exists
 			btn.classList.toggle('active', !!connection);
-			// Store the connection (not node)
+
+			// Cache the resolved door connection on the button for later use
 			btn._doorConnection = connection;
-			//console.log(`Door ${dir}: active=${!!connection}, connection:`, connection);
+
+			// console.log(`Door ${dir}: active=${!!connection}`, connection);
 		});
 	}
+	
 	/**
 	 * Show an alert message
 	 * @param {string} message - The message to display

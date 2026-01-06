@@ -533,6 +533,13 @@ class State {
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}
 	/**
+	 * Update all the nodes in the room
+	 * @returns {void}
+	 */
+	updateRoomNodes(newNodes) {
+		this.nodes = newNodes;
+	}
+	/**
 	 * Initialize Tech data from <working_dir>/tech.json
 	 */
 	async initTech() {
