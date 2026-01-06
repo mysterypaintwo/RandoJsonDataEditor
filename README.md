@@ -70,6 +70,8 @@ npm start
 To build a portable Windows version of RandoJsonDataVisualEditor:
 
 ```bash
+# If on Windows, ensure that Windows Developer Mode is enabled
+
 # Install dependencies
 npm install
 
