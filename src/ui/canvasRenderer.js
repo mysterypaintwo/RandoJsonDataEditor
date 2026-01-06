@@ -96,8 +96,11 @@ export class CanvasRenderer {
 		);
 		
 		// Render junction nodes with colors
-		nodes.forEach(node => {
-			if (node.nodeType !== 'junction') return;
+		for (const node of nodes) {
+			if (node.nodeType !== 'junction') {
+				console.warn('Skipping non-junction node:', node);
+				continue;
+			}
 			
 			const scaledNode = {
 				x: node.x * scale,
@@ -113,7 +116,7 @@ export class CanvasRenderer {
 			const strokeStyle = selectedNode === node ? 'yellow' : color;
 			
 			this.drawRect(scaledNode, fillStyle, strokeStyle, 1);
-		});
+		};
 		
 		// Render enemy nodes
 		this.renderEnemyNodes(enemies, nodes, scale);

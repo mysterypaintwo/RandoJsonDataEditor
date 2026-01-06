@@ -16,16 +16,15 @@ class JunctionNodeEditor extends BaseEditor {
 		super(initialData, config);
 	}
 
-	normalizeData(data) {
-		return {
-			id: data?.id,
-			name: normalizeStringField(data, 'name'),
-			nodeType: normalizeStringField(data, 'nodeType', 'junction'),
-			nodeSubType: normalizeStringField(data, 'nodeSubType', 'visible'),
-			// Preserve all other node properties
-			...data
-		};
-	}
+    normalizeData(data) {
+        return {
+            ...data,
+            id: data?.id,
+            name: normalizeStringField(data, 'name'),
+            nodeType: normalizeStringField(data, 'nodeType', 'junction'),
+            nodeSubType: normalizeStringField(data, 'nodeSubType', 'visible')
+        };
+    }
     
     populateFields() {
         this.nameInput = createInput('text', 'Node Name', this.initialData.name);
@@ -81,6 +80,8 @@ class JunctionNodeEditor extends BaseEditor {
         // Return the complete node data with updated name and color
         return {
             ...this.initialData,
+            nodeType: 'junction',
+            nodeSubType: this.initialData.nodeSubType || 'visible',
             name: this.nameInput.value.trim(),
             color: this.colorInput.value
         };
