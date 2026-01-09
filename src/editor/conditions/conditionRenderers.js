@@ -88,12 +88,43 @@ class SelectRenderer {
 		select.appendChild(emptyOption);
 
 		const options = this.getOptionsForType(type);
-		options.forEach(option => {
-			const opt = document.createElement('option');
-			opt.value = option;
-			opt.textContent = option;
-			select.appendChild(opt);
-		});
+
+		if (type === 'event') {
+			const collator = new Intl.Collator(undefined, {
+				numeric: true,
+				sensitivity: 'base'
+			});
+
+			Object.entries(options).forEach(([category, flags]) => {
+				const group = document.createElement('optgroup');
+				group.label = category;
+
+				flags
+					.slice()
+					.sort((a, b) => collator.compare(a.name, b.name))
+					.forEach(flag => {
+						const opt = document.createElement('option');
+
+						// Full value is stored
+						opt.value = flag.name;
+
+						// Display value (for searching quickly)
+						opt.textContent = this.stripFlagPrefix(flag.name);
+
+						group.appendChild(opt);
+					});
+
+				select.appendChild(group);
+			});
+		} else {
+			options.forEach(option => {
+				const opt = document.createElement('option');
+				opt.value = option;
+				opt.textContent = option;
+				select.appendChild(opt);
+			});
+		}
+
 
 		// Set initial value
 		if (initialCondition && initialCondition[type]) {
@@ -105,15 +136,19 @@ class SelectRenderer {
 		editor.inputs.select = select;
 	}
 
+	static stripFlagPrefix(name) {
+		return name.startsWith('f_') ? name.slice(2) : name;
+	}
+
 	static getOptionsForType(type) {
 		if (type === 'item' || type === 'disableEquipment') {
-			return (window.EditorGlobals.itemList || []).sort();
+			return (window.EditorGlobals.itemList || []).slice().sort();
 		} else if (type === 'event') {
-			return (window.EditorGlobals.eventList || []).sort();
+			return window.EditorGlobals.eventList || {};
 		}
 		return [];
 	}
-
+	
 	static getValue(editor, type) {
 		const selectValue = editor.inputs.select?.value?.trim();
 		return selectValue ? {

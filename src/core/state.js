@@ -44,7 +44,7 @@ class State {
 		// Area start rooms mapping
 		this.areaStartRooms = {
 			"L-X": "L-X/General/Revival Room",
-			"MDK": "MDK/West Main Deck/Central Nexus _ Concourse",
+			"MDK": "MDK/West Main Deck/Central Nexus",
 			"SRX": "SRX/Upper SRX/SRX Entrance Lobby",
 			"TRO": "TRO/General/TRO Entrance Lobby",
 			"PYR": "PYR/Upper PYR/PYR-TRO Elevator _ PYR Entrance Lobby",
@@ -511,12 +511,12 @@ class State {
 			.sort((a, b) => a.localeCompare(b));
 	}
 	/**
-	 * Get all game flags/events, sorted alphabetically
+	 * Get all game flags/events
 	 * @returns {string[]}
 	 */
 	getEventList() {
 		if (!this.itemsData) return [];
-		return (this.itemsData.gameFlags || []).slice().sort((a, b) => a.localeCompare(b));
+		return this.itemsData.gameFlags;
 	}
 	/**
 	 * Get all weapon names, sorted alphabetically
