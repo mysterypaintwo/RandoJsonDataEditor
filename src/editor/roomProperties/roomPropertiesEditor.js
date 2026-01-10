@@ -37,8 +37,12 @@ class RoomPropertiesEditor {
 			enemies: new Map(),
 			strats: new Map(),
 			notables: new Map(),
-			nodes: new Map()
+			nodes: new Map(),
+			roomEnvironments: new Map()
 		};
+
+		// Room-level editors (non-list)
+		this.mapTileMaskEditor = null;
 
 		// Editor configurations
 		this.editorConfigs = {
@@ -86,6 +90,15 @@ class RoomPropertiesEditor {
 				idStyle: 'numeric',
 				idPrefix: '',
 				editorClass: JunctionNodeEditor
+			},
+			roomEnvironments: {
+				type: 'roomEnvironments',
+				className: 'room-environment',
+				emoji: '🌡️',
+				defaultName: 'Environment',
+				idStyle: 'none',
+				idPrefix: '',
+				editorClass: RoomEnvironmentEditor
 			}
 		};
 	}
@@ -95,6 +108,39 @@ class RoomPropertiesEditor {
 		this.cacheContainerReferences();
 		this.setupIPCListeners();
 		this.setupEventHandlers();
+		this.setupUnsavedChangesWarning();
+		
+		// Track if data has been saved
+		this.hasUnsavedChanges = false;
+	}
+
+	setupUnsavedChangesWarning() {
+		// Prevent accidental close without saving
+		window.addEventListener('beforeunload', (e) => {
+			if (this.hasUnsavedChanges) {
+				e.preventDefault();
+				e.returnValue = ''; // Chrome requires returnValue to be set
+				return 'You have unsaved changes. Are you sure you want to leave?';
+			}
+		});
+
+		// Mark as having changes when user interacts with form
+		const markChanged = () => {
+			this.hasUnsavedChanges = true;
+		};
+
+		// Listen for changes in the form
+		const form = document.getElementById('form');
+		if (form) {
+			form.addEventListener('input', markChanged, true);
+			form.addEventListener('change', markChanged, true);
+		}
+
+		// Also listen for changes in metadata fields
+		const roomNote = document.getElementById('roomNote');
+		const roomDevNote = document.getElementById('roomDevNote');
+		if (roomNote) roomNote.addEventListener('input', markChanged);
+		if (roomDevNote) roomDevNote.addEventListener('input', markChanged);
 	}
 
 	cacheContainerReferences() {
@@ -103,7 +149,8 @@ class RoomPropertiesEditor {
 			enemies: document.getElementById('enemiesContainer'),
 			strats: document.getElementById('stratsContainer'),
 			notables: document.getElementById('notablesContainer'),
-			nodes: document.getElementById('nodesContainer')
+			nodes: document.getElementById('nodesContainer'),
+			roomEnvironments: document.getElementById('roomEnvironmentsContainer')
 		};
 	}
 
@@ -112,7 +159,6 @@ class RoomPropertiesEditor {
 		ipcRenderer.on('init-room-properties-data', (event, data, enemyList, itemList, eventList, weaponList, techMap, helperMap) => {
 			this.handleRoomDataReceived(data, enemyList, itemList, eventList, weaponList, techMap, helperMap);
 		});
-
 		// Tell main process we're ready to receive data
 		console.log('Sending room-properties-editor-ready signal');
 		ipcRenderer.send('room-properties-editor-ready');
@@ -121,23 +167,50 @@ class RoomPropertiesEditor {
 	setupEventHandlers() {
 		// Save/close buttons
 		document.getElementById('saveBtn').addEventListener('click', () => this.handleSave());
-		document.getElementById('closeBtn').addEventListener('click', () => window.close());
+		document.getElementById('closeBtn').addEventListener('click', () => {
+			if (this.hasUnsavedChanges) {
+				const confirmed = confirm('You have unsaved changes. Are you sure you want to close without saving?');
+				if (confirmed) {
+					this.hasUnsavedChanges = false; // Clear flag to allow close
+					window.close();
+				}
+			} else {
+				window.close();
+			}
+		});
 
 		// Keyboard shortcuts
 		document.addEventListener('keydown', (event) => {
 			if (event.key === 'Escape') {
-				window.close();
+				if (this.hasUnsavedChanges) {
+					const confirmed = confirm('You have unsaved changes. Are you sure you want to close without saving?');
+					if (confirmed) {
+						this.hasUnsavedChanges = false; // Clear flag to allow close
+						window.close();
+					}
+				} else {
+					window.close();
+				}
 			}
 		});
 
 		// Add buttons for each editor type
 		Object.keys(this.editorConfigs).forEach(type => {
+			// Skip roomEnvironments - it has a custom add button
+			if (type === 'roomEnvironments') return;
+			
 			const addBtnId = `add${type.charAt(0).toUpperCase() + type.slice(1)}Btn`;
 			const addBtn = document.getElementById(addBtnId);
 			if (addBtn) {
 				addBtn.addEventListener('click', () => this.addNewEditor(type));
 			}
 		});
+
+		// Room Environments add button
+		const addRoomEnvBtn = document.getElementById('addRoomEnvironmentBtn');
+		if (addRoomEnvBtn) {
+			addRoomEnvBtn.addEventListener('click', () => this.addNewEditor('roomEnvironments'));
+		}
 	}
 
 	handleRoomDataReceived(data, enemyList, itemList, eventList, weaponList, techMap, helperMap) {
@@ -170,7 +243,11 @@ class RoomPropertiesEditor {
 		);
 
 		this.updateHeaderInfo();
+		this.updateMetadataDisplay();
 		this.populateEditors();
+		
+		// Reset unsaved changes flag after initial load
+		this.hasUnsavedChanges = false;
 	}
 
 	/**
@@ -204,6 +281,40 @@ class RoomPropertiesEditor {
 		});
 	}
 
+	updateMetadataDisplay() {
+		// Update read-only metadata fields
+		const roomAddressEl = document.getElementById('roomAddress');
+		const roomImageFileEl = document.getElementById('roomImageFile');
+		const nextStratIdEl = document.getElementById('nextStratId');
+		const nextNotableIdEl = document.getElementById('nextNotableId');
+
+		if (roomAddressEl) {
+			roomAddressEl.textContent = this.currentRoomData.roomAddress || '-';
+		}
+		if (roomImageFileEl) {
+			roomImageFileEl.textContent = this.currentRoomData.roomImageFile || '-';
+		}
+		if (nextStratIdEl) {
+			nextStratIdEl.textContent = this.currentRoomData.nextStratId || '-';
+		}
+		if (nextNotableIdEl) {
+			nextNotableIdEl.textContent = this.currentRoomData.nextNotableId || '-';
+		}
+
+		// Update editable note fields
+		const roomNoteEl = document.getElementById('roomNote');
+		const roomDevNoteEl = document.getElementById('roomDevNote');
+
+		if (roomNoteEl) {
+			const note = this.currentRoomData.note;
+			roomNoteEl.value = Array.isArray(note) ? note.join('\n') : (note || '');
+		}
+		if (roomDevNoteEl) {
+			const devNote = this.currentRoomData.devNote;
+			roomDevNoteEl.value = Array.isArray(devNote) ? devNote.join('\n') : (devNote || '');
+		}
+	}
+
 	populateEditors() {
 		// Clear existing content and instances
 		Object.values(this.containers).forEach(container => {
@@ -225,9 +336,33 @@ class RoomPropertiesEditor {
 			});
 		});
 
+		// Setup mapTileMask editor
+		this.setupMapTileMaskEditor();
+
 		// Broadcast initial state
 		ObstacleEditor.broadcastObstaclesChanged();
 		NotableEditor.broadcastNotablesChanged();
+	}
+
+	setupMapTileMaskEditor() {
+		const container = document.getElementById('mapTileMaskContainer');
+		if (!container) return;
+
+		// Clear existing editor
+		container.innerHTML = '';
+		if (this.mapTileMaskEditor) {
+			this.mapTileMaskEditor.remove();
+		}
+
+		// Create new editor
+		this.mapTileMaskEditor = new TileMapEditor({
+			initialData: this.currentRoomData.mapTileMask || [],
+			onChange: (newMask) => {
+				// Updates are automatically captured on save
+			}
+		});
+
+		this.mapTileMaskEditor.attachTo(container);
 	}
 
 	createEditor(type, initialData = {}) {
@@ -265,6 +400,9 @@ class RoomPropertiesEditor {
 			case 'nodes':
 				editor = new config.editorClass(initialData);
 				break;
+			case 'roomEnvironments':
+				editor = new config.editorClass(initialData);
+				break;
 			default:
 				editor = new config.editorClass(initialData);
 				break;
@@ -276,8 +414,13 @@ class RoomPropertiesEditor {
 			this.renumberContainer(type);
 		};
 
-		// Attach to container with drag support
-		editor.attachToContainer(container, () => this.renumberContainer(type));
+		// Attach to container with drag support (except roomEnvironments)
+		if (type === 'roomEnvironments') {
+			// No drag support for room environments
+			container.appendChild(editor.root);
+		} else {
+			editor.attachToContainer(container, () => this.renumberContainer(type));
+		}
 
 		// Store reference
 		this.editorInstances[type].set(editor._uid, editor);
@@ -297,6 +440,9 @@ class RoomPropertiesEditor {
 		const config = this.editorConfigs[type];
 		if (!container || !config) return;
 
+		// Skip numbering for roomEnvironments
+		if (type === 'roomEnvironments') return;
+
 		Array.from(container.children).forEach((card, index) => {
 			const newId = generateID(index, config);
 			if (card.setAssignedId) {
@@ -313,93 +459,131 @@ class RoomPropertiesEditor {
 	}
 
 	handleSave() {
-		const data = this.currentRoomData || {};
+		try {
+			const data = this.currentRoomData || {};
 
-		// Collect data from all containers with auto-assigned IDs
-		const collectedData = {};
-		Object.keys(this.editorConfigs).forEach(type => {
-			if (type === 'nodes') {
-				// Get updated junction nodes from editor
-				const updatedJunctionNodes = Array.from(this.containers[type].children)
-					.map(element => element.getValue ? element.getValue() : null)
-					.filter(Boolean);
+			// Collect room-level notes
+			const roomNoteEl = document.getElementById('roomNote');
+			const roomDevNoteEl = document.getElementById('roomDevNote');
+			
+			const roomNote = roomNoteEl ? roomNoteEl.value.trim() : '';
+			const roomDevNote = roomDevNoteEl ? roomDevNoteEl.value.trim() : '';
 
-				// Preserve all non-junction nodes and merge with updated junction nodes
-				const nonJunctionNodes = (data.nodes || []).filter(node => node.nodeType !== 'junction');
-				collectedData[type] = [...nonJunctionNodes, ...updatedJunctionNodes];
-			} else {
-				const rawData = collectAndAssignIDs(
-					this.containers[type],
-					type,
-					this.editorConfigs[type]
-				);
+			// Collect data from all containers with auto-assigned IDs
+			const collectedData = {};
+			Object.keys(this.editorConfigs).forEach(type => {
+				if (type === 'nodes') {
+					// Get updated junction nodes from editor
+					const updatedJunctionNodes = Array.from(this.containers[type].children)
+						.map(element => element.getValue ? element.getValue() : null)
+						.filter(Boolean);
 
-				collectedData[type] = rawData
-					.map(item => {
-						if (item && typeof item === 'object') {
-							const validatedItem = {
-								...item
-							};
+					// Preserve all non-junction nodes and merge with updated junction nodes
+					const nonJunctionNodes = (data.nodes || []).filter(node => node.nodeType !== 'junction');
+					collectedData[type] = [...nonJunctionNodes, ...updatedJunctionNodes];
+				} else if (type === 'roomEnvironments') {
+					// Get room environments without ID assignment
+					collectedData[type] = Array.from(this.containers[type].children)
+						.map(element => element.getValue ? element.getValue() : null)
+						.filter(Boolean);
+				} else {
+					const rawData = collectAndAssignIDs(
+						this.containers[type],
+						type,
+						this.editorConfigs[type]
+					);
 
-							// Validate and clean condition fields
-							if (item.requires !== undefined) {
-								// requires must be an array, never null
-								const cleanedRequires = this.validateConditionOutput(item.requires, 'requires');
-								validatedItem.requires = Array.isArray(cleanedRequires) ? cleanedRequires : [];
-							}
-							if (item.spawn) {
-								const cleanedSpawn = this.validateConditionOutput(item.spawn, 'spawn');
-								if (cleanedSpawn) validatedItem.spawn = cleanedSpawn;
-							}
-							if (item.stopSpawn) {
-								const cleanedStopSpawn = this.validateConditionOutput(item.stopSpawn, 'stopSpawn');
-								if (cleanedStopSpawn) validatedItem.stopSpawn = cleanedStopSpawn;
-							}
-							if (item.entranceCondition) {
-								const cleanedEntrance = this.validateConditionOutput(item.entranceCondition, 'entranceCondition');
-								if (cleanedEntrance) validatedItem.entranceCondition = cleanedEntrance;
-							}
-							if (item.exitCondition) {
-								const cleanedExit = this.validateConditionOutput(item.exitCondition, 'exitCondition');
-								if (cleanedExit) validatedItem.exitCondition = cleanedExit;
-							}
+					collectedData[type] = rawData
+						.map(item => {
+							if (item && typeof item === 'object') {
+								const validatedItem = {
+									...item
+								};
 
-							return cleanObject(validatedItem);
-						}
-						return item;
-					})
-					.filter(item => item !== null && Object.keys(item).length > 0);
+								// Validate and clean condition fields
+								if (item.requires !== undefined) {
+									// requires must be an array, never null
+									const cleanedRequires = this.validateConditionOutput(item.requires, 'requires');
+									validatedItem.requires = Array.isArray(cleanedRequires) ? cleanedRequires : [];
+								}
+								if (item.spawn) {
+									const cleanedSpawn = this.validateConditionOutput(item.spawn, 'spawn');
+									if (cleanedSpawn) validatedItem.spawn = cleanedSpawn;
+								}
+								if (item.stopSpawn) {
+									const cleanedStopSpawn = this.validateConditionOutput(item.stopSpawn, 'stopSpawn');
+									if (cleanedStopSpawn) validatedItem.stopSpawn = cleanedStopSpawn;
+								}
+								if (item.entranceCondition) {
+									const cleanedEntrance = this.validateConditionOutput(item.entranceCondition, 'entranceCondition');
+									if (cleanedEntrance) validatedItem.entranceCondition = cleanedEntrance;
+								}
+								if (item.exitCondition) {
+									const cleanedExit = this.validateConditionOutput(item.exitCondition, 'exitCondition');
+									if (cleanedExit) validatedItem.exitCondition = cleanedExit;
+								}
+
+								return cleanObject(validatedItem);
+							}
+							return item;
+						})
+						.filter(item => item !== null && Object.keys(item).length > 0);
+				}
+			});
+
+			// Get mapTileMask value
+			const mapTileMask = this.mapTileMaskEditor ? this.mapTileMaskEditor.getValue() : data.mapTileMask;
+
+			const payload = {
+				$schema: data.$schema,
+				id: data.id,
+				name: data.name,
+				area: data.area,
+				subarea: data.subarea,
+				roomEnvironments: collectedData.roomEnvironments || data.roomEnvironments,
+				mapTileMask: mapTileMask || data.mapTileMask,
+				nodes: collectedData.nodes || data.nodes,
+				links: data.links, // Preserve links as-is
+
+				...Object.fromEntries(
+					Object.entries(collectedData)
+					.filter(([key, value]) => 
+						key !== 'nodes' && 
+						key !== 'roomEnvironments' && 
+						Array.isArray(value) && 
+						value.length > 0
+					)
+				)
+			};
+
+			// Add optional fields
+			if (data.subsubarea) payload.subsubarea = data.subsubarea;
+			if (data.roomImageFile) payload.roomImageFile = data.roomImageFile;
+			if (data.roomAddress) payload.roomAddress = data.roomAddress;
+			if (data.nextStratId) payload.nextStratId = data.nextStratId;
+			if (data.nextNotableId) payload.nextNotableId = data.nextNotableId;
+			if (roomNote) payload.note = roomNote;
+			if (roomDevNote) payload.devNote = roomDevNote;
+
+			// Validate JSON by attempting to stringify
+			try {
+				const jsonString = JSON.stringify(payload, null, 2);
+				console.log('Saving Room Properties data:', jsonString);
+				
+				// Clear unsaved changes flag before sending
+				this.hasUnsavedChanges = false;
+				
+				ipcRenderer.send('save-room-properties-data', payload);
+				window.close();
+			} catch (jsonError) {
+				alert(`Invalid JSON data detected. Cannot save.\n\nError: ${jsonError.message}\n\nPlease review your data and try again.`);
+				console.error('JSON serialization error:', jsonError);
+				console.error('Problematic payload:', payload);
 			}
-		});
-
-		const payload = {
-			$schema: data.$schema,
-			id: data.id,
-			name: data.name,
-			area: data.area,
-			subarea: data.subarea,
-			roomEnvironments: data.roomEnvironments,
-			mapTileMask: data.mapTileMask,
-			nodes: collectedData.nodes || data.nodes,
-			links: data.links,
-
-			...Object.fromEntries(
-				Object.entries(collectedData)
-				.filter(([key, value]) => key !== 'nodes' && Array.isArray(value) && value.length > 0)
-			)
-		};
-
-		if (data.subsubarea) payload.subsubarea = data.subsubarea;
-		if (data.roomImageFile) payload.roomImageFile = data.roomImageFile;
-		if (data.roomAddress) payload.roomAddress = data.roomAddress;
-		if (data.nextStratId) payload.nextStratId = data.nextStratId;
-		if (data.nextNotableId) payload.nextNotableId = data.nextNotableId;
-		if (data.note) payload.note = data.note;
-		if (data.devNote) payload.devNote = data.devNote;
-
-		console.log('Saving Room Properties data:', JSON.stringify(payload, null, 2));
-		ipcRenderer.send('save-room-properties-data', payload);
-		window.close();
+		} catch (error) {
+			alert(`Error preparing data for save:\n\n${error.message}\n\nPlease check the console for details.`);
+			console.error('Save preparation error:', error);
+		}
 	}
 
 	// Helper function to validate condition outputs match schema

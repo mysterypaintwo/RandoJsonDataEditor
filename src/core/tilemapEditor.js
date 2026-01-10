@@ -16,8 +16,15 @@
 
 class TileMapEditor {
     constructor(options = {}) {
-        this.width = options.width || 8;
-        this.height = options.height || 8;
+        // Determine dimensions from initialData if provided
+        if (options.initialData && Array.isArray(options.initialData) && options.initialData.length > 0) {
+            this.height = options.initialData.length;
+            this.width = Math.max(...options.initialData.map(row => Array.isArray(row) ? row.length : 0));
+        } else {
+            this.width = options.width || 8;
+            this.height = options.height || 8;
+        }
+        
         this.minWidth = options.minWidth || 1;
         this.minHeight = options.minHeight || 1;
         this.maxWidth = options.maxWidth || 32;
@@ -40,6 +47,10 @@ class TileMapEditor {
         this.isDrawing = false;
         this.drawMode = null; // 'enable' or 'disable'
         this.lastCell = null; // Track last cell to prevent re-triggering
+        
+        // Bind methods to maintain context
+        this.handleMouseMove = this.handleMouseMove.bind(this);
+        this.handleMouseUp = this.handleMouseUp.bind(this);
         
         this.createElement();
         this.setupEventHandlers();
@@ -208,8 +219,8 @@ class TileMapEditor {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         
         // Use document-level listeners to track mouse even when outside canvas
-        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        document.addEventListener('mouseup', () => this.handleMouseUp());
+        document.addEventListener('mousemove', this.handleMouseMove);
+        document.addEventListener('mouseup', this.handleMouseUp);
         
         // Toolbar buttons
         this.clearBtn.addEventListener('click', () => this.clearAll());
@@ -417,6 +428,20 @@ class TileMapEditor {
     }
     
     setValue(newData) {
+        // Determine new dimensions if data provided
+        if (newData && Array.isArray(newData) && newData.length > 0) {
+            const newHeight = newData.length;
+            const newWidth = Math.max(...newData.map(row => Array.isArray(row) ? row.length : 0));
+            
+            if (newWidth !== this.width || newHeight !== this.height) {
+                this.width = newWidth;
+                this.height = newHeight;
+                if (this.widthInput) this.widthInput.value = newWidth;
+                if (this.heightInput) this.heightInput.value = newHeight;
+                this.updateCanvasSize();
+            }
+        }
+        
         this.tiles = this.initializeTiles();
         if (newData && Array.isArray(newData)) {
             for (let y = 0; y < Math.min(newData.length, this.height); y++) {

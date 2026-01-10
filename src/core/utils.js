@@ -1,7 +1,8 @@
 /**
- * Utility functions for the room editor
- * Updated for new JSON format and file structure
+ * Utility Functions
+ * Handles common functions for the room editor
  */
+
 /**
  * Checks if a connection type string contains the given directional keyword
  * (case-insensitive).

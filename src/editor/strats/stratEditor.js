@@ -4,9 +4,6 @@
    Editor for room strats. Handles conditions, obstacle interactions,
    and real-time title updates. Uses a modular condition system.
    ============================================================================= */
-/* =============================================================================
-   Updated Strat Editor - Using New Entrance/Exit Condition Editors
-   ============================================================================= */
 
 class StratEditor extends BaseEditor {
 	constructor(initialData = {}, validRoomNodes = []) {

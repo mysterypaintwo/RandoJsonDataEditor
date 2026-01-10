@@ -17,6 +17,11 @@ html, body {
     overflow: hidden;
 }
 
+body {
+    display: flex;
+    flex-direction: column;
+}
+
 /* =============================================================================
    Header - Location Context
    ============================================================================= */
@@ -34,10 +39,13 @@ html, body {
    Main Form Container
    ============================================================================= */
 #form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
     padding: 20px;
-    overflow-y: auto;
-    height: calc(100vh - 120px);
     box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 section {
@@ -749,4 +757,12 @@ button:active {
 
 .card-placeholder::after {
     content: "Drop here";
+}
+
+/* Notes stay at bottom */
+#roomNotesSection {
+    flex-shrink: 0;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 3px solid #dee2e6;
 }
