@@ -6,6 +6,68 @@
    ============================================================================= */
 
 // =============================================================================
+// Validation Utilities
+// =============================================================================
+
+const ValidationUtils = {
+    // Validate hex pattern for extra run speed
+    validateHexSpeed(value) {
+        if (!value || value.trim() === '') return { valid: true };
+        const pattern = /^\$[0-9A-F]\.[0-9A-F]+$/;
+        if (!pattern.test(value)) {
+            return {
+                valid: false,
+                message: 'Must match pattern $X.Y (e.g., $4.0, $F.8) where X and Y are hex digits 0-9 or A-F'
+            };
+        }
+        return { valid: true };
+    },
+
+    // Validate number range
+    validateNumber(value, min, max, label) {
+        if (value === '' || value === null || value === undefined) {
+            return { valid: true };
+        }
+        const num = parseFloat(value);
+        if (isNaN(num)) {
+            return { valid: false, message: `${label} must be a number` };
+        }
+        if (min !== undefined && num < min) {
+            return { valid: false, message: `${label} must be at least ${min}` };
+        }
+        if (max !== undefined && num > max) {
+            return { valid: false, message: `${label} must be at most ${max}` };
+        }
+        return { valid: true };
+    },
+
+    // Show inline error
+    showFieldError(input, message) {
+        // Remove existing error
+        const existing = input.parentElement.querySelector('.field-error');
+        if (existing) existing.remove();
+
+        if (!message) return;
+
+        const error = document.createElement('div');
+        error.className = 'field-error';
+        error.textContent = message;
+        error.style.color = '#e74c3c';
+        error.style.fontSize = '11px';
+        error.style.marginTop = '4px';
+        error.style.fontWeight = '600';
+        input.parentElement.appendChild(error);
+        input.style.borderColor = '#e74c3c';
+    },
+
+    clearFieldError(input) {
+        const existing = input.parentElement.querySelector('.field-error');
+        if (existing) existing.remove();
+        input.style.borderColor = '';
+    }
+};
+
+// =============================================================================
 // Data Source Management
 // =============================================================================
 
