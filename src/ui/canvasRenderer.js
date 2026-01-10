@@ -82,11 +82,11 @@ export class CanvasRenderer {
 	 */
 	redraw(roomImage, nodes, selectedNode, currentRect, scale, enemies) {
 		if (!roomImage) return;
-		
+
 		// Clear canvas
 		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 		this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		
+
 		// Draw background image at scaled size
 		this.ctx.drawImage(
 			roomImage,
@@ -94,33 +94,33 @@ export class CanvasRenderer {
 			roomImage.width * scale,
 			roomImage.height * scale
 		);
-		
+
 		// Render junction nodes with colors
 		for (const node of nodes) {
 			if (node.nodeType !== 'junction') {
 				console.warn('Skipping non-junction node:', node);
 				continue;
 			}
-			
+
 			const scaledNode = {
 				x: node.x * scale,
 				y: node.y * scale,
 				w: node.w * scale,
 				h: node.h * scale
 			};
-			
+
 			const color = node.color || '#0000FF';
-			const fillStyle = selectedNode === node
-				? 'rgba(255,255,0,0.3)'
-				: this.withAlpha(color, 0.3);
+			const fillStyle = selectedNode === node ?
+				'rgba(255,255,0,0.3)' :
+				this.withAlpha(color, 0.3);
 			const strokeStyle = selectedNode === node ? 'yellow' : color;
-			
+
 			this.drawRect(scaledNode, fillStyle, strokeStyle, 1);
 		};
-		
+
 		// Render enemy nodes
 		this.renderEnemyNodes(enemies, nodes, scale);
-		
+
 		if (currentRect) {
 			const scaledRect = {
 				x: currentRect.x * scale,
@@ -180,11 +180,11 @@ export class CanvasRenderer {
 		enemies.forEach(enemy => {
 			// Decide which nodes this enemy uses
 			const nodeIds =
-				Array.isArray(enemy.homeNodes) && enemy.homeNodes.length
-					? enemy.homeNodes
-					: Array.isArray(enemy.betweenNodes) && enemy.betweenNodes.length === 2
-						? enemy.betweenNodes
-						: [];
+				Array.isArray(enemy.homeNodes) && enemy.homeNodes.length ?
+				enemy.homeNodes :
+				Array.isArray(enemy.betweenNodes) && enemy.betweenNodes.length === 2 ?
+				enemy.betweenNodes :
+				[];
 
 			if (!nodeIds.length) {
 				console.warn('[EnemyRenderer] Enemy has no patrol nodes:', enemy);

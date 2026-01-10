@@ -6,7 +6,7 @@
    and container management. Updated to use new modular condition system.
    ============================================================================= */
 
-   const {
+const {
 	ipcRenderer
 } = require('electron');
 
@@ -37,7 +37,7 @@ class RoomPropertiesEditor {
 			enemies: new Map(),
 			strats: new Map(),
 			notables: new Map(),
-    		nodes: new Map()
+			nodes: new Map()
 		};
 
 		// Editor configurations
@@ -214,12 +214,12 @@ class RoomPropertiesEditor {
 		// Populate each editor type
 		Object.keys(this.editorConfigs).forEach(type => {
 			let dataArray = this.currentRoomData[type] || [];
-			
+
 			// Special handling for nodes - only show junction nodes
 			if (type === 'nodes') {
 				dataArray = dataArray.filter(node => node.nodeType === 'junction');
 			}
-			
+
 			dataArray.forEach(itemData => {
 				this.createEditor(type, itemData);
 			});
@@ -229,7 +229,7 @@ class RoomPropertiesEditor {
 		ObstacleEditor.broadcastObstaclesChanged();
 		NotableEditor.broadcastNotablesChanged();
 	}
-	
+
 	createEditor(type, initialData = {}) {
 		const config = this.editorConfigs[type];
 		const container = this.containers[type];
@@ -323,7 +323,7 @@ class RoomPropertiesEditor {
 				const updatedJunctionNodes = Array.from(this.containers[type].children)
 					.map(element => element.getValue ? element.getValue() : null)
 					.filter(Boolean);
-				
+
 				// Preserve all non-junction nodes and merge with updated junction nodes
 				const nonJunctionNodes = (data.nodes || []).filter(node => node.nodeType !== 'junction');
 				collectedData[type] = [...nonJunctionNodes, ...updatedJunctionNodes];
@@ -333,33 +333,37 @@ class RoomPropertiesEditor {
 					type,
 					this.editorConfigs[type]
 				);
-				
+
 				collectedData[type] = rawData
 					.map(item => {
 						if (item && typeof item === 'object') {
-							const validatedItem = { ...item };
-							
-							if (item.requires) {
-								const cleanedRequires = this.validateConditionOutput(item.requires);
-								if (cleanedRequires) validatedItem.requires = cleanedRequires;
+							const validatedItem = {
+								...item
+							};
+
+							// Validate and clean condition fields
+							if (item.requires !== undefined) {
+								// requires must be an array, never null
+								const cleanedRequires = this.validateConditionOutput(item.requires, 'requires');
+								validatedItem.requires = Array.isArray(cleanedRequires) ? cleanedRequires : [];
 							}
 							if (item.spawn) {
-								const cleanedSpawn = this.validateConditionOutput(item.spawn);
+								const cleanedSpawn = this.validateConditionOutput(item.spawn, 'spawn');
 								if (cleanedSpawn) validatedItem.spawn = cleanedSpawn;
 							}
 							if (item.stopSpawn) {
-								const cleanedStopSpawn = this.validateConditionOutput(item.stopSpawn);
+								const cleanedStopSpawn = this.validateConditionOutput(item.stopSpawn, 'stopSpawn');
 								if (cleanedStopSpawn) validatedItem.stopSpawn = cleanedStopSpawn;
 							}
 							if (item.entranceCondition) {
-								const cleanedEntrance = this.validateConditionOutput(item.entranceCondition);
+								const cleanedEntrance = this.validateConditionOutput(item.entranceCondition, 'entranceCondition');
 								if (cleanedEntrance) validatedItem.entranceCondition = cleanedEntrance;
 							}
 							if (item.exitCondition) {
-								const cleanedExit = this.validateConditionOutput(item.exitCondition);
+								const cleanedExit = this.validateConditionOutput(item.exitCondition, 'exitCondition');
 								if (cleanedExit) validatedItem.exitCondition = cleanedExit;
 							}
-							
+
 							return cleanObject(validatedItem);
 						}
 						return item;
@@ -378,10 +382,10 @@ class RoomPropertiesEditor {
 			mapTileMask: data.mapTileMask,
 			nodes: collectedData.nodes || data.nodes,
 			links: data.links,
-			
+
 			...Object.fromEntries(
 				Object.entries(collectedData)
-					.filter(([key, value]) => key !== 'nodes' && Array.isArray(value) && value.length > 0)
+				.filter(([key, value]) => key !== 'nodes' && Array.isArray(value) && value.length > 0)
 			)
 		};
 
@@ -399,13 +403,59 @@ class RoomPropertiesEditor {
 	}
 
 	// Helper function to validate condition outputs match schema
-	validateConditionOutput(condition) {
-		if (!condition || typeof condition !== 'object') return condition;
+	validateConditionOutput(condition, path = 'root') {
+		console.debug('[validateConditionOutput] input:', path, condition);
 
-		// Handle string conditions (tech names, item names, etc.)
-		if (typeof condition === 'string') return condition;
+		if (condition == null) {
+			console.debug('[validateConditionOutput] null -> null:', path);
+			return null;
+		}
 
+		// Arrays: preserve shape
+		if (Array.isArray(condition)) {
+			const cleaned = condition
+				.map((c, i) => this.validateConditionOutput(c, `${path}[${i}]`))
+				.filter(c => c !== null);
+
+			console.debug('[validateConditionOutput] array result:', path, cleaned);
+			return cleaned.length ? cleaned : null;
+		}
+
+		// Primitives (strings, numbers, booleans) are valid
+		if (typeof condition !== 'object') {
+			console.debug('[validateConditionOutput] primitive:', path, condition);
+			return condition;
+		}
+
+		// Logical operators
+		if ('and' in condition) {
+			const v = this.validateConditionOutput(condition.and, `${path}.and`);
+			console.debug('[validateConditionOutput] and:', path, v);
+			return v ? {
+				and: v
+			} : null;
+		}
+
+		if ('or' in condition) {
+			const v = this.validateConditionOutput(condition.or, `${path}.or`);
+			console.debug('[validateConditionOutput] or:', path, v);
+			return v ? {
+				or: v
+			} : null;
+		}
+
+		if ('not' in condition) {
+			const v = this.validateConditionOutput(condition.not, `${path}.not`);
+			console.debug('[validateConditionOutput] not:', path, v);
+			return v ? {
+				not: v
+			} : null;
+		}
+
+		// Plain requirement object (ammo, tech, shinespark, etc.)
 		const cleaned = cleanObject(condition);
-		return Object.keys(cleaned).length > 0 ? cleaned : null;
+		console.debug('[validateConditionOutput] leaf:', path, cleaned);
+
+		return Object.keys(cleaned).length ? cleaned : null;
 	}
 }

@@ -5,7 +5,7 @@
    types into manageable, focused classes.
    ============================================================================= */
 
-   class ConditionRenderers {
+class ConditionRenderers {
 	static renderers = new Map();
 
 	static register(types, renderer) {
@@ -28,6 +28,90 @@
 
 class LogicalRenderer {
 	static render(editor, type, initialCondition) {
+		if (type === 'not') {
+			// "not" only accepts a string, not nested conditions
+			const container = editor.createInputContainer();
+
+			// Create a select for choosing what to negate
+			const select = document.createElement('select');
+			select.style.width = '100%';
+
+			const emptyOption = document.createElement('option');
+			emptyOption.value = '';
+			emptyOption.textContent = '(select condition to negate)';
+			select.appendChild(emptyOption);
+			// Add flags (events)
+			if (window.EditorGlobals.eventList) {
+				const eventMap = window.EditorGlobals.eventList;
+
+				for (const [categoryName, flags] of Object.entries(eventMap)) {
+					if (!Array.isArray(flags) || !flags.length) continue;
+
+					const group = document.createElement('optgroup');
+					group.label = `Flag: ${SelectRenderer.formatCategoryLabel(categoryName)}`;
+
+					flags.forEach(flag => {
+						const opt = document.createElement('option');
+						opt.value = flag.name; // IMPORTANT: raw string
+						opt.textContent = SelectRenderer.stripFlagPrefix(flag.name);
+						group.appendChild(opt);
+					});
+
+					select.appendChild(group);
+				}
+			}
+
+			// Add items
+			const items = (window.EditorGlobals.itemList || []).sort();
+			items.forEach(item => {
+				const opt = document.createElement('option');
+				opt.value = item;
+				opt.textContent = `Item: ${item}`;
+				select.appendChild(opt);
+			});
+
+			// Add tech
+			if (window.EditorGlobals.techMap) {
+				for (const [categoryName, catObj] of window.EditorGlobals.techMap.entries()) {
+					const group = document.createElement('optgroup');
+					group.label = `Tech: ${categoryName}`;
+					(catObj.items || []).forEach(tech => {
+						const opt = document.createElement('option');
+						opt.value = tech.name;
+						opt.textContent = tech.name;
+						group.appendChild(opt);
+					});
+					select.appendChild(group);
+				}
+			}
+
+			// Add helper
+			if (window.EditorGlobals.helperMap) {
+				for (const [categoryName, catObj] of window.EditorGlobals.helperMap.entries()) {
+					const group = document.createElement('optgroup');
+					group.label = `Helper: ${categoryName}`;
+					(catObj.items || []).forEach(helper => {
+						const opt = document.createElement('option');
+						opt.value = helper.name;
+						opt.textContent = helper.name;
+						group.appendChild(opt);
+					});
+					select.appendChild(group);
+				}
+			}
+
+			// Set initial value
+			if (initialCondition && initialCondition.not) {
+				select.value = initialCondition.not;
+			}
+
+			container.appendChild(select);
+			editor.childrenContainer.appendChild(container);
+			editor.inputs.notSelect = select;
+			return;
+		}
+
+		// For 'and' and 'or', use the standard approach
 		const initialChildren = (initialCondition && initialCondition[type]) || [];
 		initialChildren.forEach(childData => {
 			editor.addChildCondition(childData, false);
@@ -47,14 +131,16 @@ class LogicalRenderer {
 
 	static getValue(editor, type) {
 		if (type === 'not') {
-			const childValue = editor.childEditors[0]?.getValue();
-			return childValue ? {
-				[type]: childValue
+			const notValue = editor.inputs.notSelect?.value?.trim();
+			return notValue ? {
+				not: notValue
 			} : null;
 		} else {
 			const childValues = editor.childEditors
 				.map(child => child.getValue())
 				.filter(value => value !== null);
+
+			// For 'and' and 'or', always return array format
 			return childValues.length > 0 ? {
 				[type]: childValues
 			} : null;
@@ -125,7 +211,6 @@ class SelectRenderer {
 			});
 		}
 
-
 		// Set initial value
 		if (initialCondition && initialCondition[type]) {
 			select.value = initialCondition[type];
@@ -134,6 +219,12 @@ class SelectRenderer {
 		container.appendChild(select);
 		editor.childrenContainer.appendChild(container);
 		editor.inputs.select = select;
+	}
+
+	static formatCategoryLabel(key) {
+		return key
+			.replace(/([a-z])([A-Z])/g, '$1 $2')
+			.replace(/^./, c => c.toUpperCase());
 	}
 
 	static stripFlagPrefix(name) {
@@ -148,17 +239,19 @@ class SelectRenderer {
 		}
 		return [];
 	}
-	
+
 	static getValue(editor, type) {
 		const selectValue = editor.inputs.select?.value?.trim();
-		return selectValue ? {
-			[type]: selectValue
-		} : null;
+		// Return plain string for items, events, and disableEquipment
+		// The schema allows these to appear as plain strings in the requires array
+		return selectValue || null;
 	}
 
 	static restoreValue(editor, type, value) {
-		if (editor.inputs.select && value[type]) {
-			editor.inputs.select.value = value[type];
+		// Value might be a plain string or wrapped in object
+		const actualValue = typeof value === 'string' ? value : value[type];
+		if (editor.inputs.select && actualValue) {
+			editor.inputs.select.value = actualValue;
 		}
 	}
 }
@@ -193,14 +286,12 @@ class MultiSelectRenderer {
 	static getValue(editor, type) {
 		if (type === 'tech') {
 			const selectedTech = editor.inputs.techCheckboxContainer?.getSelectedValues();
-			return (selectedTech && selectedTech.length > 0) ? {
-				[type]: selectedTech[0]
-			} : null;
+			// Return plain string (tech name), not wrapped in object
+			return (selectedTech && selectedTech.length > 0) ? selectedTech[0] : null;
 		} else if (type === 'helper') {
 			const selectedHelper = editor.inputs.helperCheckboxContainer?.getSelectedValues();
-			return (selectedHelper && selectedHelper.length > 0) ? {
-				[type]: selectedHelper[0]
-			} : null;
+			// Return plain string (helper name), not wrapped in object
+			return (selectedHelper && selectedHelper.length > 0) ? selectedHelper[0] : null;
 		}
 		return null;
 	}
@@ -214,8 +305,7 @@ class NodeRenderer {
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
 
-		const initialValue = initialCondition && initialCondition[type] ?
-			[initialCondition[type]] : [];
+		const initialValue = initialCondition && initialCondition[type] ? [initialCondition[type]] : [];
 
 		let maxSelected = 1;
 		let filterBy = "All";
@@ -345,9 +435,8 @@ class NotableRenderer {
 
 	static getValue(editor, type) {
 		const notableName = editor.inputs.notableSelect?.value;
-		return notableName ? {
-			notable: notableName
-		} : null;
+		// Return plain string (notable name), not wrapped in object
+		return notableName || null;
 	}
 }
 
@@ -538,12 +627,12 @@ class EnemyKillRenderer {
 			try {
 				const previousGroups = [...availableEnemyGroups];
 				availableEnemyGroups = getCurrentEnemyGroups() || [];
-				
+
 				// Check if any previously selected groups are no longer available
 				const previousIds = new Set(previousGroups.map(g => g.id));
 				const currentIds = new Set(availableEnemyGroups.map(g => g.id));
 				const removedIds = [...previousIds].filter(id => !currentIds.has(id));
-				
+
 				// Update all existing dropdowns and clear invalid selections
 				updateAllEnemySelects(removedIds);
 			} catch (error) {
@@ -556,16 +645,16 @@ class EnemyKillRenderer {
 				const allEnemySelects = groupsWrapper.querySelectorAll('select');
 				allEnemySelects.forEach(select => {
 					const currentValue = select.value;
-					
+
 					// Clear selection if it was removed
 					const shouldClear = removedIds.includes(currentValue);
-					
+
 					select.innerHTML = '';
 
 					const emptyOption = document.createElement('option');
 					emptyOption.value = '';
-					emptyOption.textContent = availableEnemyGroups.length > 0 ? 
-						'(select enemy group)' : 
+					emptyOption.textContent = availableEnemyGroups.length > 0 ?
+						'(select enemy group)' :
 						'(no enemy groups defined - add enemies to this room first)';
 					select.appendChild(emptyOption);
 
@@ -634,8 +723,8 @@ class EnemyKillRenderer {
 
 				const emptyOption = document.createElement('option');
 				emptyOption.value = '';
-				emptyOption.textContent = availableEnemyGroups.length > 0 ? 
-					'(select enemy group)' : 
+				emptyOption.textContent = availableEnemyGroups.length > 0 ?
+					'(select enemy group)' :
 					'(no enemy groups defined - add enemies to this room first)';
 				enemySelect.appendChild(emptyOption);
 
@@ -709,8 +798,8 @@ class EnemyKillRenderer {
 					let shouldUpdate = false;
 					try {
 						mutations.forEach(mutation => {
-							if (mutation.type === 'childList' || 
-								(mutation.type === 'characterData' && 
+							if (mutation.type === 'childList' ||
+								(mutation.type === 'characterData' &&
 									mutation.target.parentElement?.matches('input[placeholder*="Group Name"]'))) {
 								shouldUpdate = true;
 							}
@@ -761,9 +850,9 @@ class EnemyKillRenderer {
 						handleEnemyNameChange();
 					}
 				};
-				
+
 				enemiesContainer.addEventListener('input', inputHandler);
-				
+
 				// Store cleanup for input handler too
 				editor.subscriptions.push(() => {
 					try {
@@ -833,7 +922,9 @@ class EnemyKillRenderer {
 				wrapper.getValue = () => select.value.trim() || null;
 				return wrapper;
 			},
-			(initialCondition?.enemyKill?.explicitWeapons || []).map(w => ({ value: w }))
+			(initialCondition?.enemyKill?.explicitWeapons || []).map(w => ({
+				value: w
+			}))
 		);
 
 		// Excluded weapons - with remove functionality
@@ -879,15 +970,16 @@ class EnemyKillRenderer {
 				wrapper.getValue = () => select.value.trim() || null;
 				return wrapper;
 			},
-			(initialCondition?.enemyKill?.excludedWeapons || []).map(w => ({ value: w }))
+			(initialCondition?.enemyKill?.excludedWeapons || []).map(w => ({
+				value: w
+			}))
 		);
 
 		// Farmable ammo using unified checkbox list
 		const farmableAmmoContainer = createUnifiedCheckboxList(
 			AMMO_TYPES,
 			'Farmable Ammo',
-			initialCondition?.enemyKill?.farmableAmmo || [],
-			{
+			initialCondition?.enemyKill?.farmableAmmo || [], {
 				showToggleButton: false,
 				columns: ['Enabled', 'Ammo Type']
 			}

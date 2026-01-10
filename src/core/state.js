@@ -119,7 +119,6 @@ class State {
 		console.log(`Loaded metadata for ${this.allRoomsMetadata.length} rooms`);
 	}
 
-
 	/**
 	 * Set the working directory
 	 * @param {string} dir - Path to working directory

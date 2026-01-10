@@ -4,24 +4,24 @@
    Editor for room strats. Handles conditions, obstacle interactions,
    and real-time title updates. Uses a modular condition system.
    ============================================================================= */
+/* =============================================================================
+   Updated Strat Editor - Using New Entrance/Exit Condition Editors
+   ============================================================================= */
 
-   class StratEditor extends BaseEditor {
+class StratEditor extends BaseEditor {
 	constructor(initialData = {}, validRoomNodes = []) {
 		const config = {
 			type: 'strats',
 			className: 'strat',
 			emoji: '📘',
 			defaultName: 'Strat',
-			idStyle: 'numeric', // 1, 2, 3...
+			idStyle: 'numeric',
 			idPrefix: ''
 		};
 		super(initialData, config);
 		this.validRoomNodes = validRoomNodes;
 
-		// Subscribe to global data changes for dynamic obstacle updates
 		this.globalUnsubscribe = window.EditorGlobals.addListener(() => {
-			// Strat editor mainly needs obstacle updates, which are handled
-			// automatically by the obstacle checkbox lists
 			this.refreshCollectsItemsEditor();
 			this.refreshSetsFlagsEditor();
 		});
@@ -31,10 +31,10 @@
 		return {
 			name: normalizeStringField(data, 'name'),
 			devNote: normalizeStringField(data, 'devNote'),
-        	link: data?.link || null,
+			link: data?.link || null,
 			entranceCondition: data?.entranceCondition || null,
+			requires: Array.isArray(data?.requires) ? data.requires : [],
 			exitCondition: data?.exitCondition || null,
-			requires: data?.requires || null,
 			clearsObstacles: normalizeArrayField(data, 'clearsObstacles'),
 			resetsObstacles: normalizeArrayField(data, 'resetsObstacles'),
 			comesThroughToilet: normalizeBooleanField(data, 'comesThroughToilet'),
@@ -54,43 +54,41 @@
 		// Link (From/To) node selection
 		const linkContainer = document.createElement('div');
 		linkContainer.style.marginBottom = '12px';
-		
+
 		const linkLabel = document.createElement('label');
 		linkLabel.textContent = 'Link (From → To):';
 		linkLabel.style.fontWeight = '600';
 		linkLabel.style.display = 'block';
 		linkLabel.style.marginBottom = '6px';
 		linkContainer.appendChild(linkLabel);
-		
+
 		const linkInputs = document.createElement('div');
 		linkInputs.style.display = 'flex';
 		linkInputs.style.gap = '8px';
 		linkInputs.style.alignItems = 'center';
-		
+
 		this.fromNodeSelect = document.createElement('select');
 		this.fromNodeSelect.style.flex = '1';
 		this.toNodeSelect = document.createElement('select');
 		this.toNodeSelect.style.flex = '1';
-		
+
 		const arrow = document.createElement('span');
 		arrow.textContent = '→';
 		arrow.style.fontSize = '18px';
-		
+
 		linkInputs.appendChild(this.fromNodeSelect);
 		linkInputs.appendChild(arrow);
 		linkInputs.appendChild(this.toNodeSelect);
 		linkContainer.appendChild(linkInputs);
-		
-		// At the end of populateFields, after creating node selects:
+
 		this.populateNodeSelects();
 
-		// Set initial values from link data
 		if (this.initialData.link && Array.isArray(this.initialData.link) && this.initialData.link.length === 2) {
 			this.fromNodeSelect.value = this.initialData.link[0];
 			this.toNodeSelect.value = this.initialData.link[1];
 		}
 
-		// Create placeholder divs for conditions
+		// Create placeholder divs for conditions - using new editors
 		this.entranceConditionDiv = createDiv([]);
 		this.requiresConditionDiv = createDiv([]);
 		this.exitConditionDiv = createDiv([]);
@@ -99,7 +97,7 @@
 		this.clearsObstaclesList = createObstacleCheckboxList(this.initialData.clearsObstacles, 'Clears Obstacles');
 		this.resetsObstaclesList = createObstacleCheckboxList(this.initialData.resetsObstacles, 'Resets Obstacles');
 
-		// Boolean checkboxes with robust click handling
+		// Boolean checkboxes
 		this.comesThroughToilet = this.createClickableCheckbox('Toilet comes between this room and the other room (If this strat involves a door)', this.initialData.comesThroughToilet);
 		this.bypassesDoorShell = this.createClickableCheckbox('Allows exiting without opening the door', this.initialData.bypassesDoorShell);
 		this.wallJumpAvoid = this.createClickableCheckbox('Wall jump avoid (technical flag)', this.initialData.wallJumpAvoid);
@@ -120,7 +118,7 @@
 			boolContainer.appendChild(checkbox);
 		});
 
-		// Items/Flags collection with dedicated editors
+		// Items/Flags collection
 		this.collectsItemsEditor = this.createCollectsItemsEditor(this.initialData.collectsItems);
 		this.setsFlagsEditor = this.createSetsFlagsEditor(this.initialData.setsFlags);
 
@@ -148,59 +146,54 @@
 	}
 
 	populateNodeSelects() {
-		// Store current values if they exist
 		const currentFrom = this.fromNodeSelect ? this.fromNodeSelect.value : null;
 		const currentTo = this.toNodeSelect ? this.toNodeSelect.value : null;
-		
-		// Clear existing options
+
 		this.fromNodeSelect.innerHTML = '';
 		this.toNodeSelect.innerHTML = '';
-		
-		// Add empty option
+
 		const emptyFrom = document.createElement('option');
 		emptyFrom.value = '';
 		emptyFrom.textContent = '(select from node)';
 		this.fromNodeSelect.appendChild(emptyFrom);
-		
+
 		const emptyTo = document.createElement('option');
 		emptyTo.value = '';
 		emptyTo.textContent = '(select to node)';
 		this.toNodeSelect.appendChild(emptyTo);
-		
-		// Populate with available nodes
+
 		window.EditorGlobals.validRoomNodes.forEach(node => {
 			const optionFrom = document.createElement('option');
 			optionFrom.value = node.id;
 			optionFrom.textContent = `${node.id}: ${node.name}`;
 			this.fromNodeSelect.appendChild(optionFrom);
-			
+
 			const optionTo = document.createElement('option');
 			optionTo.value = node.id;
 			optionTo.textContent = `${node.id}: ${node.name}`;
 			this.toNodeSelect.appendChild(optionTo);
 		});
-		
-		// Restore previous values if available
+
 		if (currentFrom !== null) {
 			this.fromNodeSelect.value = currentFrom;
 		} else if (this.initialData.link && this.initialData.link.length === 2) {
 			this.fromNodeSelect.value = this.initialData.link[0];
 		}
-		
+
 		if (currentTo !== null) {
 			this.toNodeSelect.value = currentTo;
 		} else if (this.initialData.link && this.initialData.link.length === 2) {
 			this.toNodeSelect.value = this.initialData.link[1];
 		}
 	}
-	
+
 	refreshNodeSelects() {
 		if (this.fromNodeSelect && this.toNodeSelect) {
 			const fromValue = this.fromNodeSelect.value;
 			const toValue = this.toNodeSelect.value;
-			
+
 			this.populateNodeSelects();
-			
+
 			this.fromNodeSelect.value = fromValue;
 			this.toNodeSelect.value = toValue;
 		}
@@ -213,11 +206,31 @@
 			return;
 		}
 
-		this.conditionEditors = {
-			entrance: this.createConditionSection(this.entranceConditionDiv, this.initialData.entranceCondition),
-			requires: this.createConditionSection(this.requiresConditionDiv, this.initialData.requires),
-			exit: this.createConditionSection(this.exitConditionDiv, this.initialData.exitCondition)
-		};
+		// Entrance condition - use new editor
+		this.entranceConditionEditor = new EntranceConditionEditor(
+			this.entranceConditionDiv,
+			this.initialData.entranceCondition
+		);
+
+		// Requires - use existing condition editor
+		const requiresDiv = createDiv([]);
+		const rootCondition = Array.isArray(this.initialData.requires) ?
+			this.initialData.requires[0] ?? null :
+			this.initialData.requires;
+
+		this.requiresEditor = makeConditionEditor(
+			requiresDiv,
+			rootCondition,
+			0,
+			true
+		);
+		this.requiresConditionDiv.appendChild(requiresDiv);
+
+		// Exit condition - use new editor
+		this.exitConditionEditor = new ExitConditionEditor(
+			this.exitConditionDiv,
+			this.initialData.exitCondition
+		);
 	}
 
 	setupTitleUpdates() {
@@ -230,18 +243,6 @@
 		return this.nameInput?.value?.trim() || '';
 	}
 
-	createConditionSection(containerDiv, initialCondition) {
-		const conditionDiv = createDiv([]);
-		const conditionEditor = makeConditionEditor(conditionDiv, initialCondition, 0, true);
-
-		containerDiv.appendChild(conditionDiv);
-		containerDiv.getValue = () => conditionEditor.getValue();
-		return containerDiv;
-	}
-
-	/**
-	 * Create a checkbox with clickable text label for better UX - single line format
-	 */
 	createClickableCheckbox(labelText, initialValue) {
 		const container = document.createElement('div');
 		container.className = 'clickable-checkbox-grid';
@@ -255,7 +256,6 @@
 		label.textContent = labelText;
 		label.className = 'label-cell';
 
-		// Make the entire row clickable
 		container.addEventListener('click', (e) => {
 			if (e.target !== checkbox) {
 				checkbox.checked = !checkbox.checked;
@@ -279,17 +279,15 @@
 		header.textContent = '📦 Items collected by this Strat';
 		card.appendChild(header);
 
-		// Container for checkbox list
 		const itemsListContainer = document.createElement('div');
 		itemsListContainer.style.marginBottom = '8px';
 
-		// Create checkbox list for item nodes
 		const initialNodeIds = (initialItems || []).map(String);
 		this.collectsItemsCheckboxList = createNodeCheckboxList(
 			initialNodeIds,
 			'Item Nodes',
-			Infinity, // Allow multiple selections
-			'item' // Filter to only item nodes
+			Infinity,
+			'item'
 		);
 
 		itemsListContainer.appendChild(this.collectsItemsCheckboxList);
@@ -314,11 +312,9 @@
 		header.textContent = '🚩 Flags set by this Strat';
 		card.appendChild(header);
 
-		// Container for checkbox list
 		const flagsListContainer = document.createElement('div');
 		flagsListContainer.style.marginBottom = '8px';
 
-		// Create checkbox list for flags using event list - NOW USING STYLED VERSION
 		this.setsFlagsCheckboxList = this.createStyledFlagCheckboxList(initialFlags || []);
 		flagsListContainer.appendChild(this.setsFlagsCheckboxList);
 
@@ -332,9 +328,6 @@
 		return card;
 	}
 
-	/**
-	 * Create a styled checkbox list for flags using the improved checkbox container styling
-	 */
 	createStyledFlagCheckboxList(selectedFlags) {
 		const container = document.createElement('div');
 		container.className = 'flag-checkbox-container';
@@ -366,8 +359,10 @@
 			checkboxContainer.innerHTML = '';
 			checkboxes = [];
 
-			const eventList = window.EditorGlobals.eventList || [];
-			if (!eventList.length) {
+			const eventMap = window.EditorGlobals.eventList || {};
+
+			const categories = Object.entries(eventMap);
+			if (!categories.length) {
 				const emptyDiv = document.createElement('div');
 				emptyDiv.textContent = '(no flags available)';
 				emptyDiv.style.fontStyle = 'italic';
@@ -382,72 +377,90 @@
 
 			const selectedSet = new Set(selectedFlags.map(String));
 
-			eventList.forEach(flag => {
-				const row = document.createElement('div');
-				row.className = 'improved-checkbox-row';
+			const collator = new Intl.Collator(undefined, {
+				numeric: true,
+				sensitivity: 'base'
+			});
 
-				const checkboxCell = document.createElement('div');
-				checkboxCell.className = 'improved-checkbox-cell';
-				
-				const checkbox = document.createElement('input');
-				checkbox.type = 'checkbox';
-				checkbox.className = 'improved-checkbox-input';
-				checkbox.checked = selectedSet.has(String(flag));
-				checkbox.dataset.flagValue = flag;
-				checkboxCell.appendChild(checkbox);
+			categories.forEach(([category, flags]) => {
+				if (!Array.isArray(flags) || !flags.length) return;
 
-				const labelCell = document.createElement('div');
-				labelCell.className = 'improved-checkbox-label';
-				labelCell.textContent = flag;
+				const header = document.createElement('div');
+				header.className = 'flag-category-header';
+				header.textContent = category;
+				checkboxContainer.appendChild(header);
 
-				// Make entire row clickable
-				row.addEventListener('click', (e) => {
-					if (e.target !== checkbox) {
-						checkbox.checked = !checkbox.checked;
-						checkbox.dispatchEvent(new Event('change'));
-					}
-				});
+				flags
+					.slice()
+					.sort((a, b) => collator.compare(a.name, b.name))
+					.forEach(flag => {
+						const row = document.createElement('div');
+						row.className = 'improved-checkbox-row';
 
-				row.appendChild(checkboxCell);
-				row.appendChild(labelCell);
-				checkboxContainer.appendChild(row);
+						const checkboxCell = document.createElement('div');
+						checkboxCell.className = 'improved-checkbox-cell';
 
-				checkboxes.push(checkbox);
+						const checkbox = document.createElement('input');
+						checkbox.type = 'checkbox';
+						checkbox.className = 'improved-checkbox-input';
+						checkbox.checked = selectedSet.has(flag.name);
+						checkbox.dataset.flagValue = flag.name;
+						checkboxCell.appendChild(checkbox);
 
-				checkbox.addEventListener('change', () => {
-					updateRowVisibility();
-				});
+						const labelCell = document.createElement('div');
+						labelCell.className = 'improved-checkbox-label';
+						labelCell.textContent = SelectRenderer.stripFlagPrefix(flag.name);
+
+						row.addEventListener('click', (e) => {
+							if (e.target !== checkbox) {
+								checkbox.checked = !checkbox.checked;
+								checkbox.dispatchEvent(new Event('change'));
+							}
+						});
+
+						row.appendChild(checkboxCell);
+						row.appendChild(labelCell);
+						checkboxContainer.appendChild(row);
+
+						checkboxes.push(checkbox);
+
+						checkbox.addEventListener('change', updateRowVisibility);
+					});
 			});
 
 			function updateRowVisibility() {
-				let anyVisible = false;
-				checkboxContainer.querySelectorAll('.improved-checkbox-row').forEach(row => {
-					const checkbox = row.querySelector('input[type="checkbox"]');
-					if (toggleBtn.dataset.hidden === 'true' && !checkbox.checked) {
-						row.style.display = 'none';
-					} else {
-						row.style.display = '';
-						anyVisible = true;
-					}
-				});
-				checkboxContainer.style.display = anyVisible ? 'block' : 'none';
-				searchInput.style.display = anyVisible ? '' : 'none';
+				checkboxContainer
+					.querySelectorAll('.improved-checkbox-row')
+					.forEach(row => {
+						const checkbox = row.querySelector('input[type="checkbox"]');
+						if (toggleBtn.dataset.hidden !== 'true' || checkbox.checked) {
+							row.style.display = '';
+						} else {
+							row.style.display = 'none';
+						}
+					});
 			}
 
-			// Add event listeners only once
 			if (!eventListenersAdded) {
 				searchInput.addEventListener('input', () => {
 					const filter = searchInput.value.toLowerCase();
-					checkboxContainer.querySelectorAll('.improved-checkbox-row').forEach(row => {
-						const labelText = row.querySelector('.improved-checkbox-label').textContent.toLowerCase();
-						row.style.display = labelText.includes(filter) ? '' : 'none';
-					});
+					checkboxContainer
+						.querySelectorAll('.improved-checkbox-row')
+						.forEach(row => {
+							const text = row
+								.querySelector('.improved-checkbox-label')
+								.textContent
+								.toLowerCase();
+							row.style.display = text.includes(filter) ? '' : 'none';
+						});
 				});
 
 				toggleBtn.addEventListener('click', () => {
-					const currentlyHidden = toggleBtn.dataset.hidden === 'true';
-					toggleBtn.dataset.hidden = currentlyHidden ? 'false' : 'true';
-					toggleBtn.textContent = currentlyHidden ? '▼ Hide Unchecked Flags' : '▶ Show All Flags';
+					const hidden = toggleBtn.dataset.hidden === 'true';
+					toggleBtn.dataset.hidden = hidden ? 'false' : 'true';
+					toggleBtn.textContent = hidden ?
+						'▼ Hide Unchecked Flags' :
+						'▶ Show All Flags';
 					updateRowVisibility();
 				});
 
@@ -463,34 +476,27 @@
 			};
 		}
 
-		// Build initial table
 		buildTable();
 
-		// Rebuild when event list changes
 		const unsubscribe = window.EditorGlobals.addListener(() => {
 			buildTable();
 		});
 
-		// Store cleanup function
 		container._destroy = unsubscribe;
 
 		return container;
 	}
 
 	refreshCollectsItemsEditor() {
-		// Refresh node selects when nodes change
 		this.refreshNodeSelects();
 	}
 
 	refreshSetsFlagsEditor() {
 		if (this.setsFlagsCheckboxList) {
-			// Get current selections
 			const currentSelections = this.setsFlagsCheckboxList.getSelectedValues();
 
-			// Find the container and rebuild
 			const container = this.setsFlagsCheckboxList.parentNode;
 			if (container) {
-				// Clean up old list
 				if (this.setsFlagsCheckboxList._destroy) {
 					this.setsFlagsCheckboxList._destroy();
 				}
@@ -517,34 +523,34 @@
 			result.link = [fromNode, toNode];
 		}
 
-		// Add required 'requires' field (can be null)
-		const requires = this.conditionEditors.requires.getValue();
-		result.requires = requires;
+		// Add required 'requires' field
+		const requires = this.requiresEditor.getValue();
+		result.requires = requires || [];
 
-		// Add optional fields only if they have values
+		// Optional fields
 		const devNote = this.devNoteInput.value.trim();
 		if (devNote) result.devNote = devNote;
 
-		const entranceCondition = this.conditionEditors.entrance.getValue();
+		const entranceCondition = this.entranceConditionEditor.getValue();
 		if (entranceCondition) result.entranceCondition = entranceCondition;
 
-		const exitCondition = this.conditionEditors.exit.getValue();
+		const exitCondition = this.exitConditionEditor.getValue();
 		if (exitCondition) result.exitCondition = exitCondition;
 
-		// Obstacle arrays - only include if non-empty
+		// Obstacle arrays
 		const clearsObstacles = this.clearsObstaclesList.getSelectedIds().filter(id => id);
 		if (clearsObstacles.length > 0) result.clearsObstacles = clearsObstacles;
 
 		const resetsObstacles = this.resetsObstaclesList.getSelectedIds().filter(id => id);
 		if (resetsObstacles.length > 0) result.resetsObstacles = resetsObstacles;
 
-		// Boolean fields - only include if true (schema defaults assume false)
+		// Boolean fields
 		if (this.comesThroughToilet.getValue()) result.comesThroughToilet = true;
 		if (this.bypassesDoorShell.getValue()) result.bypassesDoorShell = true;
 		if (this.wallJumpAvoid.getValue()) result.wallJumpAvoid = true;
 		if (this.flashSuitChecked.getValue()) result.flashSuitChecked = true;
 
-		// Item/flag collections - only include if non-empty
+		// Item/flag collections
 		const collectsItems = this.collectsItemsEditor.getValue().filter(id => id != null);
 		if (collectsItems.length > 0) result.collectsItems = collectsItems;
 
@@ -555,13 +561,11 @@
 	}
 
 	remove() {
-		// Clean up global data subscription
 		if (this.globalUnsubscribe) {
 			this.globalUnsubscribe();
 			this.globalUnsubscribe = null;
 		}
 
-		// Clean up obstacle lists
 		if (this.clearsObstaclesList && this.clearsObstaclesList._destroy) {
 			this.clearsObstaclesList._destroy();
 		}
@@ -569,12 +573,19 @@
 			this.resetsObstaclesList._destroy();
 		}
 
-		// Clean up item/flag lists
 		if (this.collectsItemsCheckboxList && this.collectsItemsCheckboxList._destroy) {
 			this.collectsItemsCheckboxList._destroy();
 		}
 		if (this.setsFlagsCheckboxList && this.setsFlagsCheckboxList._destroy) {
 			this.setsFlagsCheckboxList._destroy();
+		}
+
+		// Clean up entrance/exit editors
+		if (this.entranceConditionEditor) {
+			this.entranceConditionEditor.remove();
+		}
+		if (this.exitConditionEditor) {
+			this.exitConditionEditor.remove();
 		}
 
 		super.remove();

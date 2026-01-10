@@ -144,6 +144,7 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 			checkbox.addEventListener('change', () => {
 				updateRowVisibility();
 				enforceMaxSelected();
+				enforceMutualExclusion();
 			});
 		});
 
@@ -159,6 +160,18 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 					}
 				}
 			});
+		}
+
+		function enforceMutualExclusion() {
+			// If we have a mutual exclusion list, check if this list has selections
+			if (container._mutualExclusionList) {
+				const thisHasSelections = checkboxes.some(cb => cb.checked);
+				
+				// Grey out the mutual exclusion list if this list has selections
+				if (container._mutualExclusionList.setDisabled) {
+					container._mutualExclusionList.setDisabled(thisHasSelections);
+				}
+			}
 		}
 
 		function updateRowVisibility() {
@@ -199,11 +212,26 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 		toggleBtn.dataset.hidden = 'false';
 		updateRowVisibility();
 		enforceMaxSelected();
+		enforceMutualExclusion();
 
 		container.getSelectedValues = () => {
 			return checkboxes
 				.filter(cb => cb.checked)
 				.map(cb => cb.dataset.nodeId);
+		};
+		
+		// Method to disable/enable all checkboxes
+		container.setDisabled = (disabled) => {
+			checkboxes.forEach(cb => {
+				if (!cb.checked) {
+					cb.disabled = disabled;
+					const row = cb.closest('.improved-checkbox-row');
+					if (row) {
+						row.style.opacity = disabled ? '0.3' : '1';
+						row.style.cursor = disabled ? 'not-allowed' : 'pointer';
+					}
+				}
+			});
 		};
 	}
 
@@ -1069,4 +1097,16 @@ function createUnifiedCheckboxList(items, title, selectedItems = [], options = {
 	container._rebuild = buildTable;
 
 	return container;
+}
+
+/**
+ * Normalizes a condition value for consistent internal handling
+ * Converts plain strings to typed objects
+ */
+function normalizeConditionValue(value) {
+	if (typeof value === 'string') {
+		const type = ConditionEditor.detectStringType(value);
+		return type ? { [type]: value } : value;
+	}
+	return value;
 }

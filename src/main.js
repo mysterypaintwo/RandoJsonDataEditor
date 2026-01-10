@@ -216,7 +216,7 @@ ipcMain.on('open-room-properties-editor', (event, roomPropertiesData, enemyList,
 	roomPropertiesWin.weaponList = weaponList;
 	roomPropertiesWin.techMap = techMap;
 	roomPropertiesWin.helperMap = helperMap;
-	
+
 	//console.log('Room Properties window finished loading - debug point');
 	roomPropertiesWin.webContents.once('did-finish-load', () => {
 		console.log('Room Properties window finished loading');

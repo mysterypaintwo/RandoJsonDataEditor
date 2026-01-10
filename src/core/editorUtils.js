@@ -117,15 +117,28 @@ function generateID(index, config) {
 // ---- Data Collection and Assignment --------------------------------
 function collectAndAssignIDs(container, type, config) {
 	if (!container) return [];
+
 	return Array.from(container.children)
 		.map((element, index) => {
-			if (typeof element.getValue !== 'function') return null;
-			const value = element.getValue();
-			if (!value) return null;
-			value.id = generateID(index, config);
-			return value;
+			if (element.getValue) {
+				const value = element.getValue();
+				if (value) {
+					const assignedId = generateID(index, config);
+					// Parse ID as integer for numeric types, keep as string for letter types. Also consider prefix.
+					if (config.idStyle === 'numeric' && !config.idPrefix) {
+						value.id = Number(assignedId);
+					}
+					// Anything with a prefix or non-numeric style -> string
+					else {
+						value.id = assignedId;
+					}
+
+					return value;
+				}
+			}
+			return null;
 		})
-		.filter(Boolean);
+		.filter(item => item !== null);
 }
 // ---- Drag and Drop Utilities --------------------------------
 function createDragPlaceholder(height) {

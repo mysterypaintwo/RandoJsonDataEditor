@@ -738,6 +738,23 @@ button:hover {
     background: rgba(255, 255, 255, 0.9);
 }
 
+.flag-category-header {
+	margin-top: 12px;
+	padding: 6px 8px;
+
+	font-size: 0.85em;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+
+	color: #999;
+	background: #1e1e1e;
+	border-left: 3px solid #444;
+
+	user-select: none;
+	pointer-events: none;
+}
+
 .clickable-checkbox-grid:hover {
     background-color: #f8f9fa;
 }

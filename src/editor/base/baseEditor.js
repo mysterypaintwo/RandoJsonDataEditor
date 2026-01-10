@@ -4,7 +4,7 @@
    Abstract base class for all room property editors. Handles common functionality
    like card creation, drag/drop, collapse/expand, and real-time title updates.
    ============================================================================= */
-   class BaseEditor {
+class BaseEditor {
 	constructor(initialData = {}, config = {}) {
 		this.config = config;
 		this.initialData = this.normalizeData(initialData);

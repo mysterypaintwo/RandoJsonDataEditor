@@ -27,7 +27,7 @@ contextBridge.exposeInMainWorld('api', {
 	// --- Door editor API ---
 	openDoorEditor: (doorData) => ipcRenderer.send('open-door-editor', doorData),
 	onUpdateDoorNode: (callback) => ipcRenderer.on('update-door-node', (event, payload) => callback(payload)),
-	
+
 	// --- Room Properties editor API ---
 	openRoomPropertiesEditor: (roomData, enemyList, itemList, eventList, weaponList, techMap, helperMap) => ipcRenderer.send('open-room-properties-editor', roomData, enemyList, itemList, eventList, weaponList, techMap, helperMap),
 	onUpdateRoomProperties: (callback) => ipcRenderer.on('update-room-properties', (event, payload) => callback(payload))

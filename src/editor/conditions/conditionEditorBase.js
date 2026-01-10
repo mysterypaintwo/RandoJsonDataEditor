@@ -8,7 +8,20 @@
    class ConditionEditor {
 	constructor(container, initialCondition, indentLevel = 0, isRoot = false) {
 		this.container = container;
-		this.initialCondition = initialCondition;
+
+		// Handle plain string conditions (item/tech/helper/flag names)
+		if (typeof initialCondition === 'string') {
+			const detectedType = ConditionEditor.detectStringType(initialCondition);
+			if (detectedType) {
+				// Convert to object format for internal handling
+				this.initialCondition = { [detectedType]: initialCondition };
+			} else {
+				this.initialCondition = initialCondition;
+			}
+		} else {
+			this.initialCondition = initialCondition;
+		}
+
 		this.indentLevel = indentLevel;
 		this.childEditors = [];
 		this.isCollapsed = false;
@@ -33,6 +46,34 @@
 		this.createHeader();
 		this.createChildrenContainer();
 		this.container.appendChild(this.root);
+	}
+	/**
+	 * Detect what type of condition a plain string represents
+	 */
+	static detectStringType(str) {
+		if (!str || typeof str !== 'string') return null;
+		
+		// Check for flag (starts with f_)
+		if (str.startsWith('f_')) return 'event';
+		
+		// Check for helper (starts with h_)
+		if (str.startsWith('h_')) return 'helper';
+		
+		// Check against known lists
+		if (window.EditorGlobals.itemList && window.EditorGlobals.itemList.includes(str)) {
+			return 'item';
+		}
+		
+		// Check tech map
+		if (window.EditorGlobals.techMap) {
+			for (const [categoryName, catObj] of window.EditorGlobals.techMap.entries()) {
+				const found = (catObj.items || []).some(item => item.name === str);
+				if (found) return 'tech';
+			}
+		}
+		
+		// Could be notable - we'll handle this as tech/item fallback
+		return 'tech'; // Default to tech if unknown
 	}
 	createHeader() {
 		this.headerContainer = document.createElement('div');
@@ -90,7 +131,8 @@
 			option.title = config.description;
 			this.typeSelect.appendChild(option);
 		});
-		// Set initial selection
+		
+		// Set initial selection - handle both object and string formats
 		if (this.initialCondition) {
 			let initialType = null;
 			if (typeof this.initialCondition === 'string') {
@@ -132,7 +174,7 @@
 	updateStyles(config) {
 		this.root.style.backgroundColor = config.color;
 		this.iconSpan.textContent = config.icon;
-		const isLogical = ['and', 'or', 'not'].includes(this.typeSelect.value);
+		const isLogical = ['and', 'or'].includes(this.typeSelect.value);
 		this.toggleButton.style.display = isLogical ? 'block' : 'none';
 		this.root.className = `condition-block editor-card ${this.typeSelect.value}`;
 		this.removeButton.style.display = this.isRoot ? 'none' : 'block';
@@ -174,10 +216,26 @@
 	getValue() {
 		const selectedType = this.typeSelect.value;
 		if (!selectedType) return null;
+		
 		// Get the appropriate renderer for this condition type
 		const renderer = ConditionRenderers.getRenderer(selectedType);
 		if (renderer && renderer.getValue) {
-			return renderer.getValue(this, selectedType);
+			const value = renderer.getValue(this, selectedType);
+			
+			// If this is a root editor for 'requires', always wrap in array
+			if (this.isRoot && value !== null) {
+				// If it's already a simple string or a single condition object, wrap it
+				if (typeof value === 'string' || (typeof value === 'object' && !Array.isArray(value))) {
+					return [value];
+				}
+				// If it's an 'and' or 'or' object, return it as-is (it contains the array)
+				if (value.and || value.or) {
+					return [value];
+				}
+				return value;
+			}
+			
+			return value;
 		}
 		return null;
 	}

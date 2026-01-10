@@ -4,7 +4,7 @@
    Editor for notable strats (text-described difficult tricks). These are
    flagged as {notable: "Notable Name"} in JSON output for condition references.
    ============================================================================= */
-   class NotableEditor extends BaseEditor {
+class NotableEditor extends BaseEditor {
 	static notableListeners = new Set();
 	// Static methods for notable data management (similar to obstacles)
 	static onNotablesChanged(listener) {
@@ -66,7 +66,7 @@
 	}
 	getValue() {
 		if (!this.nameInput.value.trim()) return null;
-		
+
 		const result = {
 			name: this.nameInput.value.trim()
 		};
@@ -85,6 +85,7 @@
 			result.wallJumpAvoid = true;
 		}
 
+		// ID will be assigned as integer by collectAndAssignIDs
 		return cleanObject(result);
 	}
 	remove() {

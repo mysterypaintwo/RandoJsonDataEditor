@@ -125,7 +125,7 @@ export class RoomManager {
 				// Update canvas size and reset view
 				this.renderer.updateCanvasSize(img, this.state.scale);
 				this.renderer.resetScrollPosition();
-				
+
 				// Redraw the renderer
 				this.redrawRenderer();
 
@@ -313,26 +313,29 @@ export class RoomManager {
 	 * Handle Door Node Updates
 	 */
 	async handleDoorNodeUpdate(payload) {
-		const { nodeId, updatedNode } = payload;
-		
+		const {
+			nodeId,
+			updatedNode
+		} = payload;
+
 		if (!this.state.currentRoomData || !this.state.currentRoomData.nodes) {
 			console.error('No room data available for door node update');
 			return;
 		}
-		
+
 		// Find and update the door node
 		const nodeIndex = this.state.currentRoomData.nodes.findIndex(n => n.id === nodeId);
 		if (nodeIndex === -1) {
 			console.error(`Door node ${nodeId} not found in current room`);
 			return;
 		}
-		
+
 		// Update the node
 		this.state.currentRoomData.nodes[nodeIndex] = updatedNode;
-		
+
 		// Save the updated room data
 		await this.saveCurrentRoom();
-		
+
 		// Redraw the renderer in case any data changed
 		this.redrawRenderer();
 

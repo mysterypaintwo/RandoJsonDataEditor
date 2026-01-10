@@ -4,7 +4,7 @@
    Editor for room obstacles. Supports drag/drop, real-time title updates,
    and provides data to other editors via observer pattern.
    ============================================================================= */
-   class ObstacleEditor extends BaseEditor {
+class ObstacleEditor extends BaseEditor {
 	static obstacleListeners = new Set();
 	static uidCounter = 0;
 	// Static methods for obstacle data management
@@ -90,7 +90,7 @@
 	}
 	getValue() {
 		if (!this.nameInput.value.trim()) return null;
-		
+
 		const result = {
 			name: this.nameInput.value.trim(),
 			obstacleType: this.typeSelect.value || 'abstract'

@@ -25,19 +25,19 @@ export class UIManager {
 	 * @param {string} defaultValue - Initial value shown in the input field
 	 * @returns {Promise<string|null>} User-entered value or null if cancelled
 	 */
-/**
- * Display a modal prompt allowing the user to rename an item
- * Returns the entered string, or null if the prompt is cancelled
- * @param {string} title - Title text displayed in the prompt
- * @param {string} defaultValue - Initial value shown in the input field
- * @returns {Promise<string|null>} User-entered value or null if cancelled
- */
+	/**
+	 * Display a modal prompt allowing the user to rename an item
+	 * Returns the entered string, or null if the prompt is cancelled
+	 * @param {string} title - Title text displayed in the prompt
+	 * @param {string} defaultValue - Initial value shown in the input field
+	 * @returns {Promise<string|null>} User-entered value or null if cancelled
+	 */
 	promptRename(title, defaultValue) {
 		// Prevent multiple modals
 		if (document.querySelector('.modal-overlay')) {
 			return Promise.resolve(null);
 		}
-		
+
 		return new Promise(resolve => {
 			const overlay = document.createElement('div');
 			overlay.className = 'modal-overlay';
@@ -290,7 +290,7 @@ export class UIManager {
 			// console.log(`Door ${dir}: active=${!!connection}`, connection);
 		});
 	}
-	
+
 	/**
 	 * Show an alert message
 	 * @param {string} message - The message to display

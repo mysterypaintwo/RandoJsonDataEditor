@@ -33,7 +33,7 @@ export class InteractionHandler {
 
 		// Double-click event for node renaming
 		this.canvas.addEventListener('dblclick', this.handleDoubleClick.bind(this));
-		
+
 		// Global keyboard events
 		document.addEventListener('keydown', this.handleKeydown.bind(this));
 		// Window resize
@@ -55,7 +55,7 @@ export class InteractionHandler {
 	 */
 	async handleDoubleClick(e) {
 		// Only allow double-click renaming for Select and Move Node editing modes
-		switch(this.state.mode) {
+		switch (this.state.mode) {
 			default:
 				return;
 			case "select":
@@ -65,10 +65,13 @@ export class InteractionHandler {
 
 		// Prevent multiple rename dialogs
 		if (document.querySelector('.modal-overlay')) return;
-		
-		const { x, y } = getMousePos(e, this.canvas, this.mapContainer, this.state.scale);
+
+		const {
+			x,
+			y
+		} = getMousePos(e, this.canvas, this.mapContainer, this.state.scale);
 		const nodeToRename = findNodeAtPosition(this.state.nodes, x, y);
-		
+
 		if (nodeToRename && nodeToRename.nodeType === 'junction') {
 			const newName = await this.uiManager.promptRename(
 				'Rename junction node',
@@ -83,7 +86,7 @@ export class InteractionHandler {
 			}
 		}
 	}
-		
+
 	/**
 	 * Handle mouse down events - initiate drawing, moving, or selecting
 	 * @param {MouseEvent} e - Mouse event

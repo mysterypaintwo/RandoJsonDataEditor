@@ -5,26 +5,24 @@
    spawn conditions, and real-time title updates.
    ============================================================================= */
 
-   class EnemyEditor extends BaseEditor {
+class EnemyEditor extends BaseEditor {
 	constructor(initialData = {}, validRoomNodes = []) {
 		const config = {
 			type: 'enemies',
 			className: 'enemy',
 			emoji: '👾',
 			defaultName: 'Enemy Group',
-			idStyle: 'numeric', // e1, e2, e3...
+			idStyle: 'numeric',
 			idPrefix: 'e'
 		};
 		super(initialData, config);
 		this.validRoomNodes = validRoomNodes;
 
-		// Subscribe to global data changes
 		this.globalUnsubscribe = window.EditorGlobals.addListener(() => {
 			this.refreshNodeLists();
 			this.refreshEnemyList();
 		});
 
-		// Initial setup
 		this.refreshNodeLists();
 		this.refreshEnemyList();
 	}
@@ -36,8 +34,8 @@
 			quantity: normalizeNumberField(data, 'quantity', 1),
 			homeNodes: normalizeArrayField(data, 'homeNodes'),
 			betweenNodes: normalizeArrayField(data, 'betweenNodes'),
-			spawnCondition: data?.spawnCondition || null,
-			stopSpawnCondition: data?.stopSpawnCondition || null,
+			spawnCondition: data?.spawnCondition || data?.spawn || null,
+			stopSpawnCondition: data?.stopSpawnCondition || data?.stopSpawn || null,
 			note: normalizeStringField(data, 'note'),
 			devNote: normalizeStringField(data, 'devNote'),
 			id: data?.id
@@ -46,14 +44,20 @@
 
 	populateFields() {
 		this.groupInput = createInput('text', 'Group Name (e.g., "Top Pirates")', this.initialData.groupName);
-		this.enemySelect = this.createEnemySelect(this.initialData.enemyName);
+		const enemyId = this.getEnemyIdFromName(this.initialData.enemyName);
+		this.enemySelect = this.createEnemySelect(enemyId);
+
 		this.quantityInput = createInput('number', 'How many of this enemy are in this room', this.initialData.quantity, {
 			min: 1
 		});
+
+		// Create node lists with mutual exclusion
 		this.homeNodesList = createNodeCheckboxList(this.initialData.homeNodes, 'Home Nodes');
 		this.betweenNodesList = createNodeCheckboxList(this.initialData.betweenNodes, 'Between Nodes', 2);
 
-		// Create placeholder divs for conditions instead of creating editors immediately
+		// Set up mutual exclusion
+		this.setupMutualExclusion();
+
 		this.spawnConditionDiv = createDiv([]);
 		this.stopSpawnConditionDiv = createDiv([]);
 
@@ -64,8 +68,8 @@
 		const content = createDiv([
 			this.groupInput,
 			topRow,
-			createLabel('Enemy Patrols These Nodes:', this.homeNodesList),
-			createLabel('Encounter Enemy Between These Nodes (Max 2):', this.betweenNodesList),
+			createLabel('Enemy Patrol Nodes:', this.homeNodesList),
+			createLabel('Encounter Enemy Between These Nodes (Max 2; Only use if Patrol Nodes is unused):', this.betweenNodesList),
 			createLabel('Spawn Condition:', this.spawnConditionDiv),
 			createLabel('Stop Spawn Condition:', this.stopSpawnConditionDiv),
 			this.noteArea,
@@ -74,8 +78,24 @@
 		]);
 		this.contentArea.appendChild(content);
 
-		// Defer condition editor creation
 		setTimeout(() => this.createConditionEditors(), 0);
+	}
+
+	setupMutualExclusion() {
+		// Link the two lists for mutual exclusion
+		this.homeNodesList._mutualExclusionList = this.betweenNodesList;
+		this.betweenNodesList._mutualExclusionList = this.homeNodesList;
+
+		// Check initial states and disable appropriately
+		const homeHasSelections = this.homeNodesList.getSelectedValues().length > 0;
+		const betweenHasSelections = this.betweenNodesList.getSelectedValues().length > 0;
+
+		if (homeHasSelections && this.betweenNodesList.setDisabled) {
+			this.betweenNodesList.setDisabled(true);
+		}
+		if (betweenHasSelections && this.homeNodesList.setDisabled) {
+			this.homeNodesList.setDisabled(true);
+		}
 	}
 
 	createConditionEditors() {
@@ -104,20 +124,16 @@
 		const currentValue = this.enemySelect.value;
 		const newSelect = this.createEnemySelect(currentValue);
 
-		// Replace DOM node
 		this.enemySelect.parentNode.replaceChild(newSelect, this.enemySelect);
 		this.enemySelect = newSelect;
 
-		// Re-attach title updates
 		this.enemySelect.addEventListener('change', () => {
 			this.updateTitle();
 		});
 	}
 
 	refreshNodeLists() {
-		// Only refresh if the elements exist and we have nodes
 		if (this.homeNodesList && this.betweenNodesList && window.EditorGlobals.validRoomNodes && window.EditorGlobals.validRoomNodes.length > 0) {
-			// Get current selections, but safely handle the case where getSelectedValues doesn't exist
 			const homeSelectedNodes = (this.homeNodesList.getSelectedValues) ?
 				this.homeNodesList.getSelectedValues() :
 				this.initialData.homeNodes || [];
@@ -125,11 +141,9 @@
 				this.betweenNodesList.getSelectedValues() :
 				this.initialData.betweenNodes || [];
 
-			// Find the containers and replace them
 			const homeContainer = this.homeNodesList.parentNode;
 			const betweenContainer = this.betweenNodesList.parentNode;
 
-			// Clean up old lists
 			if (this.homeNodesList._destroy) this.homeNodesList._destroy();
 			if (this.betweenNodesList._destroy) this.betweenNodesList._destroy();
 
@@ -139,6 +153,9 @@
 			this.homeNodesList = createNodeCheckboxList(homeSelectedNodes, 'Home Nodes');
 			this.betweenNodesList = createNodeCheckboxList(betweenSelectedNodes, 'Between Nodes', 2);
 
+			// Re-establish mutual exclusion
+			this.setupMutualExclusion();
+
 			homeContainer.appendChild(this.homeNodesList);
 			betweenContainer.appendChild(this.betweenNodesList);
 		}
@@ -146,45 +163,67 @@
 
 	getTitleFromData() {
 		const groupName = this.groupInput?.value?.trim();
-		const enemyName = window.EditorGlobals.enemyList[this.enemySelect?.value - 1]?.name;
-		if (groupName && enemyName) {
-			return `${groupName} (${enemyName})`;
-		} else if (groupName) {
-			return groupName;
-		} else if (enemyName) {
-			return enemyName;
-		}
+		const enemyId = parseInt(this.enemySelect?.value);
+		const enemyName = window.EditorGlobals.enemyList
+			.find(e => e.id === enemyId)?.name;
+
+		if (groupName && enemyName) return `${groupName} (${enemyName})`;
+		if (groupName) return groupName;
+		if (enemyName) return enemyName;
 		return null;
 	}
 
-	createEnemySelect(selectedEnemy) {
-		const enemies = window.EditorGlobals.enemyList?.length
-			? window.EditorGlobals.enemyList
-			: [{ id: '', name: '(no enemies available)' }];
-	
+	getEnemyIdFromName(name) {
+		if (!name || !window.EditorGlobals.enemyList) return null;
+
+		const enemy = window.EditorGlobals.enemyList.find(e => e.name === name);
+		return enemy ? enemy.id : null;
+	}
+
+	createEnemySelect(selectedEnemyId) {
+		const enemies = window.EditorGlobals.enemyList?.length ?
+			window.EditorGlobals.enemyList : [{
+				id: '',
+				name: '(no enemies available)'
+			}];
+
 		const options = enemies.map(enemy => ({
-			value: enemy.id,
+			value: String(enemy.id),
 			text: enemy.name
 		}));
-	
-		return createSelect(options, selectedEnemy);
-	}	
+
+		return createSelect(options, selectedEnemyId != null ? String(selectedEnemyId) : null);
+	}
 
 	createConditionSection(containerDiv, initialCondition) {
 		const conditionDiv = createDiv([]);
-		const conditionEditor = makeConditionEditor(conditionDiv, initialCondition, 0, true);
+
+		const rootCondition = Array.isArray(initialCondition) ?
+			initialCondition[0] ?? null :
+			initialCondition;
+
+		const conditionEditor = makeConditionEditor(
+			conditionDiv,
+			rootCondition,
+			0,
+			true
+		);
 
 		containerDiv.appendChild(conditionDiv);
-		containerDiv.getValue = () => conditionEditor.getValue();
+
+		containerDiv.getValue = () => {
+			return conditionEditor.getValue();
+		};
+
 		return containerDiv;
 	}
 
 	getValue() {
 		if (!this.groupInput.value.trim() && !this.enemySelect.value) return null;
-		
+
 		const result = {
 			groupName: this.groupInput.value.trim(),
-			enemyName: window.EditorGlobals.enemyList[this.enemySelect.value].name,
+			enemyName: window.EditorGlobals.enemyList[this.enemySelect.value - 1].name,
 			quantity: parseInt(this.quantityInput.value) || 1,
 		};
 
@@ -206,18 +245,18 @@
 			result.homeNodes = homeNodes;
 		}
 
-		// Handle conditions - schema expects 'spawn' and 'stopSpawn', not 'spawnCondition'
-		const spawnCondition = this.spawnCondition?.getValue();
-		if (spawnCondition) {
-			result.spawn = spawnCondition;
+		// Handle conditions
+		const spawn = this.spawnCondition?.getValue();
+		if (Array.isArray(spawn)) {
+			result.spawn = spawn;
 		}
 
-		const stopSpawnCondition = this.stopSpawnCondition?.getValue();
-		if (stopSpawnCondition) {
-			result.stopSpawn = stopSpawnCondition;
+		const stopSpawn = this.stopSpawnCondition?.getValue();
+		if (Array.isArray(stopSpawn)) {
+			result.stopSpawn = stopSpawn;
 		}
 
-		// Add optional fields only if they have values
+		// Optional fields
 		const note = this.noteArea.value.trim();
 		if (note) result.note = note;
 
@@ -228,13 +267,11 @@
 	}
 
 	remove() {
-		// Clean up global data subscription
 		if (this.globalUnsubscribe) {
 			this.globalUnsubscribe();
 			this.globalUnsubscribe = null;
 		}
 
-		// Clean up node lists
 		if (this.homeNodesList && this.homeNodesList._destroy) {
 			this.homeNodesList._destroy();
 		}
