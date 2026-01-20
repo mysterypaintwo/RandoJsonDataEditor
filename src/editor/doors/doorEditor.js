@@ -911,16 +911,14 @@ function populateConnectionInfo() {
     infoCard.style.border = '1px solid #dee2e6';
     infoCard.style.borderRadius = '6px';
     infoCard.style.padding = '12px';
-
-    const subareaDisplay =
-        connectionInfo.targetSubarea +
-        (connectionInfo.targetSubroom != null ?
-            ` (${connectionInfo.targetSubroom})` :
-            '');
-
+	
+	const targetRoomDisplay = connectionInfo.targetSubroom
+		? `[Sub-Room] ${connectionInfo.targetSubroom}`
+		: connectionInfo.targetRoom;
+		
     const infoItems = [{
             label: 'Target Room',
-            value: connectionInfo.targetRoom
+            value: targetRoomDisplay
         },
         {
             label: 'Target Area',
@@ -928,7 +926,7 @@ function populateConnectionInfo() {
         },
         {
             label: 'Target Subarea',
-            value: subareaDisplay
+            value: connectionInfo.targetSubarea
         },
         {
             label: 'Connection Type',
@@ -937,6 +935,10 @@ function populateConnectionInfo() {
         {
             label: 'Direction',
             value: connectionInfo.direction
+        },
+        {
+            label: 'Position',
+            value: connectionInfo.position
         }
     ];
 

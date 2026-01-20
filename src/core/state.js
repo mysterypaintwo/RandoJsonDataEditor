@@ -255,28 +255,86 @@ class State {
                 );
 
                 if (matchNode) {
-                    const targetNode = conn.nodes.find(n => n !== matchNode);
-                    if (targetNode) {
-                        console.log(`✓ Found connection: ${doorNode.name} -> ${targetNode.roomName} (${targetNode.nodeName})`);
-                        return {
-                            ...conn,
-                            sourceNode: matchNode,
-                            targetNode,
-                            // Add convenience properties
-                            targetRoom: targetNode.roomName,
-                            targetArea: targetNode.area,
-                            targetSubarea: targetNode.subarea,
-                            direction: targetNode.position,
-                            nodes: conn.nodes // Preserve original nodes array
-                        };
-                    }
-                }
+					let sourceNode = null;
+					let targetNode = null;
+
+					if (conn.direction === 'Forward') {
+						// Forward = nodes[0] -> nodes[1]
+						if (
+							conn.nodes[0].roomid === this.currentRoomData.id &&
+							conn.nodes[0].nodeid === doorNode.id
+						) {
+							sourceNode = conn.nodes[0];
+							targetNode = conn.nodes[1];
+						} else {
+							// This door is the destination of a one-way connection
+							continue;
+						}
+					} else {
+						// Bidirectional: whichever node matches is the source
+						sourceNode = matchNode;
+						targetNode = conn.nodes.find(n => n !== matchNode);
+					}
+
+					if (!targetNode) continue;
+
+					console.log(
+						`✓ Found connection: ${sourceNode.roomName} (${sourceNode.nodeName}) -> ` +
+						`${targetNode.roomName} (${targetNode.nodeName}) [${conn.direction}]`
+					);
+
+					return {
+						...conn,
+						sourceNode,
+						targetNode,
+						targetRoom: targetNode.roomName,
+    					targetSubroom: this.getTargetSubroom(targetNode),
+						targetArea: targetNode.area,
+						targetSubarea: targetNode.subarea,
+						direction: conn.direction,
+						nodes: conn.nodes // preserve authoritative order
+					};
+				}
             }
         }
 
         console.warn(`✗ No connection found for door: ${doorNode.name} (ID: ${doorNode.id})`);
         return null;
     }
+
+	/**
+	 * Determine whether a target room should be treated as having a sub-room.
+	 *
+	 * Composite rooms use slash-separated names to encode sub-room identity,
+	 * while single-room locations do not. This helper centralizes that logic
+	 * and returns the sub-room name only when it is semantically meaningful.
+	 *
+	 * Note: "PYR-TRO Elevator / PYR Entrance Lobby" is a known exception.
+	 * Despite containing a slash, it is a single room and must not be
+	 * interpreted as a composite sub-room.
+	 *
+	 * @param {Object} targetNode - Target node from a connection entry
+	 * @returns {string|null} Sub-room name if applicable, otherwise null
+	 */
+	getTargetSubroom(targetNode) {
+		if (!targetNode?.roomName || !targetNode?.nodeName) return null;
+
+		// Explicit exception: not a composite room despite slash in name
+		if (targetNode.roomName === "PYR-TRO Elevator / PYR Entrance Lobby") {
+			return null;
+		}
+
+		// Split composite room into candidate sub-rooms
+		const segments = targetNode.roomName.split(' / ');
+
+		// Find the segment that prefixes the node name
+		const matchingSubRoom = segments.find(segment =>
+			targetNode.nodeName.startsWith(segment)
+		);
+
+		return matchingSubRoom ?? null;
+	}
+	
     /**
      * Search connection data for a specific node
      * @param {Object} connectionData - Connection data to search
@@ -323,8 +381,10 @@ class State {
                         targetRoom: conn.targetNode.roomName,
                         targetArea: conn.targetNode.area,
                         targetSubarea: conn.targetNode.subarea,
+                        targetSubroom: conn.targetSubroom,
                         connectionType: conn.connectionType,
-                        direction: conn.targetNode.position,
+						direction: conn.direction,
+                        position: conn.targetNode.position,
                         nodes: conn.nodes // Include full nodes array for tooltip extraction
                     };
                 }

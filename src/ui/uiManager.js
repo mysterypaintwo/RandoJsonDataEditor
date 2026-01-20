@@ -241,6 +241,19 @@ export class UIManager {
             container.appendChild(itemDiv);
         });
     }
+	/**
+	 * Determine whether a room name should be treated as composite (sub-rooms)
+	 */
+	isCompositeRoom(roomName) {
+		if (!roomName) return false;
+
+		// Explicit exception: not a composite room
+		if (roomName === "PYR-TRO Elevator / PYR Entrance Lobby") {
+			return false;
+		}
+
+		return roomName.includes(' / ');
+	}
 
     /**
      * Group door nodes by sub-room based on their names
@@ -249,7 +262,7 @@ export class UIManager {
         const groups = {};
 
         // Check if this is a composite room (contains " / ")
-        const isComposite = fullRoomName.includes(' / ');
+        const isComposite = this.isCompositeRoom(fullRoomName);
 
         if (!isComposite) {
             // Single room - all doors go in one group
@@ -473,9 +486,9 @@ export class UIManager {
 
         // Determine if this is a sub-room connection (same composite room, different sub-room)
         const isSubRoomConnection = connection &&
-            connection.targetRoom === roomData.name &&
-            connection.targetRoom.includes(' / ');
-
+			connection.targetRoom === roomData.name &&
+			this.isCompositeRoom(connection.targetRoom);
+			
         // Check if connection is Forward (one-way) or Bidirectional
         const isOneWay = connection?.direction === 'Forward';
 
@@ -618,9 +631,8 @@ export class UIManager {
         }
 
         // Extract target room name - check if it's a composite room
-        const targetRoomParts = connection.targetRoom.split(' / ');
-        const isTargetComposite = targetRoomParts.length > 1;
-
+        const isTargetComposite = this.isCompositeRoom(connection.targetRoom);
+		
         let targetDisplay;
 
         // For composite room targets, extract the specific sub-room from node name
