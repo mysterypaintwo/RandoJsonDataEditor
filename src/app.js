@@ -4,173 +4,203 @@
  */
 // ===== CONFIG =====
 const Config = {
-	enableValidation: false, // toggle AJV validation
-	gameType: 'XFusion', // 'XFusion' or 'SuperMetroid'
+    enableValidation: false,
+    gameType: 'XFusion',
 };
-const SchemaPrefix = {
-	XFusion: 'mxf',
-	SuperMetroid: 'm3'
-};
+
 import state from './core/state.js';
 import {
-	CanvasRenderer
+    CanvasRenderer
 } from './ui/canvasRenderer.js';
 import {
-	InteractionHandler
+    InteractionHandler
 } from './core/interactionHandler.js';
 import {
-	UIManager
+    UIManager
 } from './ui/uiManager.js';
 import {
-	RoomManager
+    RoomManager
 } from './core/roomManager.js';
+import {
+    GoToRoomHandler
+} from './ui/goToRoomHandler.js';
+import {
+    ResizablePanelHandler
+} from './ui/resizablePanelHandler.js';
+
 class RandoJsonDataEditor {
-	constructor() {
-		// Get DOM elements
-		this.canvas = document.getElementById("roomCanvas");
-		this.mapContainer = document.getElementById("map-container");
-		// Initialize managers
-		this.uiManager = new UIManager(state);
-		this.renderer = new CanvasRenderer(this.canvas, this.mapContainer);
-		this.roomManager = new RoomManager(state, this.renderer, this.uiManager, Config);
-		this.interactionHandler = new InteractionHandler(
-			this.canvas,
-			this.mapContainer,
-			state,
-			this.renderer,
-			this.uiManager
-		);
-		this.setupEventListeners();
-		this.initCanvas();
-		this.initDoorButtons();
-	}
-	/**
-	 * Set up all application event listeners
-	 */
-	setupEventListeners() {
-		// Working directory selection
-		document.getElementById('setDirBtn').addEventListener('click', async () => {
-			await this.selectWorkingDirectory();
-		});
-		// Tool mode buttons
-		['draw', 'select', 'move', 'resize'].forEach(mode => {
-			const button = document.getElementById(`${mode}ModeBtn`);
-			if (button) {
-				button.addEventListener('click', () => {
-					this.setToolMode(mode);
-				});
-			}
-		});
-		// Sector navigation buttons
-		document.querySelectorAll('.sector-btn').forEach(btn => {
-			btn.addEventListener('click', async () => {
-				const sector = btn.dataset.sector;
-				await this.roomManager.navigateToArea(sector);
-			});
-		});
-		// Save button
-		document.getElementById('saveBtn').addEventListener('click', () => {
-			this.roomManager.saveCurrentRoom();
-		});
-		// JSON editor live sync
-		this.uiManager.setupJsonEditor((parsedData) => {
-			state.currentRoomData = parsedData;
-			state.nodes = parsedData.nodes ? [...parsedData.nodes] : [];
-			this.renderer.redraw(
-				state.currentRoomImage,
-				state.nodes,
-				state.selectedNode,
-				state.currentRect,
-				state.scale
-			);
-		});
-		// Door Editor updates
-		window.api.onUpdateDoorNode((payload) => {
-			this.roomManager.handleDoorNodeUpdate(payload);
-		});
-		// Room Properties Editor updates
-		window.api.onUpdateRoomProperties((payload) => {
-			this.roomManager.handleRoomPropertiesUpdate(payload);
-		});
-	}
-	/**
-	 * Initialize canvas with default size
-	 */
-	initCanvas() {
-		this.canvas.width = 640;
-		this.canvas.height = 360;
-		this.uiManager.updateActiveTool('selectModeBtn'); // Default to select mode
-	}
-	/**
-	 * Handle working directory selection
-	 */
-	async selectWorkingDirectory() {
-		const selectedDir = await window.api.selectWorkingDirectory();
-		if (selectedDir) {
-			state.setWorkingDir(selectedDir);
-			this.uiManager.updateWorkingDirectory(selectedDir);
-		}
-	}
-	/**
-	 * Set the current tool mode
-	 * @param {string} mode - The tool mode to set
-	 */
-	setToolMode(mode) {
-		state.setMode(mode);
-		this.uiManager.updateActiveTool(`${mode}ModeBtn`);
-		// Redraw to update visual selection states
-		this.renderer.redraw(
-			state.currentRoomImage,
-			state.nodes,
-			state.selectedNode,
-			state.currentRect,
-			state.scale
-		);
-	}
-	/**
-	 * Initialize editor buttons (Doors, Room Properties) on app startup
-	 */
-	initDoorButtons() {
-		console.log('Initializing door buttons...');
-		// Set up initial door button states (all inactive)
-		document.querySelectorAll('.door-btn').forEach(btn => {
-			btn.classList.remove('active');
-			btn._doorConnection = null;
-			// Add click handler for navigation
-			btn.addEventListener('click', () => {
-				console.log(`Door button clicked: ${btn.dataset.dir}, active: ${btn.classList.contains('active')}, connection:`, btn._doorConnection);
-				// Only navigate if there's an active connection
-				if (btn.classList.contains('active') && btn._doorConnection) {
-					this.roomManager.navigateThroughDoor(btn._doorConnection);
-				}
-			});
-			// Add right-click handler for door editor
-			btn.addEventListener('contextmenu', (e) => {
-				e.preventDefault();
-				console.log(`Door button right-clicked: ${btn.dataset.dir}`);
-				if (state.currentRoomData) {
-					const direction = btn.dataset.dir;
-					const connection = btn._doorConnection || null;
-					this.roomManager.openDoorEditor(direction, connection, state.currentRoomData);
-				}
-			});
-		});
-		console.log('Door buttons initialized');
-		// Room Properties button
-		console.log('Initializing Room Properties button...');
-		let rpBtn = document.getElementById('roomPropertiesBtn');
-		rpBtn.classList.remove('active');
-		rpBtn.addEventListener('click', () => {
-			if (!this.roomManager.state.currentRoomPath || !this.roomManager.state.currentRoomData) {
-				this.uiManager.showAlert('No room data to edit properties!');
-				return false;
-			}
-			window.api.openRoomPropertiesEditor(this.roomManager.state.currentRoomData, this.roomManager.state.getEnemyList(), this.roomManager.state.getItemList(), this.roomManager.state.getEventList(), this.roomManager.state.getWeaponList(), this.roomManager.state.getTechMap(), this.roomManager.state.getHelperMap());
-		});
-		console.log('Room Properties button initialized');
-	}
+    constructor() {
+        this.canvas = document.getElementById("roomCanvas");
+        this.mapContainer = document.getElementById("map-container");
+
+        // Initialize managers
+        this.uiManager = new UIManager(state);
+        this.renderer = new CanvasRenderer(this.canvas, this.mapContainer);
+        this.roomManager = new RoomManager(state, this.renderer, this.uiManager, Config);
+
+        // Store room manager in state for access by UI manager
+        state.roomManager = this.roomManager;
+
+        this.interactionHandler = new InteractionHandler(
+            this.canvas,
+            this.mapContainer,
+            state,
+            this.renderer,
+            this.uiManager
+        );
+
+        // Initialize Go To Room handler
+        this.goToRoomHandler = new GoToRoomHandler(state, this.roomManager, this.uiManager);
+
+        // Initialize resizable JSON panel
+        this.resizablePanelHandler = new ResizablePanelHandler(
+            'json-editor',
+            'jsonResizeHandle',
+            (newHeight) => {
+                // Optional: Handle resize events if needed
+                // The canvas coordinates remain correct because they're based on canvas.getBoundingClientRect()
+            }
+        );
+
+        this.setupEventListeners();
+        this.initCanvas();
+        this.initRoomPropertiesButton();
+    }
+
+    setupEventListeners() {
+        // Working directory selection
+        document.getElementById('setDirBtn').addEventListener('click', async () => {
+            await this.selectWorkingDirectory();
+        });
+
+        // Tool mode buttons
+        ['draw', 'select', 'move', 'resize'].forEach(mode => {
+            const button = document.getElementById(`${mode}ModeBtn`);
+            if (button) {
+                button.addEventListener('click', () => {
+                    this.setToolMode(mode);
+                });
+            }
+        });
+
+        // Sector navigation buttons
+        document.querySelectorAll('.sector-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const sector = btn.dataset.sector;
+                await this.roomManager.navigateToArea(sector);
+            });
+        });
+
+        // Save button
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            this.roomManager.saveCurrentRoom();
+        });
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Don't trigger shortcuts if user is typing in an input/textarea
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                // Allow Ctrl+S even in textarea (JSON editor)
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    this.roomManager.saveCurrentRoom();
+                }
+                return;
+            }
+
+            // Ctrl+S: Save
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                this.roomManager.saveCurrentRoom();
+            }
+
+            // Ctrl+P: Room Properties
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                this.openRoomProperties();
+            }
+        });
+
+        // JSON editor live sync
+        this.uiManager.setupJsonEditor((parsedData) => {
+            state.currentRoomData = parsedData;
+            state.nodes = parsedData.nodes ? [...parsedData.nodes] : [];
+            this.renderer.redraw(
+                state.currentRoomImage,
+                state.nodes,
+                state.selectedNode,
+                state.currentRect,
+                state.scale
+            );
+        });
+
+        // Door Editor updates
+        window.api.onUpdateDoorNode((payload) => {
+            this.roomManager.handleDoorNodeUpdate(payload);
+        });
+
+        // Room Properties Editor updates
+        window.api.onUpdateRoomProperties((payload) => {
+            this.roomManager.handleRoomPropertiesUpdate(payload);
+        });
+    }
+
+    initCanvas() {
+        this.canvas.width = 640;
+        this.canvas.height = 360;
+        this.uiManager.updateActiveTool('selectModeBtn');
+    }
+
+    async selectWorkingDirectory() {
+        const selectedDir = await window.api.selectWorkingDirectory();
+        if (selectedDir) {
+            await state.setWorkingDir(selectedDir);
+            this.uiManager.updateWorkingDirectory(selectedDir);
+            // Refresh the Go To Room cache
+            this.goToRoomHandler.refreshCache();
+        }
+    }
+
+    setToolMode(mode) {
+        state.setMode(mode);
+        this.uiManager.updateActiveTool(`${mode}ModeBtn`);
+        this.renderer.redraw(
+            state.currentRoomImage,
+            state.nodes,
+            state.selectedNode,
+            state.currentRect,
+            state.scale
+        );
+    }
+
+    initRoomPropertiesButton() {
+        const rpBtn = document.getElementById('roomPropertiesBtn');
+        if (!rpBtn) return;
+
+        rpBtn.addEventListener('click', () => {
+            this.openRoomProperties();
+        });
+    }
+
+    openRoomProperties() {
+        if (!state.currentRoomPath || !state.currentRoomData) {
+            this.uiManager.showAlert('No room data to edit properties!');
+            return;
+        }
+
+        window.api.openRoomPropertiesEditor(
+            state.currentRoomData,
+            state.getEnemyList(),
+            state.getItemList(),
+            state.getEventList(),
+            state.getWeaponList(),
+            state.getTechMap(),
+            state.getHelperMap()
+        );
+    }
 }
+
 // Initialize the application when DOM is ready
 window.addEventListener('DOMContentLoaded', () => {
-	new RandoJsonDataEditor();
+    new RandoJsonDataEditor();
 });

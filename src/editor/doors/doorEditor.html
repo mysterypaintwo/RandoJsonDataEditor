@@ -1,131 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <title>Door Properties Editor</title>
     <link rel="stylesheet" href="../editorStyles.css">
-</head>
-<body>
-    <!-- =====================================================
-       Header: Shows current location context
-       ===================================================== -->
+  </head>
+  <body>
+    <!-- Header: Shows current location context -->
     <div id="header">
-        🌍 <span id="sector">Loading...</span> /
-        <span id="region">Loading...</span> /
-        <span id="roomName">Loading...</span> /
-        🚪 <span id="doorDir">Loading...</span>
+      <span id="doorDir" style="font-size: 14px; font-weight: bold;">Loading...</span>
+      <!-- Hidden fallback elements for compatibility -->
+      <span id="sector" style="display: none;">Loading...</span>
+      <span id="region" style="display: none;">Loading...</span>
+      <span id="roomName" style="display: none;">Loading...</span>
     </div>
-
-    <!-- =====================================================
-       Form container: scrollable main content
-       ===================================================== -->
+    <!-- Form container: scrollable main content -->
     <div id="form">
-        <!-- Connection Info (Read-Only) -->
-        <section>
-            <h3>🔗 Connection Info (Read-Only)</h3>
-            <div id="connectionInfoContainer"></div>
-        </section>
-
-        <!-- Door Subtype (Color/Lock Type) -->
-        <section>
-            <h3>🎨 Door Type</h3>
-            <div id="doorSubTypeContainer"></div>
-        </section>
-
-        <!-- Door Environments -->
-        <section>
-            <h3>🌊 Door Environments</h3>
-            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                Define physics at this door, optionally based on entrance node
-            </p>
-            <div id="doorEnvironmentsContainer"></div>
-        </section>
-
-        <!-- Utility Stations -->
-        <section>
-            <h3>🔋 Utility Stations</h3>
-            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                Save/refill stations available at this door
-            </p>
-            <div id="utilityContainer"></div>
-        </section>
-
-        <!-- Implicit Strat Flags -->
-        <section>
-            <h3>⚙️ Standard Strat Generation</h3>
-            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                Enable automatic generation of standard strats
-            </p>
-            <div id="implicitFlagsContainer"></div>
-        </section>
-
-        <!-- Map Tile Mask -->
-        <section>
-            <h3>🗺️ Map Tile Association</h3>
-            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                Mark which map tiles are associated with this door
-            </p>
-            <div id="tileMapContainer"></div>
-        </section>
-
-        <!-- Door Locks -->
-        <section>
-            <h3>🔒 Door Locks</h3>
-            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                Define lock conditions and unlock requirements
-            </p>
-            <div id="locksContainer"></div>
-        </section>
-
-        <!-- Twin Door Addresses -->
-        <section>
-            <h3>👥 Twin Door Addresses</h3>
-            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                Other doors that always lead to the same destination
-            </p>
-            <div id="twinDoorAddressesContainer"></div>
-        </section>
-
-        <!-- Viewable Nodes -->
-        <section>
-            <h3>👁️ Viewable Nodes</h3>
-            <p style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                Items that can be viewed from this door
-            </p>
-            <div id="viewableNodesContainer"></div>
-        </section>
-
-        <!-- Other Properties -->
-        <section>
-            <h3>🔧 Other Properties</h3>
-            <div id="otherPropertiesContainer"></div>
-        </section>
+      <!-- Connection Info (Read-Only) -->
+      <section>
+        <h3>🔗 Connection Info (Read-Only)</h3>
+        <div id="connectionInfoContainer"></div>
+      </section>
+      <!-- Door Subtype (Color/Lock Type) -->
+      <section>
+        <h3>🎨 Door Type</h3>
+        <div id="doorSubTypeContainer"></div>
+      </section>
+      <!-- Door Environments -->
+      <section>
+        <h3>🌊 Door Environments</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 8px;"> Define physics at this door, optionally based on entrance node </p>
+        <div id="doorEnvironmentsContainer"></div>
+      </section>
+      <!-- Utility Stations -->
+      <section>
+        <h3>🔋 Utility Stations</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 8px;"> Save/refill stations available at this door </p>
+        <div id="utilityContainer"></div>
+      </section>
+      <!-- Implicit Strat Flags -->
+      <section>
+        <h3>⚙️ Standard Strat Generation</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 8px;"> Enable automatic generation of standard strats </p>
+        <div id="implicitFlagsContainer"></div>
+      </section>
+      <!-- Map Tile Mask -->
+      <section>
+        <h3>🗺️ Map Tile Association</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 8px;"> Mark which map tiles are associated with this door </p>
+        <div id="tileMapContainer"></div>
+      </section>
+      <!-- Door Locks -->
+      <section>
+        <h3>🔒 Door Locks</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 8px;"> Define lock conditions and unlock requirements </p>
+        <div id="locksContainer"></div>
+      </section>
+      <!-- Twin Door Addresses -->
+      <section>
+        <h3>👥 Twin Door Addresses</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 8px;"> Other doors that always lead to the same destination </p>
+        <div id="twinDoorAddressesContainer"></div>
+      </section>
+      <!-- Viewable Nodes -->
+      <section>
+        <h3>👁️ Viewable Nodes</h3>
+        <p style="font-size: 12px; color: #666; margin-bottom: 8px;"> Items that can be viewed from this door </p>
+        <div id="viewableNodesContainer"></div>
+      </section>
+      <!-- Other Properties -->
+      <section>
+        <h3>🔧 Other Properties</h3>
+        <div id="otherPropertiesContainer"></div>
+      </section>
     </div>
-
-    <!-- =====================================================
-       Footer buttons: Save / Close actions
-       ===================================================== -->
+    <!-- Footer buttons: Save / Close actions -->
     <div id="footer">
-        <button id="closeBtn">❌ Close without Saving</button>
-        <button id="saveBtn">💾 Save & Close</button>
+      <button id="closeBtn">❌ Close without Saving</button>
+      <button id="saveBtn">💾 Save & Close</button>
     </div>
-
-    <!-- =====================================================
-       Load supporting scripts
-       ===================================================== -->
+    <!-- Load supporting scripts -->
     <script src="../base/baseEditor.js"></script>
     <script src="../../core/editorUtils.js"></script>
-    
     <!-- Condition system -->
     <script src="../conditions/conditionConfig.js"></script>
     <script src="../conditions/sharedUtils.js"></script>
     <script src="../conditions/conditionRenderers.js"></script>
     <script src="../conditions/conditionEditorBase.js"></script>
-    
     <!-- TileMap editor -->
     <script src="../../core/tilemapEditor.js"></script>
-    
     <!-- Main door editor -->
     <script src="./doorEditor.js"></script>
-</body>
+  </body>
 </html>
