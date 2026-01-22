@@ -7,34 +7,39 @@
    ============================================================================= */
    class ConditionEditor {
 	constructor(container, initialCondition, indentLevel = 0, isRoot = false) {
-		this.container = container;
+    this.container = container;
 
-		// Handle plain string conditions (item/tech/helper/flag names)
-		if (typeof initialCondition === 'string') {
-			const detectedType = ConditionEditor.detectStringType(initialCondition);
-			if (detectedType) {
-				// Convert to object format for internal handling
-				this.initialCondition = { [detectedType]: initialCondition };
-			} else {
-				this.initialCondition = initialCondition;
-			}
-		} else {
-			this.initialCondition = initialCondition;
-		}
+    console.log(`[ConditionEditor CONSTRUCTOR] indentLevel=${indentLevel}, isRoot=${isRoot}, initialCondition:`, initialCondition);
 
-		this.indentLevel = indentLevel;
-		this.childEditors = [];
-		this.isCollapsed = false;
-		this.isRoot = isRoot;
-		// Cleanup functions for subscriptions
-		this.subscriptions = [];
-		this.createElement();
-		this.setupEventHandlers();
-		// Subscribe to global data changes
-		this.subscriptions.push(
-			window.EditorGlobals.addListener(() => this.refreshDataSources())
-		);
-	}
+    // Handle plain string conditions (item/tech/helper/flag names)
+    if (typeof initialCondition === 'string') {
+        const detectedType = ConditionEditor.detectStringType(initialCondition);
+        console.log(`[ConditionEditor] Detected string type: ${detectedType} for "${initialCondition}"`);
+        if (detectedType) {
+            // Convert to object format for internal handling
+            this.initialCondition = { [detectedType]: initialCondition };
+        } else {
+            this.initialCondition = initialCondition;
+        }
+    } else {
+        this.initialCondition = initialCondition;
+    }
+
+    console.log(`[ConditionEditor] After normalization, initialCondition:`, this.initialCondition);
+
+    this.indentLevel = indentLevel;
+    this.childEditors = [];
+    this.isCollapsed = false;
+    this.isRoot = isRoot;
+    // Cleanup functions for subscriptions
+    this.subscriptions = [];
+    this.createElement();
+    this.setupEventHandlers();
+    // Subscribe to global data changes
+    this.subscriptions.push(
+        window.EditorGlobals.addListener(() => this.refreshDataSources())
+    );
+}
 	createElement() {
 		this.root = document.createElement('div');
 		this.root.className = 'condition-block editor-card none';
@@ -119,57 +124,102 @@
 		this.root.appendChild(this.childrenContainer);
 	}
 	populateTypeSelect() {
-		Object.entries(CONDITION_CONFIG.types).forEach(([value, config]) => {
-			// Only allow "free" and "never" if this is the root editor
-			if ((value === 'free' || value === 'never') && !this.isRoot) return;
-			const option = document.createElement('option');
-			option.value = value;
-			let appendedType = "";
-			if (config.label != '(no condition)')
-				appendedType = value + ": ";
-			option.textContent = appendedType + config.label;
-			option.title = config.description;
-			this.typeSelect.appendChild(option);
-		});
-		
-		// Set initial selection - handle both object and string formats
-		if (this.initialCondition) {
-			let initialType = null;
-			if (typeof this.initialCondition === 'string') {
-				// Handle "free" and "never" cases
-				initialType = this.initialCondition;
-			} else if (typeof this.initialCondition === 'object') {
-				initialType = Object.keys(this.initialCondition)[0];
-			}
-			if (initialType && CONDITION_CONFIG.types[initialType]) {
-				this.typeSelect.value = initialType;
-			}
-		}
-	}
+    Object.entries(CONDITION_CONFIG.types).forEach(([value, config]) => {
+        // Only allow "free" and "never" if this is the root editor
+        if ((value === 'free' || value === 'never') && !this.isRoot) return;
+        const option = document.createElement('option');
+        option.value = value;
+        let appendedType = "";
+        if (config.label != '(no condition)')
+            appendedType = value + ": ";
+        option.textContent = appendedType + config.label;
+        option.title = config.description;
+        this.typeSelect.appendChild(option);
+    });
+    
+    // Set initial selection - handle both object and string formats
+    if (this.initialCondition) {
+        let initialType = null;
+        if (typeof this.initialCondition === 'string') {
+            // Handle "free" and "never" cases
+            initialType = this.initialCondition;
+            console.log(`[populateTypeSelect] String type detected: ${initialType}`);
+        } else if (typeof this.initialCondition === 'object' && this.initialCondition !== null) {
+            // Get the first key from the object
+            const keys = Object.keys(this.initialCondition);
+            initialType = keys[0];
+            console.log(`[populateTypeSelect] Object type detected: ${initialType}, all keys:`, keys);
+        }
+        
+        if (initialType && CONDITION_CONFIG.types[initialType]) {
+            this.typeSelect.value = initialType;
+            console.log(`[populateTypeSelect] Set dropdown to: ${initialType}`);
+        } else {
+            // Default to empty/none if we can't determine type
+            this.typeSelect.value = '';
+            console.log(`[populateTypeSelect] Could not determine type, defaulting to empty`);
+        }
+    } else {
+        console.log(`[populateTypeSelect] No initialCondition provided`);
+    }
+}
 	setupEventHandlers() {
 		this.typeSelect.addEventListener('change', () => {
+			console.log(`[ConditionEditor] Type changed to: ${this.typeSelect.value}`);
+			
+			// Clean up child editors before clearing
+			this.childEditors.forEach(child => {
+				if (child && child.remove) {
+					child.remove();
+				}
+			});
+			
+			// Clear children and inputs
 			this.clearChildren();
+			
+			// Re-render with the new type but NO initial data (user is changing type)
+			// Store the current type so renderCondition knows we're switching
+			this._isSwitchingType = true;
 			this.renderCondition();
+			this._isSwitchingType = false;
 		});
+		
 		this.removeButton.addEventListener('click', () => {
 			this.remove();
 		});
+		
 		this.toggleButton.addEventListener('click', () => {
 			this.toggleCollapse();
 		});
-		// Initial render
+		
+		// Initial render - only called on first creation
 		this.renderCondition();
 	}
 	renderCondition() {
 		const selectedType = this.typeSelect.value;
 		const config = CONDITION_CONFIG.types[selectedType];
+		
+		console.log(`[renderCondition] START - selectedType: ${selectedType}, isSwitching: ${this._isSwitchingType}, initialCondition:`, this.initialCondition);
+		
 		this.updateStyles(config);
 		this.clearChildren();
+		
+		console.log(`[renderCondition] After clearChildren, childEditors count: ${this.childEditors.length}`);
+		
 		// Get the appropriate renderer for this condition type
 		const renderer = ConditionRenderers.getRenderer(selectedType);
 		if (renderer) {
-			renderer.render(this, selectedType, this.initialCondition);
+			console.log(`[renderCondition] Found renderer for type: ${selectedType}`);
+			// Only pass initialCondition if we're NOT switching types manually
+			const dataToPass = this._isSwitchingType ? null : this.initialCondition;
+			console.log(`[renderCondition] Passing data to renderer:`, dataToPass);
+			renderer.render(this, selectedType, dataToPass);
+			console.log(`[renderCondition] After renderer.render, childEditors count: ${this.childEditors.length}`);
+		} else {
+			console.warn(`[renderCondition] No renderer found for type: ${selectedType}`);
 		}
+		
+		console.log(`[renderCondition] END`);
 	}
 	updateStyles(config) {
 		this.root.style.backgroundColor = config.color;
@@ -203,14 +253,19 @@
 			console.warn('Maximum condition nesting depth reached');
 			return null;
 		}
+		
+		console.log(`[addChildCondition] Adding child with data:`, initialData);
+		
 		const childContainer = document.createElement('div');
 		const childEditor = makeConditionEditor(childContainer, initialData, this.indentLevel + 1, false);
 		this.childEditors.push(childEditor);
+		
 		if (this.addButton && appendAddButton) {
 			this.childrenContainer.insertBefore(childContainer, this.addButton);
 		} else {
 			this.childrenContainer.appendChild(childContainer);
 		}
+		
 		return childEditor;
 	}
 	getValue() {

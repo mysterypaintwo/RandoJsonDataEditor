@@ -1,765 +1,542 @@
 /**
- * UI Manager - Handles all user interface updates and interactions
- * Manages tooltips, JSON display, door buttons, and tool states
+ * UI Manager - Handles all UI updates and user interactions
  */
-import {
-    updateToolButtonStates,
-    showTooltip,
-    hideTooltip,
-    highlightNodeInJSON
-} from '../core/utils.js';
-
 export class UIManager {
-    constructor(state) {
-        this.tooltipDiv = document.getElementById("tooltip");
-        this.jsonTextArea = document.getElementById("jsonTextArea");
-        this.currentDirSpan = document.getElementById('currentDir');
-        this.state = state;
-    }
-
-    /**
-     * Display a modal prompt allowing the user to rename an item
-     */
-    promptRename(title, defaultValue) {
-        if (document.querySelector('.modal-overlay')) {
-            return Promise.resolve(null);
-        }
-
-        return new Promise(resolve => {
-            const overlay = document.createElement('div');
-            overlay.className = 'modal-overlay';
-            overlay.style.cssText = `
-				position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-				background: rgba(0,0,0,0.5); display: flex;
-				align-items: center; justify-content: center; z-index: 10000;
-			`;
-
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            modal.style.cssText = `
-				background: white; padding: 20px; border-radius: 8px;
-				min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-			`;
-
-            const titleEl = document.createElement('div');
-            titleEl.textContent = title;
-            titleEl.style.cssText = `margin-bottom: 12px; font-weight: bold; font-size: 16px;`;
-
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = defaultValue;
-            input.style.cssText = `
-				width: 100%; padding: 8px; margin-bottom: 12px;
-				border: 1px solid #ccc; border-radius: 4px;
-				font-size: 14px; box-sizing: border-box;
-			`;
-
-            const buttonContainer = document.createElement('div');
-            buttonContainer.style.cssText = `display: flex; gap: 8px; justify-content: flex-end;`;
-
-            const ok = document.createElement('button');
-            ok.textContent = 'OK';
-            ok.style.cssText = `
-				padding: 8px 16px; background: #4CAF50; color: white;
-				border: none; border-radius: 4px; cursor: pointer;
-			`;
-
-            const cancel = document.createElement('button');
-            cancel.textContent = 'Cancel';
-            cancel.style.cssText = `
-				padding: 8px 16px; background: #666; color: white;
-				border: none; border-radius: 4px; cursor: pointer;
-			`;
-
-            let resolved = false;
-
-            function cleanup(value) {
-                if (resolved) return;
-                resolved = true;
-                if (document.body.contains(overlay)) {
-                    document.body.removeChild(overlay);
-                }
-                resolve(value);
-            }
-
-            ok.onclick = () => cleanup(input.value);
-            cancel.onclick = () => cleanup(null);
-
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    cleanup(input.value);
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    cleanup(null);
-                }
-            });
-
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) cleanup(null);
-            });
-
-            buttonContainer.appendChild(cancel);
-            buttonContainer.appendChild(ok);
-            modal.appendChild(titleEl);
-            modal.appendChild(input);
-            modal.appendChild(buttonContainer);
-            overlay.appendChild(modal);
-            document.body.appendChild(overlay);
-
-            setTimeout(() => {
-                input.focus();
-                input.select();
-            }, 0);
-        });
-    }
-
-    updateJsonDisplay(jsonData) {
-        if (jsonData) {
-            this.jsonTextArea.value = JSON.stringify(jsonData, null, 2);
-        }
-    }
-
-    highlightNodeInJSON(node, jsonData) {
-        highlightNodeInJSON(this.jsonTextArea, node, jsonData);
-    }
-
-    updateTooltip(hoverNode, clientX, clientY) {
-        if (hoverNode) {
-            const text = hoverNode.name.replace(/\n/g, '<br>');
-            showTooltip(this.tooltipDiv, text, clientX, clientY);
-        } else {
-            hideTooltip(this.tooltipDiv);
-        }
-    }
-
-    updateActiveTool(toolId) {
-        updateToolButtonStates(toolId);
-    }
-
-    updateWorkingDirectory(dirPath) {
-        this.currentDirSpan.textContent = `Working Directory: ${dirPath}`;
-    }
-
-    /**
-     * Update door buttons based on room data with new sub-room structure
-     */
-    async updateDoorButtons(roomData) {
-        const container = document.getElementById('doorButtons');
-        if (!container) return;
-
-        // Clear existing buttons
-        container.innerHTML = '';
-
-        if (!roomData || !roomData.nodes) {
-            container.innerHTML = '<div style="padding: 10px; color: #999; text-align: center;">No room loaded</div>';
-            return;
-        }
-
-        // Add instructions header
-        const instructions = document.createElement('div');
-        instructions.style.cssText = `
-			padding: 8px;
-			margin-bottom: 8px;
-			background: #e3f2fd;
-			border-left: 3px solid #2196F3;
-			font-size: 11px;
-			line-height: 1.4;
-			color: #333;
-		`;
-        instructions.innerHTML = `
-			<strong>🖱️ Controls:</strong><br>
-			<span style="margin-left: 4px;">Left-click: Navigate</span><br>
-			<span style="margin-left: 4px;">Right-click: Edit properties</span>
-		`;
-        container.appendChild(instructions);
-
-        // Get door nodes grouped by sub-room
-        const doorNodes = roomData.nodes.filter(n => n.nodeType === 'door');
-        const subRoomGroups = this.groupDoorsBySubRoom(doorNodes, roomData.name);
-
-        // Get all door connections for the current room
-        const doorConnections = await this.state.getDoorConnections();
-
-        // Create buttons for each sub-room group
-        for (const [subRoomName, doors] of Object.entries(subRoomGroups)) {
-            this.createSubRoomSection(container, subRoomName, doors, doorConnections, roomData);
-        }
-
-        // Update items list
-        this.updateItemsList(roomData);
-    }
-
-    /**
-     * Update the items list display
-     */
-    updateItemsList(roomData) {
-        const container = document.getElementById('itemsList');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (!roomData || !roomData.nodes) {
-            return;
-        }
-
-        // Get all item nodes
-        const itemNodes = roomData.nodes.filter(n => n.nodeType === 'item');
-
-        if (itemNodes.length === 0) {
-            return; // CSS ::before will show "No items"
-        }
-
-        // Display each item - compact format
-        itemNodes.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'item-entry';
-
-            // Combine name and type on one line
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'item-name';
-            nameDiv.textContent = item.name || 'Unnamed Item';
-
-            // Show type in parentheses after name
-            if (item.nodeItem) {
-                const typeSpan = document.createElement('span');
-                typeSpan.className = 'item-type';
-                typeSpan.textContent = ` (${item.nodeItem})`;
-                nameDiv.appendChild(typeSpan);
-            }
-
-            itemDiv.appendChild(nameDiv);
-
-            // Add note if present (on second line, smaller)
-            if (item.note && item.note.trim()) {
-                const noteDiv = document.createElement('div');
-                noteDiv.className = 'item-note';
-                noteDiv.textContent = item.note;
-                itemDiv.appendChild(noteDiv);
-            }
-
-            container.appendChild(itemDiv);
-        });
-    }
-	/**
-	 * Determine whether a room name should be treated as composite (sub-rooms)
-	 */
-	isCompositeRoom(roomName) {
-		if (!roomName) return false;
-
-		// Explicit exception: not a composite room
-		if (roomName === "PYR-TRO Elevator / PYR Entrance Lobby") {
-			return false;
-		}
-
-		return roomName.includes(' / ');
+	constructor(state) {
+		this.state = state;
+		this.jsonTextArea = document.getElementById('jsonTextArea');
+		this.tooltip = document.getElementById('tooltip');
+		this.currentDirSpan = document.getElementById('currentDir');
+		this.setupMergeButton();
 	}
 
-    /**
-     * Group door nodes by sub-room based on their names
-     */
-    groupDoorsBySubRoom(doorNodes, fullRoomName) {
-        const groups = {};
+	/* ============================================================
+	 * TOOLBAR / MODE UI (NEW)
+	 * ============================================================ */
 
-        // Check if this is a composite room (contains " / ")
-        const isComposite = this.isCompositeRoom(fullRoomName);
+	setupMergeButton() {
+		const toolbar = document.getElementById('toolbar');
+		const resizeBtn = document.getElementById('resizeModeBtn');
 
-        if (!isComposite) {
-            // Single room - all doors go in one group
-            groups[fullRoomName] = doorNodes;
-            return groups;
-        }
+		const mergeBtn = document.createElement('button');
+		mergeBtn.id = 'mergeNodesBtn';
+		mergeBtn.className = 'tool-btn';
+		mergeBtn.textContent = '🔗 Merge Nodes (Ctrl+M)';
+		mergeBtn.style.marginLeft = '20px';
+		mergeBtn.style.background = '#FF9800';
+		mergeBtn.style.color = 'white';
 
-        // Composite room - extract sub-room names from full name
-        const subRoomNames = fullRoomName.split(' / ').map(n => n.trim());
+		mergeBtn.addEventListener('click', () => this.triggerMergeNodes());
 
-        // Initialize groups
-        subRoomNames.forEach(name => {
-            groups[name] = [];
-        });
+		if (resizeBtn && resizeBtn.nextSibling) {
+			toolbar.insertBefore(mergeBtn, resizeBtn.nextSibling);
+		} else {
+			toolbar.appendChild(mergeBtn);
+		}
 
-        // Group doors by matching their name prefix
-        doorNodes.forEach(door => {
-            let assigned = false;
-
-            for (const subRoomName of subRoomNames) {
-                if (door.name.startsWith(subRoomName + ' - ')) {
-                    groups[subRoomName].push(door);
-                    assigned = true;
-                    break;
-                }
-            }
-
-            // If no match found, add to first group (shouldn't happen with new format)
-            if (!assigned && subRoomNames.length > 0) {
-                console.warn(`Door "${door.name}" doesn't match any sub-room, adding to first group`);
-                groups[subRoomNames[0]].push(door);
-            }
-        });
-
-        return groups;
-    }
-
-    /**
-     * Create a section for a sub-room's doors
-     */
-    createSubRoomSection(container, subRoomName, doors, doorConnections, roomData) {
-        // Create section container
-        const section = document.createElement('div');
-        section.className = 'door-section';
-        section.style.cssText = `
-			margin-bottom: 16px;
-			padding: 10px;
-			border: 2px solid #ccc;
-			border-radius: 6px;
-			background: #fff;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-		`;
-
-        // Section header
-        const header = document.createElement('div');
-        header.className = 'door-section-header';
-        header.style.cssText = `
-			font-weight: bold;
+		const modeIndicator = document.createElement('span');
+		modeIndicator.id = 'drawModeIndicator';
+		modeIndicator.style.cssText = `
+			margin-left: 20px;
+			padding: 5px 10px;
+			display: none;
+			background: #2196F3;
+			color: white;
+			border-radius: 4px;
 			font-size: 12px;
-			margin-bottom: 10px;
-			padding-bottom: 6px;
-			border-bottom: 2px solid #ddd;
-			color: #333;
+			font-weight: bold;
 		`;
-        header.textContent = subRoomName;
+		toolbar.appendChild(modeIndicator);
 
-        // Create expanded grid for door positions
-        const grid = this.createDoorGrid(doors, doorConnections, roomData, subRoomName);
-
-        section.appendChild(header);
-        section.appendChild(grid);
-        container.appendChild(section);
-    }
-
-    /**
-     * Create an expanded grid for door positioning with all possible positions
-     */
-    createDoorGrid(doors, doorConnections, roomData, subRoomName) {
-        const grid = document.createElement('div');
-        grid.style.cssText = `
-			display: grid;
-			grid-template-columns: repeat(3, 1fr);
-			grid-template-rows: repeat(6, 1fr);
-			gap: 3px;
-			width: 100%;
+		const selectHint = document.createElement('span');
+		selectHint.id = 'selectHint';
+		selectHint.style.cssText = `
+			margin-left: 20px;
+			padding: 5px 10px;
+			display: none;
+			background: #4CAF50;
+			color: white;
+			border-radius: 4px;
+			font-size: 11px;
 		`;
+		selectHint.textContent = 'Ctrl+Click for multi-select';
+		toolbar.appendChild(selectHint);
+	}
 
-        // Map positions to grid cells - CORRECTED ORDER
-        // Row 0: Left-Top, Empty, Right-Top (vertical doors on horizontal walls, top position)
-        // Row 1: Top-Left, Top, Top-Right (horizontal doors on vertical walls, top)
-        // Row 2: Left, Empty, Right (horizontal doors, middle)
-        // Row 3: Left-Lower, Empty, Right-Lower (horizontal doors, lower position)
-        // Row 4: Bottom-Left, Bottom, Bottom-Right (horizontal doors on vertical walls, bottom)
-        // Row 5: Left-Bottom, Empty, Right-Bottom (vertical doors on horizontal walls, bottom position)
-        const positionMap = {
-            'left-top': 0,
-            // 1 is empty
-            'right-top': 2,
-            'top-left': 3,
-            'top': 4,
-            'top-right': 5,
-            'left': 6,
-            // 7 is empty
-            'right': 8,
-            'left-lower': 9,
-            // 10 is empty
-            'right-lower': 11,
-            'bottom-left': 12,
-            'bottom': 13,
-            'bottom-right': 14,
-            'left-bottom': 15,
-            // 16 is empty
-            'right-bottom': 17
-        };
+	triggerMergeNodes() {
+		document.dispatchEvent(new KeyboardEvent('keydown', {
+			key: 'm',
+			ctrlKey: true,
+			bubbles: true
+		}));
+	}
 
-        // Empty cell positions
-        const emptyCells = new Set([1, 7, 10, 16]);
+	updateDrawModeIndicator(isTriangleMode) {
+		const indicator = document.getElementById('drawModeIndicator');
+		if (!indicator) return;
 
-        // Create empty cells array
-        const cells = Array(18).fill(null);
+		indicator.textContent = isTriangleMode
+			? '▲ Triangle Mode (Press T for Rectangle)'
+			: '▢ Rectangle Mode (Press T for Triangle)';
+		indicator.style.display = 'inline-block';
+	}
 
-        // Place doors in appropriate grid cells
-        doors.forEach(door => {
-            const position = this.getGridPosition(door.name);
-            const cellIndex = positionMap[position];
+	updateModeHints(mode) {
+		const drawIndicator = document.getElementById('drawModeIndicator');
+		const selectHint = document.getElementById('selectHint');
 
-            if (cellIndex !== undefined && !emptyCells.has(cellIndex)) {
-                const button = this.createDoorButton(door, doorConnections, roomData, subRoomName);
-                cells[cellIndex] = button;
-            } else if (cellIndex === undefined) {
-                console.warn(`Door "${door.name}" mapped to invalid position "${position}"`);
-            }
-        });
+		if (drawIndicator)
+			drawIndicator.style.display = mode === 'draw' ? 'inline-block' : 'none';
 
-        // Add all cells to grid
-        cells.forEach((cell, index) => {
-            if (emptyCells.has(index)) {
-                // Empty placeholder cell
-                const placeholder = document.createElement('div');
-                placeholder.style.cssText = `
-					background: linear-gradient(135deg, #f9f9f9 25%, transparent 25%, transparent 75%, #f9f9f9 75%),
-					            linear-gradient(135deg, #f9f9f9 25%, transparent 25%, transparent 75%, #f9f9f9 75%);
-					background-size: 8px 8px;
-					background-position: 0 0, 4px 4px;
-					border: 1px dashed #e0e0e0;
-					border-radius: 3px;
-					min-height: 40px;
-				`;
-                grid.appendChild(placeholder);
-            } else if (cell) {
-                grid.appendChild(cell);
-            } else {
-                // Empty cell (no door at this position)
-                const empty = document.createElement('div');
-                empty.style.cssText = `
-					background: #fafafa;
-					border: 1px solid #f0f0f0;
-					border-radius: 3px;
-					min-height: 40px;
-				`;
-                grid.appendChild(empty);
-            }
-        });
+		if (selectHint)
+			selectHint.style.display = (mode === 'select' || mode === 'move') ? 'inline-block' : 'none';
+	}
 
-        return grid;
-    }
+	updateActiveTool(toolId) {
+		document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+		document.getElementById(toolId)?.classList.add('active');
 
-    /**
-     * Extract grid position from door name
-     */
-    getGridPosition(doorName) {
-        // Remove sub-room prefix if present and convert to lowercase
-        const parts = doorName.split(' - ');
-        const positionPart = (parts.length > 1 ? parts[parts.length - 1] : doorName).toLowerCase();
+		const mode = toolId.replace('ModeBtn', '');
+		this.updateModeHints(mode);
 
-        // Map door names to grid positions
-        // CRITICAL: Check compound positions in correct order (most specific first)
+		if (mode === 'draw') {
+			this.updateDrawModeIndicator(this.state.triangleDrawMode || false);
+		}
+	}
 
-        // Top row variants
-        if (positionPart.includes('top-left')) return 'top-left';
-        if (positionPart.includes('top-right')) return 'top-right';
+	/* ============================================================
+	 * JSON / TOOLTIP
+	 * ============================================================ */
 
-        // Bottom row variants  
-        if (positionPart.includes('bottom-left')) return 'bottom-left';
-        if (positionPart.includes('bottom-right')) return 'bottom-right';
+	updateJsonDisplay(data) {
+		if (this.jsonTextArea && data) {
+			this.jsonTextArea.value = JSON.stringify(data, null, 2);
+		}
+	}
 
-        // Lower variants (horizontal doors on vertical walls)
-        if (positionPart.includes('left-lower') || positionPart.includes('left lower')) return 'left-lower';
-        if (positionPart.includes('right-lower') || positionPart.includes('right lower')) return 'right-lower';
+	getJsonText() {
+		return this.jsonTextArea?.value || '';
+	}
 
-        // Vertical door variants (doors on horizontal walls, but positioned left/right)
-        if (positionPart.includes('left-top') || positionPart.includes('left top')) return 'left-top';
-        if (positionPart.includes('right-top') || positionPart.includes('right top')) return 'right-top';
-        if (positionPart.includes('left-bottom') || positionPart.includes('left bottom')) return 'left-bottom';
-        if (positionPart.includes('right-bottom') || positionPart.includes('right bottom')) return 'right-bottom';
+	setupJsonEditor(onUpdate) {
+		if (!this.jsonTextArea) return;
 
-        // Simple positions (check these LAST to avoid false matches)
-        if (positionPart.startsWith('top ') || positionPart === 'top door' || positionPart === 'top tunnel') return 'top';
-        if (positionPart.startsWith('bottom ') || positionPart === 'bottom door' || positionPart === 'bottom tunnel') return 'bottom';
-        if (positionPart.startsWith('left ') || positionPart === 'left door' || positionPart === 'left tunnel') return 'left';
-        if (positionPart.startsWith('right ') || positionPart === 'right door' || positionPart === 'right tunnel') return 'right';
+		let timeout;
+		this.jsonTextArea.addEventListener('input', () => {
+			clearTimeout(timeout);
+			timeout = setTimeout(() => {
+				try {
+					onUpdate(JSON.parse(this.jsonTextArea.value));
+				} catch { }
+			}, 500);
+		});
+	}
 
-        // Default to right if unclear
-        console.warn(`Unclear door position for: ${doorName}, defaulting to 'right'`);
-        return 'right';
-    }
+	highlightNodeInJSON(node) {
+		if (!node || !this.jsonTextArea) return;
 
-    /**
-     * Create a button for a door node
-     */
-    createDoorButton(door, doorConnections, roomData, subRoomName) {
-        const button = document.createElement('button');
-        button.className = 'door-btn';
-        button.dataset.nodeId = door.id;
+		const text = this.jsonTextArea.value;
+		const match = new RegExp(`"id":\\s*${node.id}`).exec(text);
+		if (match) {
+			this.jsonTextArea.focus();
+			this.jsonTextArea.setSelectionRange(match.index, match.index + match[0].length);
+		}
+	}
 
-        // Extract abbreviated position text
-        const abbrev = this.getAbbreviatedPosition(door.name);
+	updateTooltip(node, x, y) {
+		if (!this.tooltip) return;
 
-        // Find connection for this door
-        const connection = doorConnections[door.name];
+		if (node) {
+			this.tooltip.innerHTML = `${node.name}`.replace(/\n/g, '<br>');
+			this.tooltip.style.cssText = `
+				position: fixed;
+				display: block;
+				left: ${x + 10}px;
+				top: ${y - 30}px;
+				background: #222;
+				color: #fff;
+				padding: 4px 8px;
+				border-radius: 4px;
+				font-size: 12px;
+				pointer-events: none;
+				z-index: 10000;
+			`;
+		} else {
+			this.tooltip.style.display = 'none';
+		}
+	}
 
-        // Determine if this is a sub-room connection (same composite room, different sub-room)
-        const isSubRoomConnection = connection &&
-			connection.targetRoom === roomData.name &&
-			this.isCompositeRoom(connection.targetRoom);
-			
-        // Check if connection is Forward (one-way) or Bidirectional
-        const isOneWay = connection?.direction === 'Forward';
+	/* ============================================================
+	 * WORKING DIRECTORY
+	 * ============================================================ */
 
-        // Choose icon based on connection type
-        let icon;
-        if (connection?.connectionType === 'Elevator') {
-            icon = '🛗'; // Elevator
-        } else if (connection?.connectionType === 'Toilet') {
-            icon = '🌀'; // Turbo Tube
-        } else if (connection?.connectionType === 'ConnectionBridge') {
-            icon = '🌉'; // Connection Bridge
-        } else if (isSubRoomConnection) {
-            // Sub-room connection - check if it's a tunnel or door
-            if (door.nodeSubType === 'passage') {
-                icon = '🟣'; // Sub-room tunnel (purple circle)
-            } else {
-                icon = '🔗'; // Sub-room door
-            }
-        } else if (door.nodeSubType === 'passage') {
-            icon = '🔵'; // Regular tunnel
-        } else {
-            icon = '🚪'; // Regular door
-        }
+	updateWorkingDirectory(dir) {
+		if (this.currentDirSpan) {
+			this.currentDirSpan.textContent = `Working Directory: ${dir}`;
+		}
+	}
 
-        // Build button label
-        let label = `${icon} ${abbrev}`;
+	/* ============================================================
+	 * DOOR NAVIGATION PANEL (MERGED + RESTORED)
+	 * ============================================================ */
 
-        button.textContent = label;
+	async updateDoorButtons(roomData) {
+		const container = document.getElementById('doorButtons');
+		if (!container) return;
 
-        button.style.cssText = `
-			padding: 4px;
-			font-size: 10px;
-			line-height: 1.3;
-			white-space: pre-line;
-			cursor: pointer;
-			background: #f8f9fa;
-			border: 1px solid #ddd;
-			border-radius: 3px;
-			min-height: 40px;
-			transition: background 0.15s, border-color 0.15s;
-		`;
+		container.innerHTML = '';
 
-        // Add one-way visual indicator
-        if (isOneWay) {
-            button.classList.add('door-btn-oneway');
-        }
+		if (!roomData?.nodes) {
+			container.innerHTML = '<div class="door-panel-empty">No room loaded</div>';
+			return;
+		}
 
-        // Build detailed tooltip
-        let tooltip = 'No connection';
-        if (connection) {
-            tooltip = this.buildConnectionTooltip(connection, roomData, door);
-            // Add direction info to tooltip
-            if (isOneWay) {
-                tooltip += ' [One-Way]';
-            }
-        }
+		const instructions = document.createElement('div');
+instructions.style.cssText = `
+	padding: 8px;
+	margin-bottom: 8px;
+	background: #e3f2fd;
+	border-left: 3px solid #2196F3;
+	font-size: 11px;
+	line-height: 1.4;
+	color: #333;
+`;
+instructions.innerHTML = `
+	<strong>🖱️ Controls:</strong><br>
+	<span style="margin-left: 4px;">Left-click: Navigate</span><br>
+	<span style="margin-left: 4px;">Right-click: Edit properties</span>
+`;
+container.appendChild(instructions);
 
-        button.title = tooltip;
 
-        // Style based on connection status
-        if (connection) {
-            if (isSubRoomConnection) {
-                button.style.background = '#e3f2fd'; // Blue tint for sub-room connections
-                button.style.borderColor = '#2196F3';
-            } else {
-                button.style.background = '#d4edda';
-                button.style.borderColor = '#28a745';
-            }
-        } else {
-            button.style.opacity = '0.5';
-        }
+		const doorNodes = roomData.nodes.filter(n => n.nodeType === 'door');
+		const connections = await this.state.getDoorConnections();
+		const groups = this.groupDoorsBySubRoom(doorNodes, roomData.name);
 
-        // Store connection data
-        button._doorConnection = connection;
-        button._doorNode = door;
+		for (const [subRoomName, doors] of Object.entries(groups)) {
+			this.createSubRoomSection(container, subRoomName, doors, connections, roomData);
+		}
 
-        // Left-click: Navigate
-        button.addEventListener('click', () => {
-            if (connection) {
-                this.state.roomManager?.navigateThroughDoor(connection);
-            }
-        });
+		this.updateItemsList(roomData);
+	}
 
-        // Right-click: Open editor
-        button.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            if (this.state.currentRoomData) {
-                this.state.roomManager?.openDoorEditor(
-                    door.doorOrientation,
-                    connection,
-                    this.state.currentRoomData
-                );
-            }
-        });
+	isCompositeRoom(name) {
+		if (!name) return false;
+		if (name === 'PYR-TRO Elevator / PYR Entrance Lobby') return false;
+		return name.includes(' / ');
+	}
 
-        // Subtle hover effect
-        button.addEventListener('mouseenter', () => {
-            if (connection) {
-                if (isSubRoomConnection) {
-                    button.style.background = '#bbdefb';
-                } else {
-                    button.style.background = '#c3e6cb';
-                }
-            }
-        });
+	groupDoorsBySubRoom(doors, fullName) {
+		if (!this.isCompositeRoom(fullName)) {
+			return { [fullName]: doors };
+		}
 
-        button.addEventListener('mouseleave', () => {
-            if (connection) {
-                if (isSubRoomConnection) {
-                    button.style.background = '#e3f2fd';
-                } else {
-                    button.style.background = '#d4edda';
-                }
-            }
-        });
+		const subRooms = fullName.split(' / ').map(s => s.trim());
+		const groups = Object.fromEntries(subRooms.map(s => [s, []]));
 
-        return button;
-    }
+		for (const door of doors) {
+			const match = subRooms.find(sr => door.name.startsWith(sr + ' - '));
+			(groups[match || subRooms[0]]).push(door);
+		}
 
-    /**
-     * Build a detailed tooltip for a door connection
-     */
-    buildConnectionTooltip(connection, roomData, door) {
-        // Get target node from connection - always use the node that's NOT from current room ID and node ID
-        const sourceNodeData = connection.nodes?.[0];
-        const targetNodeData = connection.nodes?.[1];
+		return groups;
+	}
 
-        // Determine which node is actually the target (not matching current door's room and node ID)
-        let actualTargetNode = targetNodeData;
-        if (targetNodeData && targetNodeData.roomid === roomData.id && targetNodeData.nodeid === door.id) {
-            // Second node is the current door, so first is the target
-            actualTargetNode = sourceNodeData;
-        } else if (sourceNodeData && sourceNodeData.roomid === roomData.id && sourceNodeData.nodeid === door.id) {
-            // First node is the current door, so second is the target
-            actualTargetNode = targetNodeData;
-        }
+createSubRoomSection(container, name, doors, connections, roomData) {
+	const section = document.createElement('div');
+	section.className = 'door-section';
 
-        if (!actualTargetNode) {
-            return 'Connection data incomplete';
-        }
+	// RESTORED styling (was lost)
+	section.style.cssText = `
+		margin-bottom: 16px;
+		padding: 10px;
+		border: 2px solid #ccc;
+		border-radius: 6px;
+		background: #fff;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+	`;
 
-        // Extract target room name - check if it's a composite room
-        const isTargetComposite = this.isCompositeRoom(connection.targetRoom);
+	const header = document.createElement('div');
+	header.className = 'door-section-header';
+	header.textContent = name;
+
+	// RESTORED header styling
+	header.style.cssText = `
+		font-weight: bold;
+		font-size: 12px;
+		margin-bottom: 10px;
+		padding-bottom: 6px;
+		border-bottom: 2px solid #ddd;
+		color: #333;
+	`;
+
+	section.appendChild(header);
+	section.appendChild(this.createDoorGrid(doors, connections, roomData));
+	container.appendChild(section);
+}
+
+
+createDoorGrid(doors, connections, roomData) {
+	const grid = document.createElement('div');
+	grid.style.cssText = `
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		grid-template-rows: repeat(6, 1fr);
+		gap: 3px;
+		width: 100%;
+	`;
+
+	const positionMap = {
+		'left-top': 0,
+		'right-top': 2,
+		'top-left': 3,
+		'top': 4,
+		'top-right': 5,
+		'left': 6,
+		'right': 8,
+		'left-lower': 9,
+		'right-lower': 11,
+		'bottom-left': 12,
+		'bottom': 13,
+		'bottom-right': 14,
+		'left-bottom': 15,
+		'right-bottom': 17
+	};
+
+	const emptyCells = new Set([1, 7, 10, 16]);
+	const cells = Array(18).fill(null);
+
+	for (const door of doors) {
+		const pos = this.getGridPosition(door.name);
+		const idx = positionMap[pos];
+		if (idx !== undefined && !emptyCells.has(idx)) {
+			cells[idx] = this.createDoorButton(door, connections, roomData);
+		}
+	}
+
+	cells.forEach((cell, idx) => {
+		if (emptyCells.has(idx)) {
+			const placeholder = document.createElement('div');
+			placeholder.style.cssText = `
+				border: 1px dashed #e0e0e0;
+				border-radius: 3px;
+				min-height: 40px;
+			`;
+			grid.appendChild(placeholder);
+		} else if (cell) {
+			grid.appendChild(cell);
+		} else {
+			const empty = document.createElement('div');
+			empty.style.cssText = `
+				border: 1px solid #f0f0f0;
+				border-radius: 3px;
+				min-height: 40px;
+			`;
+			grid.appendChild(empty);
+		}
+	});
+
+	return grid;
+}
+
+
+getGridPosition(name) {
+	const part = name.split(' - ').pop().toLowerCase();
+
+	if (part.includes('top-left')) return 'top-left';
+	if (part.includes('top-right')) return 'top-right';
+	if (part.includes('bottom-left')) return 'bottom-left';
+	if (part.includes('bottom-right')) return 'bottom-right';
+
+	if (part.includes('left-lower')) return 'left-lower';
+	if (part.includes('right-lower')) return 'right-lower';
+
+	if (part.includes('left-top')) return 'left-top';
+	if (part.includes('right-top')) return 'right-top';
+	if (part.includes('left-bottom')) return 'left-bottom';
+	if (part.includes('right-bottom')) return 'right-bottom';
+
+	if (part.startsWith('top')) return 'top';
+	if (part.startsWith('bottom')) return 'bottom';
+	if (part.startsWith('left')) return 'left';
+	if (part.startsWith('right')) return 'right';
+
+	return 'right';
+}
+
+
+	createDoorButton(door, connections, roomData) {
+		const btn = document.createElement('button');
+		btn.className = 'door-btn';
+
+btn.style.cssText = `
+	padding: 4px;
+	font-size: 10px;
+	line-height: 1.3;
+	white-space: pre-line;
+	cursor: pointer;
+	min-height: 40px;
+	box-sizing: border-box;
+`;
+
+
+		const connection = connections[door.name];
+		const abbrev = this.getAbbreviatedPosition(door.name);
+
+		let icon = '🚪';
+		if (connection?.connectionType === 'Elevator') icon = '🛗';
+		else if (connection?.connectionType === 'Toilet') icon = '🌀';
+		else if (connection?.connectionType === 'ConnectionBridge') icon = '🌉';
+		else if (door.nodeSubType === 'passage') icon = '🔵';
+
+		btn.textContent = `${icon} ${abbrev}`;
+
+if (connection) {
+	btn.classList.add('door-connected');
+
+	// Forward vs bidirectional
+	if (connection.direction === 'Forward') {
+		btn.classList.add('door-btn-oneway');
+	} else {
+		btn.classList.add('door-btn-bidirectional');
+	}
+
+	// Sub-room connections (same composite room)
+	if (
+		this.isCompositeRoom(roomData.name) &&
+		connection.targetRoom === roomData.name
+	) {
+		btn.classList.add('door-subroom');
+	}
+
+	// Tunnel vs door
+	if (door.nodeSubType === 'passage') {
+		btn.classList.add('door-passage');
+	}
+
+	btn.title = this.buildConnectionTooltip(connection, roomData, door);
+
+	btn.onclick = () =>
+		this.state.roomManager?.navigateThroughDoor(connection);
+
+	btn.oncontextmenu = e => {
+		e.preventDefault();
+		this.state.roomManager?.openDoorEditor(
+			door.doorOrientation,
+			connection,
+			roomData
+		);
+	};
+} else {
+	btn.classList.add('door-disconnected');
+}
+
+		return btn;
+	}
+
+	buildConnectionTooltip(connection, roomData, door) {
+		const nodes = connection.nodes || [];
+		const targetNode = nodes.find(
+			n => !(n.roomid === roomData.id && n.nodeid === door.id)
+		);
+
+		if (!targetNode) return 'Connection data incomplete';
+
+		let targetRoom = connection.targetRoom;
+		if (this.isCompositeRoom(targetRoom) && targetNode.nodeName?.includes(' - ')) {
+			targetRoom = `[Sub-Room] ${targetNode.nodeName.split(' - ')[0]}`;
+		}
+
+		const pos = this.extractPositionFromNodeName(targetNode.nodeName);
+		const type = connection.connectionType || 'Door';
+
+		return `Connected to: ${targetRoom} (${pos} ${type})` +
+			(connection.direction === 'Forward' ? ' [One-Way]' : '');
+	}
+
+	extractPositionFromNodeName(name) {
+		return name.split(' - ').pop().replace(/\s+(Door|Tunnel)$/i, '');
+	}
+
+	getAbbreviatedPosition(name) {
+		return name.split(' - ').pop()
+			.replace(/\s+(Door|Tunnel)$/i, '')
+			.replace('Top-Left', 'TL')
+			.replace('Top-Right', 'TR')
+			.replace('Bottom-Left', 'BL')
+			.replace('Bottom-Right', 'BR')
+			.replace('Left-Lower', 'LL')
+			.replace('Right-Lower', 'RL')
+			.replace('Left-Top', 'LT')
+			.replace('Right-Top', 'RT')
+			.replace('Left-Bottom', 'LB')
+			.replace('Right-Bottom', 'RB')
+			.replace('Top', 'T')
+			.replace('Bottom', 'B')
+			.replace('Left', 'L')
+			.replace('Right', 'R');
+	}
+
+	/* ============================================================
+	 * ITEMS LIST
+	 * ============================================================ */
+
+	updateItemsList(roomData) {
+		const container = document.getElementById('itemsList');
+		if (!container) return;
+
+		container.innerHTML = '';
+
+		const items = roomData?.nodes?.filter(n => n.nodeType === 'item') || [];
+		for (const item of items) {
+			const div = document.createElement('div');
+			div.className = 'item-entry';
+
+			div.innerHTML = `
+				<div class="item-name">${item.nodeItem || 'Unknown Item'}</div>
+				<div class="item-type">Type: ${item.nodeSubType || 'visible'}</div>
+				${item.note ? `<div class="item-note">${item.note}</div>` : ''}
+			`;
+			container.appendChild(div);
+		}
+	}
+
+	showAlert(msg) {
+		// Create custom modal instead of alert()
+		const modal = document.createElement('div');
+		modal.className = 'modal-overlay';
+		modal.style.cssText = 'display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;';
 		
-        let targetDisplay;
-
-        // For composite room targets, extract the specific sub-room from node name
-        if (isTargetComposite) {
-            const targetNodeName = actualTargetNode.nodeName || '';
-
-            // Extract sub-room name from node name (format: "SubRoom - Position Door")
-            let targetSubRoom = null;
-            const nodeNameParts = targetNodeName.split(' - ');
-            if (nodeNameParts.length > 1) {
-                // First part is the sub-room name
-                targetSubRoom = nodeNameParts[0];
-            }
-
-            if (targetSubRoom) {
-                targetDisplay = `[Sub-Room] ${targetSubRoom}`;
-            } else {
-                // Fallback: show full composite name
-                targetDisplay = connection.targetRoom;
-            }
-        } else {
-            // Simple room - just show the room name
-            targetDisplay = connection.targetRoom;
-        }
-
-        // Determine door/tunnel type from connection type
-        let targetType = 'Door';
-        if (connection.connectionType) {
-            if (connection.connectionType.includes('Tunnel')) {
-                targetType = 'Tunnel';
-            } else if (connection.connectionType === 'Elevator') {
-                targetType = 'Elevator';
-            } else if (connection.connectionType === 'ConnectionBridge') {
-                targetType = 'Connection Bridge';
-            } else if (connection.connectionType === 'Toilet') {
-                targetType = 'Turbo Tube';
-            }
-        }
-
-        // Get TARGET position - convert from the target node's actual position and name
-        const targetPosition = this.getDisplayPositionFromNode(actualTargetNode, connection.connectionType);
-
-        return `Connected to: ${targetDisplay} (${targetPosition} ${targetType})`;
-    }
-
-    /**
-     * Get display position from a connection node, handling horizontal/vertical door conversions
-     */
-    getDisplayPositionFromNode(node, connectionType) {
-        if (!node || !node.nodeName) return 'Unknown';
-
-        const nodeName = node.nodeName;
-
-        // For all connection types, extract position from the node name itself
-        return this.extractPositionFromNodeName(nodeName);
-    }
-
-    /**
-     * Extract and format position text from node name
-     */
-    extractPositionFromNodeName(nodeName) {
-        // Remove sub-room prefix if present
-        const parts = nodeName.split(' - ');
-        const positionPart = parts.length > 1 ? parts[parts.length - 1] : nodeName;
-
-        // Remove " Door" or " Tunnel" suffix
-        let position = positionPart.replace(/\s+(Door|Tunnel)$/i, '');
-
-        // Capitalize each word and join with hyphens
-        return position.split(/[\s-]+/)
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join('-');
-    }
-
-    /**
-     * Capitalize position for display
-     */
-    capitalizePosition(position) {
-        return position.charAt(0).toUpperCase() + position.slice(1);
-    }
-
-    /**
-     * Get abbreviated position text for compact display
-     */
-    getAbbreviatedPosition(fullName) {
-        const parts = fullName.split(' - ');
-        const positionPart = parts.length > 1 ? parts[parts.length - 1] : fullName;
-
-        // Remove "Door" or "Tunnel" suffix
-        let position = positionPart.replace(/\s+(Door|Tunnel)$/i, '');
-
-        // Abbreviate common words
-        position = position
-            .replace('Top-Left', 'TL')
-            .replace('Top-Right', 'TR')
-            .replace('Bottom-Left', 'BL')
-            .replace('Bottom-Right', 'BR')
-            .replace('Left-Lower', 'LL')
-            .replace('Right-Lower', 'RL')
-            .replace('Left-Top', 'LT')
-            .replace('Right-Top', 'RT')
-            .replace('Left-Bottom', 'LB')
-            .replace('Right-Bottom', 'RB')
-            .replace('Top', 'T')
-            .replace('Bottom', 'B')
-            .replace('Left', 'L')
-            .replace('Right', 'R');
-
-        return position;
-    }
-
-    showAlert(message) {
-        alert(message);
-    }
-
-    getJsonText() {
-        return this.jsonTextArea.value;
-    }
-
-    setupJsonEditor(onJsonChange) {
-        this.jsonTextArea.addEventListener("input", () => {
-            try {
-                const parsed = JSON.parse(this.jsonTextArea.value);
-                onJsonChange(parsed);
-            } catch (err) {
-                // Invalid JSON - ignore until valid
-            }
-        });
-    }
+		const content = document.createElement('div');
+		content.style.cssText = 'background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 300px;';
+		
+		const message = document.createElement('div');
+		message.textContent = msg;
+		message.style.cssText = 'margin-bottom: 16px; font-size: 14px;';
+		
+		const okBtn = document.createElement('button');
+		okBtn.textContent = 'OK';
+		okBtn.style.cssText = 'padding: 8px 16px; background: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; float: right;';
+		
+		content.appendChild(message);
+		content.appendChild(okBtn);
+		modal.appendChild(content);
+		document.body.appendChild(modal);
+		
+		const cleanup = () => modal.remove();
+		
+		okBtn.onclick = cleanup;
+		okBtn.focus();
+		
+		okBtn.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter' || e.key === 'Escape') {
+				e.preventDefault();
+				cleanup();
+			}
+		});
+		
+		modal.addEventListener('click', (e) => {
+			if (e.target === modal) cleanup();
+		});
+	}
 }

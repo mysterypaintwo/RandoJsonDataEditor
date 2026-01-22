@@ -544,16 +544,46 @@ function createMapCheckboxList(map, label, initialSelected = []) {
 
     const initialSet = new Set((initialSelected || []).map(x => String(x)));
 
+    // Button container for all three buttons
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '6px';
+    buttonContainer.style.marginBottom = '6px';
+
     const collapseButton = document.createElement('button');
     collapseButton.textContent = 'Hide List ▼';
-    collapseButton.style.marginBottom = '6px';
     collapseButton.style.padding = '4px 8px';
     collapseButton.style.fontSize = '12px';
     collapseButton.style.cursor = 'pointer';
     collapseButton.style.background = '#f8f9fa';
     collapseButton.style.border = '1px solid #dee2e6';
     collapseButton.style.borderRadius = '4px';
-    container.appendChild(collapseButton);
+    collapseButton.style.flex = '1';
+
+    const showCheckedButton = document.createElement('button');
+    showCheckedButton.textContent = 'Hide Unchecked ▼';
+    showCheckedButton.style.padding = '4px 8px';
+    showCheckedButton.style.fontSize = '12px';
+    showCheckedButton.style.cursor = 'pointer';
+    showCheckedButton.style.background = '#f8f9fa';
+    showCheckedButton.style.border = '1px solid #dee2e6';
+    showCheckedButton.style.borderRadius = '4px';
+    showCheckedButton.style.flex = '1';
+
+    const showDescButton = document.createElement('button');
+    showDescButton.textContent = 'Hide Descriptions ▼';
+    showDescButton.style.padding = '4px 8px';
+    showDescButton.style.fontSize = '12px';
+    showDescButton.style.cursor = 'pointer';
+    showDescButton.style.background = '#f8f9fa';
+    showDescButton.style.border = '1px solid #dee2e6';
+    showDescButton.style.borderRadius = '4px';
+    showDescButton.style.flex = '1';
+
+    buttonContainer.appendChild(collapseButton);
+    buttonContainer.appendChild(showCheckedButton);
+    buttonContainer.appendChild(showDescButton);
+    container.appendChild(buttonContainer);
 
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
@@ -585,6 +615,50 @@ function createMapCheckboxList(map, label, initialSelected = []) {
     table.appendChild(tbody);
 
     const checkboxes = [];
+    let hideUnchecked = initialSet.size > 0; // Start with unchecked hidden if there are selections
+    let hideDescriptions = hideUnchecked ? true : false;
+
+    function updateRowVisibility() {
+        const filter = searchInput.value.toLowerCase();
+        
+        tbody.querySelectorAll('tr').forEach(row => {
+            // Handle category headers
+            const catHeader = row.querySelector('td[colspan="3"]');
+            if (catHeader) {
+                // Hide category headers when showing only checked items
+                row.style.display = hideUnchecked ? 'none' : 'block';
+                return;
+            }
+
+            const nameCell = row.querySelector('td:nth-child(2)');
+            const noteCell = row.querySelector('td:nth-child(3)');
+            if (!nameCell) return;
+
+            // Handle description visibility
+            if (noteCell) {
+                noteCell.style.display = hideDescriptions ? 'none' : '';
+            }
+
+            // Adjust grid columns based on description visibility
+            if (hideDescriptions) {
+                row.style.gridTemplateColumns = '40px 1fr';
+            } else {
+                row.style.gridTemplateColumns = '40px 200px 1fr';
+            }
+
+            // Check if row matches search filter
+            const textToCheck = nameCell.textContent + ' ' + (noteCell ? noteCell.textContent : '');
+            const matchesSearch = !filter || textToCheck.toLowerCase().includes(filter);
+
+            // Find the checkbox for this row
+            const checkbox = row.querySelector('input[type="checkbox"]');
+            const isChecked = checkbox ? checkbox.checked : false;
+
+            // Show row if it matches search AND (not hiding unchecked OR is checked)
+            const shouldShow = matchesSearch && (!hideUnchecked || isChecked);
+            row.style.display = shouldShow ? '' : 'none';
+        });
+    }
 
     function renderItemRow(item, depth = 0) {
         const row = document.createElement('tr');
@@ -616,6 +690,9 @@ function createMapCheckboxList(map, label, initialSelected = []) {
         const isChecked = (itemIdStr && initialSet.has(itemIdStr)) || initialSet.has(String(item.name));
         checkbox.checked = !!isChecked;
 
+        // Update visibility when checkbox changes
+        checkbox.addEventListener('change', updateRowVisibility);
+
         cbCell.appendChild(checkbox);
         row.appendChild(cbCell);
 
@@ -637,6 +714,7 @@ function createMapCheckboxList(map, label, initialSelected = []) {
         noteCell.style.lineHeight = '1.4';
         noteCell.style.padding = '0 12px 0 8px';
         noteCell.style.cursor = 'pointer';
+        noteCell.className = 'description-cell'; // For easier targeting
         
         const noteText = Array.isArray(item.devNote)
             ? item.devNote.join(' ')
@@ -699,6 +777,7 @@ function createMapCheckboxList(map, label, initialSelected = []) {
             const catRow = document.createElement('tr');
             catRow.style.display = 'block';
             catRow.style.width = '100%';
+            catRow.className = 'category-header-row'; // For easier targeting
             
             const catCell = document.createElement('td');
             catCell.colSpan = 3;
@@ -715,34 +794,38 @@ function createMapCheckboxList(map, label, initialSelected = []) {
             // Add items for this category
             (catObj.items || []).forEach(item => renderItemRow(item));
         }
+
+        // Apply initial visibility
+        updateRowVisibility();
+        
+        // Update button text based on initial state
+        showCheckedButton.textContent = hideUnchecked ? 'Show Unchecked ▶' : 'Hide Unchecked ▼';
+        showDescButton.textContent = hideDescriptions ? 'Show Descriptions ▶' : 'Hide Descriptions ▼';
     }
 
     // Search functionality
-    searchInput.addEventListener('input', () => {
-        const filter = searchInput.value.toLowerCase();
-        tbody.querySelectorAll('tr').forEach(row => {
-            // Skip category headers
-            const catHeader = row.querySelector('td[colspan="3"]');
-            if (catHeader) {
-                row.style.display = 'block';
-                return;
-            }
+    searchInput.addEventListener('input', updateRowVisibility);
 
-            const nameCell = row.querySelector('td:nth-child(2)');
-            const noteCell = row.querySelector('td:nth-child(3)');
-            if (!nameCell) return;
-            
-            const textToCheck = nameCell.textContent + ' ' + (noteCell ? noteCell.textContent : '');
-            row.style.display = textToCheck.toLowerCase().includes(filter) ? '' : 'none';
-        });
-    });
-
-    // Collapse functionality
+    // Collapse functionality (hides entire list)
     collapseButton.addEventListener('click', () => {
         const isHidden = tableWrapper.style.display === 'none';
         tableWrapper.style.display = isHidden ? '' : 'none';
         searchInput.style.display = isHidden ? '' : 'none';
         collapseButton.textContent = isHidden ? 'Hide List ▼' : 'Show List ▶';
+    });
+
+    // Show checked only functionality
+    showCheckedButton.addEventListener('click', () => {
+        hideUnchecked = !hideUnchecked;
+        showCheckedButton.textContent = hideUnchecked ? 'Show Unchecked ▶' : 'Hide Unchecked ▼';
+        updateRowVisibility();
+    });
+
+    // Show/hide descriptions functionality
+    showDescButton.addEventListener('click', () => {
+        hideDescriptions = !hideDescriptions;
+        showDescButton.textContent = hideDescriptions ? 'Show Descriptions ▶' : 'Hide Descriptions ▼';
+        updateRowVisibility();
     });
 
     // Build initial table
@@ -775,48 +858,6 @@ function createMapCheckboxList(map, label, initialSelected = []) {
 // =============================================================================
 // UI Element Creation Helpers
 // =============================================================================
-
-/**
- * Creates a collapsible container with toggle functionality
- */
-function createCollapsibleContainer(title, content, isCollapsed = false) {
-	const container = document.createElement('div');
-	container.className = 'collapsible-container';
-
-	const header = document.createElement('div');
-	header.className = 'collapsible-header';
-	header.style.cursor = 'pointer';
-	header.style.display = 'flex';
-	header.style.alignItems = 'center';
-	header.style.gap = '8px';
-
-	const toggleBtn = document.createElement('span');
-	toggleBtn.textContent = isCollapsed ? '▶' : '▼';
-	toggleBtn.style.fontSize = '12px';
-
-	const titleSpan = document.createElement('span');
-	titleSpan.textContent = title;
-	titleSpan.style.fontWeight = 'bold';
-
-	header.appendChild(toggleBtn);
-	header.appendChild(titleSpan);
-
-	const contentDiv = document.createElement('div');
-	contentDiv.className = 'collapsible-content';
-	contentDiv.style.display = isCollapsed ? 'none' : 'block';
-	contentDiv.appendChild(content);
-
-	header.addEventListener('click', () => {
-		const isHidden = contentDiv.style.display === 'none';
-		contentDiv.style.display = isHidden ? 'block' : 'none';
-		toggleBtn.textContent = isHidden ? '▼' : '▶';
-	});
-
-	container.appendChild(header);
-	container.appendChild(contentDiv);
-
-	return container;
-}
 
 /**
  * Creates a resource entry editor (type + count inputs)

@@ -394,11 +394,11 @@ const CONDITION_CONFIG = {
 
 // Resource type options
 const RESOURCE_TYPES = [
-	'Missile', 'Super', 'PowerBomb', 'RegularEnergy', 'ReserveEnergy', 'Energy'
+	'Missile', 'Super', 'Ice Missile', 'Diffusion', 'PowerBomb', 'RegularEnergy', 'ReserveEnergy', 'Energy'
 ];
 
 const AMMO_TYPES = [
-	'Missile', 'Super', 'PowerBomb'
+	'Missile', 'Super', 'Ice Missile', 'Diffusion', 'PowerBomb'
 ];
 
 // Placeholder text for different condition types

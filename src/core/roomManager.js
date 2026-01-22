@@ -96,7 +96,10 @@ export class RoomManager {
 			this.state.nodes,
 			this.state.selectedNode,
 			this.state.currentRect,
-			this.state.scale
+			this.state.scale,
+			this.state.currentRoomData?.strats,
+			undefined, // mouseX - will be set by handleMouseMove
+			undefined  // mouseY
 		);
 	}
 	/**
@@ -277,28 +280,48 @@ export class RoomManager {
 			sector: this.state.currentArea,
 			region: this.state.currentSubarea,
 			roomName: roomData.name || 'Unknown Room',
+			roomItemNodes: this.state.currentRoomData.nodes.filter(node => node.nodeType === "item"),
 			connection: connection,
 			doorNode: doorNode,
 			allRoomsMetadata: this.state.allRoomsMetadata
 		};
 		console.log('Opening door editor with data:', editorData);
-		window.api.openDoorEditor(editorData);
+		window.api.openDoorEditor(editorData,
+			this.state.getEnemyList(),
+			this.state.getItemList(),
+			this.state.getEventList(),
+			this.state.getWeaponList(),
+			this.state.getTechMap(),
+			this.state.getHelperMap()
+		);
 	}
 	/**
 	 * Find door node that corresponds to a given direction
 	 * @param {string} direction - Door direction
 	 * @returns {Object|null} Door node if found
 	 */
-	findDoorNodeByDirection(direction) {
-		if (!this.state.currentRoomData?.nodes) {
-			return null;
+	findDoorNodeByDirection(direction, connection) {
+		if (!this.state.currentRoomData?.nodes) return null;
+
+		const dir = direction.toLowerCase();
+
+		// Prefer exact node match from connection data
+		if (connection?.nodes) {
+			const localNode = connection.nodes.find(n =>
+				n.roomid === this.state.currentRoomData.id
+			);
+			if (localNode) {
+				return this.state.currentRoomData.nodes.find(
+					node => node.id === localNode.nodeid
+				) || null;
+			}
 		}
-		const expectedName = formatDirection(direction);
-		// Find the first node that is a door and whose name includes the expected direction name
-		const doorNode = this.state.currentRoomData.nodes.find(node =>
-			node.nodeType === 'door' && node.name.includes(expectedName)
+
+		// Fallback to orientation match
+		return this.state.currentRoomData.nodes.find(node =>
+			node.nodeType === 'door' &&
+			node.doorOrientation === dir
 		) || null;
-		return doorNode;
 	}
 	/**
 	 * Update door connection data
@@ -310,37 +333,40 @@ export class RoomManager {
 		await this.uiManager.updateDoorButtons(this.state.currentRoomData);
 	}
 	/**
-	 * Handle Door Node Updates
+	 * Handle Door Node Updates (in-memory only)
 	 */
-	async handleDoorNodeUpdate(payload) {
+	handleDoorNodeUpdate(payload) {
 		const {
 			nodeId,
 			updatedNode
 		} = payload;
 
-		if (!this.state.currentRoomData || !this.state.currentRoomData.nodes) {
+		if (!this.state.currentRoomData?.nodes) {
 			console.error('No room data available for door node update');
 			return;
 		}
 
-		// Find and update the door node
-		const nodeIndex = this.state.currentRoomData.nodes.findIndex(n => n.id === nodeId);
-		if (nodeIndex === -1) {
-			console.error(`Door node ${nodeId} not found in current room`);
-			return;
-		}
+		// Create a shallow copy of room data to avoid mutating references
+		const updatedRoomData = {
+			...this.state.currentRoomData,
+			nodes: this.state.currentRoomData.nodes.map(node =>
+				node.id === nodeId ? updatedNode : node
+			)
+		};
 
-		// Update the node
-		this.state.currentRoomData.nodes[nodeIndex] = updatedNode;
+		// Update state (in-memory only)
+		this.state.currentRoomData = updatedRoomData;
+		this.state.updateRoomNodes(updatedRoomData.nodes);
 
-		// Save the updated room data
-		await this.saveCurrentRoom();
+		// Update JSON display
+		this.uiManager.updateJsonDisplay(updatedRoomData);
 
-		// Redraw the renderer in case any data changed
+		// Redraw renderer
 		this.redrawRenderer();
 
-		console.log(`Door node ${nodeId} updated successfully`);
+		console.log(`Door node ${nodeId} updated (in-memory only)`);
 	}
+
 	/**
 	 * Handle Room Properties Editor Updates
 	 */

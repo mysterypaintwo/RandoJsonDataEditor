@@ -42,32 +42,50 @@ class BaseEditor {
         this.root.setAssignedId = (newId) => this.setAssignedId(newId);
     }
 
-    createHeader() {
-        this.headerContainer = document.createElement('div');
-        this.headerContainer.className = 'editor-card-header';
-        this.headerContainer.style.cursor = 'grab';
-        this.headerContainer.style.userSelect = 'none';
+	createHeader() {
+		this.headerContainer = document.createElement('div');
+		this.headerContainer.className = 'editor-card-header';
+		this.headerContainer.style.cursor = 'grab';
+		this.headerContainer.style.userSelect = 'none';
+		this.headerContainer.style.display = 'flex';
+		this.headerContainer.style.alignItems = 'center';
+		this.headerContainer.style.gap = '8px';
 
-        this.toggleButton = document.createElement('button');
-        this.toggleButton.textContent = '▶'; // Start with collapsed icon
-        this.toggleButton.className = 'toggle-btn';
-        this.toggleButton.style.marginRight = '8px';
-        this.toggleButton.style.minWidth = '20px';
-        this.toggleButton.style.fontSize = '12px';
-        this.toggleButton.style.background = 'transparent';
-        this.toggleButton.style.border = 'none';
-        this.toggleButton.style.cursor = 'pointer';
+		this.toggleButton = document.createElement('button');
+		this.toggleButton.textContent = '▶'; // Start with collapsed icon
+		this.toggleButton.className = 'toggle-btn';
+		this.toggleButton.style.marginRight = '8px';
+		this.toggleButton.style.minWidth = '20px';
+		this.toggleButton.style.fontSize = '12px';
+		this.toggleButton.style.background = 'transparent';
+		this.toggleButton.style.border = 'none';
+		this.toggleButton.style.cursor = 'pointer';
 
-        this.titleSpan = document.createElement('span');
-        this.titleSpan.style.flex = '1';
+		this.titleSpan = document.createElement('span');
+		this.titleSpan.style.flex = '1';
 
-        this.headerContainer.appendChild(this.toggleButton);
-        this.headerContainer.appendChild(this.titleSpan);
+		// Add remove button to header (for quick deletion)
+		this.headerRemoveButton = document.createElement('button');
+		this.headerRemoveButton.textContent = '✕';
+		this.headerRemoveButton.className = 'header-remove-btn';
+		this.headerRemoveButton.style.minWidth = '24px';
+		this.headerRemoveButton.style.padding = '4px 8px';
+		this.headerRemoveButton.style.fontSize = '14px';
+		this.headerRemoveButton.style.background = '#ff6b6b';
+		this.headerRemoveButton.style.color = 'white';
+		this.headerRemoveButton.style.border = 'none';
+		this.headerRemoveButton.style.borderRadius = '3px';
+		this.headerRemoveButton.style.cursor = 'pointer';
+		this.headerRemoveButton.title = 'Delete this item';
 
-        this.updateTitle();
+		this.headerContainer.appendChild(this.toggleButton);
+		this.headerContainer.appendChild(this.titleSpan);
+		this.headerContainer.appendChild(this.headerRemoveButton);
 
-        this.root.appendChild(this.headerContainer);
-    }
+		this.updateTitle();
+
+		this.root.appendChild(this.headerContainer);
+	}
 
     createContentArea() {
         this.contentArea = document.createElement('div');
@@ -77,26 +95,38 @@ class BaseEditor {
         this.root.appendChild(this.contentArea);
     }
 
-    setupEventHandlers() {
-        this.toggleButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggle();
-        });
+	setupEventHandlers() {
+		this.toggleButton.addEventListener('click', (e) => {
+			e.stopPropagation();
+			this.toggle();
+		});
 
-        this.toggleButton.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
-        });
+		this.toggleButton.addEventListener('mousedown', (e) => {
+			e.stopPropagation();
+		});
 
-        // Double-click header to toggle
-        this.headerContainer.addEventListener('dblclick', (e) => {
-            if (e.target === this.headerContainer || e.target === this.titleSpan) {
-                this.toggle();
-            }
-        });
+		// Header remove button
+		this.headerRemoveButton.addEventListener('click', (e) => {
+			e.stopPropagation();
+			if (confirm('Are you sure you want to delete this item?')) {
+				this.remove();
+			}
+		});
 
-        // Set up title update monitoring (debounced)
-        this.setupTitleUpdates();
-    }
+		this.headerRemoveButton.addEventListener('mousedown', (e) => {
+			e.stopPropagation();
+		});
+
+		// Double-click header to toggle
+		this.headerContainer.addEventListener('dblclick', (e) => {
+			if (e.target === this.headerContainer || e.target === this.titleSpan) {
+				this.toggle();
+			}
+		});
+
+		// Set up title update monitoring (debounced)
+		this.setupTitleUpdates();
+	}
 
     setupTitleUpdates() {
         // To be overridden by subclasses to monitor specific fields
@@ -189,18 +219,33 @@ class BaseEditor {
         this.root.classList.remove('collapsed');
     }
 
-    remove() {
-        if (this.onRemove) {
-            this.onRemove();
-        }
+	remove() {
+		console.log(`[BaseEditor] Removing ${this.config.type} ${this._uid}`);
+		
+		// Call the onRemove callback FIRST, before any DOM manipulation
+		if (this.onRemove) {
+			this.onRemove();
+		}
 
-        // Clear any pending timeouts
-        if (this._titleUpdateTimeout) {
-            clearTimeout(this._titleUpdateTimeout);
-        }
+		// Clean up any pending timeouts
+		if (this._titleUpdateTimeout) {
+			clearTimeout(this._titleUpdateTimeout);
+		}
 
-        this.root.remove();
-    }
+		// Clean up any condition editors
+		if (this.entranceConditionEditor && this.entranceConditionEditor.remove) {
+			this.entranceConditionEditor.remove();
+		}
+		if (this.exitConditionEditor && this.exitConditionEditor.remove) {
+			this.exitConditionEditor.remove();
+		}
+		if (this.requiresEditor && this.requiresEditor.remove) {
+			this.requiresEditor.remove();
+		}
+
+		// Finally remove from DOM
+		this.root.remove();
+	}
 
     // Utility method for creating remove buttons
     createRemoveButton(text, customCallback = null) {

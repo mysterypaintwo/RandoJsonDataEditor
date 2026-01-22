@@ -27,7 +27,7 @@ class ConditionRenderers {
 // =============================================================================
 
 class LogicalRenderer {
-	static render(editor, type, initialCondition) {
+static render(editor, type, initialCondition) {
 		if (type === 'not') {
 			// "not" only accepts a string, not nested conditions
 			const container = editor.createInputContainer();
@@ -108,16 +108,13 @@ class LogicalRenderer {
 			container.appendChild(select);
 			editor.childrenContainer.appendChild(container);
 			editor.inputs.notSelect = select;
+        	console.log(`[LogicalRenderer.render] Rendered NOT condition`);
 			return;
 		}
 
-		// For 'and' and 'or', use the standard approach
-		const initialChildren = (initialCondition && initialCondition[type]) || [];
-		initialChildren.forEach(childData => {
-			editor.addChildCondition(childData, false);
-		});
-
+		 // For 'and' and 'or', create the add button FIRST
 		if (!editor.addButton) {
+			console.log(`[LogicalRenderer.render] Creating add button for ${type}`);
 			editor.addButton = document.createElement('button');
 			editor.addButton.textContent = type === 'and' ? '+ Add Sub-condition' : '+ Add Option';
 			editor.addButton.className = 'add-btn';
@@ -125,27 +122,72 @@ class LogicalRenderer {
 			editor.addButton.addEventListener('click', () => {
 				editor.addChildCondition();
 			});
+			editor.childrenContainer.appendChild(editor.addButton);
+			console.log(`[LogicalRenderer.render] Add button created and appended`);
+		} else {
+			console.log(`[LogicalRenderer.render] Add button already exists`);
 		}
-		editor.childrenContainer.appendChild(editor.addButton);
+
+		// Extract children array from initialCondition
+		let initialChildren = [];
+		if (initialCondition) {
+			console.log(`[LogicalRenderer.render] Extracting children from initialCondition, type: ${type}`);
+			console.log(`[LogicalRenderer.render] initialCondition[${type}]:`, initialCondition[type]);
+			
+			if (initialCondition[type] && Array.isArray(initialCondition[type])) {
+				// Normal case: { "or": [...] } or { "and": [...] }
+				initialChildren = initialCondition[type];
+				console.log(`[LogicalRenderer.render] Found ${initialChildren.length} children in initialCondition.${type}`);
+			} else if (Array.isArray(initialCondition)) {
+				// Edge case: already an array
+				initialChildren = initialCondition;
+				console.log(`[LogicalRenderer.render] initialCondition is already an array with ${initialChildren.length} items`);
+			} else {
+				console.warn(`[LogicalRenderer.render] Could not extract children array from:`, initialCondition);
+			}
+		} else {
+			console.log(`[LogicalRenderer.render] No initialCondition provided`);
+		}
+
+		console.log(`[LogicalRenderer.render] About to create ${initialChildren.length} child editors`);
+
+		// Add initial children - they will be inserted before the button
+		initialChildren.forEach((childData, index) => {
+			console.log(`[LogicalRenderer.render] Creating child ${index}/${initialChildren.length}:`, childData);
+			const childEditor = editor.addChildCondition(childData, true);
+			console.log(`[LogicalRenderer.render] Child ${index} created:`, childEditor ? 'success' : 'FAILED');
+		});
+		
+		console.log(`[LogicalRenderer.render] END - Created ${editor.childEditors.length} child editors total`);
 	}
 
 	static getValue(editor, type) {
-		if (type === 'not') {
-			const notValue = editor.inputs.notSelect?.value?.trim();
-			return notValue ? {
-				not: notValue
-			} : null;
-		} else {
-			const childValues = editor.childEditors
-				.map(child => child.getValue())
-				.filter(value => value !== null);
+    if (type === 'not') {
+        const notValue = editor.inputs.notSelect?.value?.trim();
+        return notValue ? {
+            not: notValue
+        } : null;
+    } else {
+        const childValues = editor.childEditors
+            .map(child => child.getValue())
+            .filter(value => value !== null && value !== undefined && value !== '');
 
-			// For 'and' and 'or', always return array format
-			return childValues.length > 0 ? {
-				[type]: childValues
-			} : null;
-		}
-	}
+        // Filter out empty conditions - if a child has selectedType === '' (no condition), getValue returns null
+        const validChildValues = childValues.filter(value => {
+            // Make sure we have actual data, not just empty objects
+            if (typeof value === 'object' && !Array.isArray(value)) {
+                return Object.keys(value).length > 0;
+            }
+            return true;
+        });
+
+        // For 'and' and 'or', always return array format
+        // But return null if there are no valid children
+        return validChildValues.length > 0 ? {
+            [type]: validChildValues
+        } : null;
+    }
+}
 }
 
 // =============================================================================
@@ -265,17 +307,41 @@ class MultiSelectRenderer {
 		const container = editor.createInputContainer();
 
 		if (type === 'tech') {
+			// Extract the tech value - it might be a string or in an object
+			let selectedTech = [];
+			if (initialCondition) {
+				if (typeof initialCondition === 'string') {
+					selectedTech = [initialCondition];
+				} else if (initialCondition.tech) {
+					selectedTech = Array.isArray(initialCondition.tech) 
+						? initialCondition.tech 
+						: [initialCondition.tech];
+				}
+			}
+			
 			editor.inputs.techCheckboxContainer = createMapCheckboxList(
 				window.EditorGlobals.techMap,
 				'Tech',
-				initialCondition?.tech || []
+				selectedTech
 			);
 			container.appendChild(editor.inputs.techCheckboxContainer);
 		} else if (type === 'helper') {
+			// Extract the helper value - it might be a string or in an object
+			let selectedHelper = [];
+			if (initialCondition) {
+				if (typeof initialCondition === 'string') {
+					selectedHelper = [initialCondition];
+				} else if (initialCondition.helper) {
+					selectedHelper = Array.isArray(initialCondition.helper)
+						? initialCondition.helper
+						: [initialCondition.helper];
+				}
+			}
+			
 			editor.inputs.helperCheckboxContainer = createMapCheckboxList(
 				window.EditorGlobals.helperMap,
 				'Helper',
-				initialCondition?.helper || []
+				selectedHelper
 			);
 			container.appendChild(editor.inputs.helperCheckboxContainer);
 		}
@@ -1617,11 +1683,15 @@ class DefaultRenderer {
 			container.innerHTML = ``;
 		editor.childrenContainer.appendChild(container);
 	}
-
-	static getValue(editor, type) {
-		console.warn(`getValue not implemented for condition type: ${type}`);
-		return null;
-	}
+	
+static getValue(editor, type) {
+    // Empty type means "no condition" - return null
+    if (!type || type === '') {
+        return null;
+    }
+    console.warn(`getValue not implemented for condition type: ${type}`);
+    return null;
+}
 }
 
 // =============================================================================

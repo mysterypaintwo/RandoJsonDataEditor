@@ -39,8 +39,7 @@ class StratEditor extends BaseEditor {
             collectsItems: normalizeArrayField(data, 'collectsItems'),
             setsFlags: normalizeArrayField(data, 'setsFlags'),
             wallJumpAvoid: normalizeBooleanField(data, 'wallJumpAvoid'),
-            flashSuitChecked: normalizeBooleanField(data, 'flashSuitChecked'),
-            id: data?.id
+            flashSuitChecked: normalizeBooleanField(data, 'flashSuitChecked')
         };
     }
 
@@ -203,45 +202,50 @@ class StratEditor extends BaseEditor {
         }
     }
 
-    createConditionEditors() {
-        // Entrance condition - simple placeholder (no editor exists)
-        this.entranceConditionDiv.innerHTML = '<em style="color: #999;">Entrance conditions not yet implemented</em>';
-        this.entranceConditionEditor = {
-            getValue: () => this.initialData.entranceCondition || null,
-            remove: () => {}
-        };
+createConditionEditors() {
+    // Entrance condition - use specialized editor
+    this.entranceConditionDiv.innerHTML = '';
+    this.entranceConditionEditor = new EntranceConditionEditor(
+        this.entranceConditionDiv,
+        this.initialData.entranceCondition
+    );
 
-        // Requires - use existing condition editor
-        const requiresDiv = createDiv([]);
+    // Requires - CLEAR first, then create editor
+    this.requiresConditionDiv.innerHTML = '';
 
-        // Handle requires array properly - extract first element if it's an array
-        let rootCondition = null;
-        if (Array.isArray(this.initialData.requires)) {
-            if (this.initialData.requires.length > 0) {
-                rootCondition = this.initialData.requires[0];
-            }
+    // Handle requires array properly - extract the first element if it exists
+    let rootCondition = null;
+    if (Array.isArray(this.initialData.requires) && this.initialData.requires.length > 0) {
+        // Get the first element
+        const firstElement = this.initialData.requires[0];
+        
+        // If it's already a logical structure (and/or), use it directly
+        if (firstElement && typeof firstElement === 'object' && 
+            (firstElement.and || firstElement.or || firstElement.not)) {
+            rootCondition = firstElement;
         } else {
-            rootCondition = this.initialData.requires;
+            // Single item - use as-is
+            rootCondition = firstElement;
         }
-
-        this.requiresEditor = makeConditionEditor(
-            requiresDiv,
-            rootCondition,
-            0,
-            true
-        );
-        this.requiresConditionDiv.appendChild(requiresDiv);
-
-        // Exit condition - simple placeholder (no editor exists)
-        this.exitConditionDiv.innerHTML = '<em style="color: #999;">Exit conditions not yet implemented</em>';
-        this.exitConditionEditor = {
-            getValue: () => this.initialData.exitCondition || null,
-            remove: () => {}
-        };
-
-        // Mark as rendered
-        this._conditionEditorsReady = true;
     }
+
+    this.requiresEditor = makeConditionEditor(
+        this.requiresConditionDiv,
+        rootCondition,
+        0,
+        true
+    );
+
+    // Exit condition - use specialized editor
+    this.exitConditionDiv.innerHTML = '';
+    this.exitConditionEditor = new ExitConditionEditor(
+        this.exitConditionDiv,
+        this.initialData.exitCondition
+    );
+
+    // Mark as rendered
+    this._conditionEditorsReady = true;
+}
 
     setupTitleUpdates() {
         this.nameInput.addEventListener('input', () => {
@@ -518,14 +522,22 @@ class StratEditor extends BaseEditor {
         }
     }
 
+	flattenRequires(value) {
+		if (!value) return [];
+		if (Array.isArray(value)) return value;
+		if (value.and && Array.isArray(value.and)) return value.and;
+		return [value];
+	}
+
     getValue() {
         const name = this.nameInput.value.trim();
         if (!name) return null;
 
-        const result = {
-            name
-        };
-
+		const result = {
+			...this.initialData, // preserve unknown fields
+			name
+		};
+		
         // Add link if both nodes are selected
         const fromNode = parseInt(this.fromNodeSelect.value);
         const toNode = parseInt(this.toNodeSelect.value);
@@ -533,35 +545,37 @@ class StratEditor extends BaseEditor {
             result.link = [fromNode, toNode];
         }
 
-        // REQUIRED: 'requires' field must always be present (minimum [])
-        // Wait for condition editors to be ready
-        if (this._conditionEditorsReady && this.requiresEditor) {
-            const requires = this.requiresEditor.getValue();
-            // Ensure requires is always an array, never null/undefined
-            result.requires = Array.isArray(requires) ? requires : [];
-        } else {
-            // Fall back to initial data if editors not ready
-            const initialRequires = this.initialData.requires;
-            result.requires = Array.isArray(initialRequires) ? initialRequires : [];
-        }
-
+		// REQUIRED: 'requires' field must always be present (minimum [])
+		if (this._conditionEditorsReady && this.requiresEditor) {
+			const requiresValue = this.requiresEditor.getValue();
+			result.requires = this.flattenRequires(requiresValue);
+		} else {
+			result.requires = Array.isArray(this.initialData.requires)
+				? this.initialData.requires
+				: [];
+		}
+		
         // Optional fields
         const devNote = this.devNoteInput.value.trim();
         if (devNote) result.devNote = devNote;
 
-        // SAFETY: Check if editors exist
-        if (this._conditionEditorsReady) {
-            if (this.entranceConditionEditor) {
-                const entranceCondition = this.entranceConditionEditor.getValue();
-                if (entranceCondition) result.entranceCondition = entranceCondition;
-            }
+		// Entrance/Exit conditions - only add if not null
+		if (this._conditionEditorsReady) {
+			if (this.entranceConditionEditor) {
+				const entranceCondition = this.entranceConditionEditor.getValue();
+				if (entranceCondition && Object.keys(entranceCondition).length > 0) {
+					result.entranceCondition = entranceCondition;
+				}
+			}
 
-            if (this.exitConditionEditor) {
-                const exitCondition = this.exitConditionEditor.getValue();
-                if (exitCondition) result.exitCondition = exitCondition;
-            }
-        }
-
+			if (this.exitConditionEditor) {
+				const exitCondition = this.exitConditionEditor.getValue();
+				if (exitCondition && Object.keys(exitCondition).length > 0) {
+					result.exitCondition = exitCondition;
+				}
+			}
+		}
+		
         // Obstacle arrays
         const clearsObstacles = this.clearsObstaclesList.getSelectedIds().filter(id => id);
         if (clearsObstacles.length > 0) result.clearsObstacles = clearsObstacles;
@@ -582,7 +596,14 @@ class StratEditor extends BaseEditor {
         const setsFlags = this.setsFlagsEditor.getValue().filter(flag => flag && flag.trim());
         if (setsFlags.length > 0) result.setsFlags = setsFlags;
 
-        return cleanObject(result);
+        const cleaned = cleanObject(result);
+
+		// HARD GUARANTEE: requires must exist
+		if (!Array.isArray(cleaned.requires)) {
+			cleaned.requires = [];
+		}
+
+		return cleaned;
     }
 
     remove() {
@@ -605,13 +626,16 @@ class StratEditor extends BaseEditor {
             this.setsFlagsCheckboxList._destroy();
         }
 
-        // Clean up entrance/exit editors
-        if (this.entranceConditionEditor && this.entranceConditionEditor.remove) {
-            this.entranceConditionEditor.remove();
-        }
-        if (this.exitConditionEditor && this.exitConditionEditor.remove) {
-            this.exitConditionEditor.remove();
-        }
+		// Clean up entrance/exit/requires editors properly
+		if (this.entranceConditionEditor && this.entranceConditionEditor.remove) {
+			this.entranceConditionEditor.remove();
+		}
+		if (this.exitConditionEditor && this.exitConditionEditor.remove) {
+			this.exitConditionEditor.remove();
+		}
+		if (this.requiresEditor && this.requiresEditor.remove) {
+			this.requiresEditor.remove();
+		}
 
         super.remove();
     }

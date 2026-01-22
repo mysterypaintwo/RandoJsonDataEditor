@@ -12,61 +12,74 @@ export class GoToRoomHandler {
         this.setupKeyboardShortcut();
     }
 
-    setupModal() {
-        const modal = document.getElementById('gotoModal');
-        const btn = document.getElementById('gotoRoomBtn');
-        const cancelBtn = document.getElementById('gotoCancelBtn');
-        const searchInput = document.getElementById('gotoSearchInput');
+	setupModal() {
+		const modal = document.getElementById('gotoModal');
+		const btn = document.getElementById('gotoRoomBtn');
+		const cancelBtn = document.getElementById('gotoCancelBtn');
+		const searchInput = document.getElementById('gotoSearchInput');
 
-        if (!modal || !btn || !cancelBtn || !searchInput) {
-            console.error('Go To Room modal elements not found');
-            return;
-        }
+		if (!modal || !btn || !cancelBtn || !searchInput) {
+			console.error('Go To Room modal elements not found');
+			return;
+		}
 
-        // Open modal
-        btn.addEventListener('click', () => this.openModal());
+		// Open modal
+		btn.addEventListener('click', () => this.openModal());
 
-        // Close modal
-        cancelBtn.addEventListener('click', () => this.closeModal());
+		// Close modal
+		cancelBtn.addEventListener('click', () => this.closeModal());
 
-        // Close on background click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                this.closeModal();
-            }
-        });
+		// Close on background click
+		modal.addEventListener('click', (e) => {
+			if (e.target === modal) {
+				this.closeModal();
+			}
+		});
 
-        // Search functionality
-        searchInput.addEventListener('input', (e) => {
-            this.populateRoomList(e.target.value);
-        });
+		// Search functionality
+		searchInput.addEventListener('input', (e) => {
+			this.populateRoomList(e.target.value);
+		});
 
-        // Enter key to select first result
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const firstRoom = document.querySelector('.room-list-item');
-                if (firstRoom) {
-                    firstRoom.click();
-                }
-            }
-        });
-    }
-
-    setupKeyboardShortcut() {
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'g') {
-                e.preventDefault();
-                this.openModal();
-            }
-
-            const modal = document.getElementById('gotoModal');
-            if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
-                this.closeModal();
-            }
-        });
-    }
-
+		// Enter key to select first result
+		searchInput.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				const firstRoom = document.querySelector('.room-list-item');
+				if (firstRoom) {
+					firstRoom.click();
+				}
+			}
+			// Don't propagate other keys to prevent shortcuts
+			e.stopPropagation();
+		});
+	}
+	
+	setupKeyboardShortcut() {
+		document.addEventListener('keydown', (e) => {
+			// Check if modal is open
+			const modal = document.getElementById('gotoModal');
+			const isModalOpen = modal && modal.style.display === 'flex';
+			
+			if (isModalOpen) {
+				// Only allow Escape to close modal
+				if (e.key === 'Escape') {
+					e.preventDefault();
+					e.stopPropagation();
+					this.closeModal();
+				}
+				// Block all other shortcuts while modal is open
+				return;
+			}
+			
+			// Ctrl+G to open modal (only when closed)
+			if (e.ctrlKey && e.key === 'g') {
+				e.preventDefault();
+				this.openModal();
+			}
+		});
+	}
+	
     openModal() {
         if (!this.state.workingDir) {
             this.uiManager.showAlert('Set working directory first!');

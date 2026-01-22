@@ -26,142 +26,6 @@ let connectionInfo = null;
 let tileMapEditor = null;
 let allRoomsMetadata = [];
 
-// Door subtype constants (color/lock type)
-const DOOR_SUBTYPES = [{
-        value: 'blue',
-        label: 'Blue Door',
-        description: 'No lock'
-    },
-    {
-        value: 'red',
-        label: 'Red Door',
-        description: 'Requires Missiles'
-    },
-    {
-        value: 'green',
-        label: 'Green Door',
-        description: 'Requires Super Missiles'
-    },
-    {
-        value: 'yellow',
-        label: 'Yellow Door',
-        description: 'Requires Power Bombs'
-    },
-    {
-        value: 'gray',
-        label: 'Gray Door',
-        description: 'Requires any ammo'
-    },
-    {
-        value: 'eye',
-        label: 'Eye Door',
-        description: 'Shoots open'
-    },
-    {
-        value: 'closedWall',
-        label: 'Closed Wall',
-        description: 'Hidden/closed passage'
-    },
-    {
-        value: 'sandpit',
-        label: 'Sandpit',
-        description: 'Vertical morph passage'
-    }
-];
-
-// Physics types for door environments
-const PHYSICS_TYPES = [{
-        value: 'air',
-        label: 'Air',
-        description: 'Normal physics'
-    },
-    {
-        value: 'water',
-        label: 'Water',
-        description: 'Underwater physics'
-    },
-    {
-        value: 'lava',
-        label: 'Lava',
-        description: 'Lava physics and damage'
-    },
-    {
-        value: 'acid',
-        label: 'Acid',
-        description: 'Acid physics and damage'
-    }
-];
-
-// Utility station types
-const UTILITY_TYPES = [{
-        value: 'save',
-        label: '💾 Save Station'
-    },
-    {
-        value: 'missile',
-        label: '🚀 Missile Refill'
-    },
-    {
-        value: 'super',
-        label: '⚡ Super Missile Refill'
-    },
-    {
-        value: 'powerbomb',
-        label: '💣 Power Bomb Refill'
-    },
-    {
-        value: 'energy',
-        label: '❤️ Energy Refill'
-    },
-    {
-        value: 'reserve',
-        label: '🩹 Reserve Tank Refill'
-    },
-    {
-        value: 'map',
-        label: '🗺️ Map Station'
-    }
-];
-
-// Use implicit flags
-const IMPLICIT_FLAGS = [{
-        key: 'useImplicitLeaveNormally',
-        label: 'Leave Normally',
-        description: 'Generate standard exit strat'
-    },
-    {
-        key: 'useImplicitComeInNormally',
-        label: 'Come In Normally',
-        description: 'Generate standard entrance strat'
-    },
-    {
-        key: 'useImplicitComeInWithMockball',
-        label: 'Come In With Mockball',
-        description: 'Generate mockball entrance strat'
-    },
-    {
-        key: 'useImplicitCarryGModeBackThrough',
-        label: 'Carry G-Mode Through',
-        description: 'Generate G-mode carry strat'
-    },
-    {
-        key: 'useImplicitCarryGModeMorphBackThrough',
-        label: 'Carry G-Mode Morph Through',
-        description: 'Generate G-mode morph carry strat'
-    },
-    {
-        key: 'useImplicitComeInWithGrappleJump',
-        label: 'Come In With Grapple Jump',
-        description: 'Generate grapple jump entrance strat'
-    },
-    {
-        key: 'useImplicitDoorUnlocks',
-        label: 'Door Unlocks',
-        description: 'Generate standard unlock strats',
-        default: true
-    }
-];
-
 // ============================================================================
 // Initialization
 // ============================================================================
@@ -190,15 +54,51 @@ function setupEventHandlers() {
 // Data Handling
 // ============================================================================
 
-function handleDoorDataReceived(event, data) {
-    console.log('Door editor received data:', data);
+function handleDoorDataReceived(event, data, enemyList, itemList, eventList, weaponList, techMap, helperMap) {
+    console.log('Door editor received data:', data, enemyList, itemList, eventList, weaponList, techMap, helperMap);
     doorData = data || {};
     doorNode = doorData.doorNode || {};
     connectionInfo = doorData.connection || null;
     allRoomsMetadata = doorData.allRoomsMetadata;
 
+    // Store for global access by condition editors
+    window.doorEditorData = {
+        enemyList: enemyList || {},
+        itemList: itemList || [],
+        eventList: eventList || [],
+        weaponList: weaponList || [],
+        techMap: techMap || {},
+        helperMap: helperMap || {}
+    };
+
+    // Update EditorGlobals with the data (matching room properties pattern)
+    window.EditorGlobals.updateAll(
+        itemList || [],
+        eventList || [],
+        weaponList || [],
+        convertToMap(techMap || {}),
+        convertToMap(helperMap || {}),
+        enemyList || {},
+        doorData.roomItemNodes || [] // Pass room item nodes for viewable nodes
+    );
+
     updateHeaderInfo();
     populateDoorProperties();
+}
+
+/**
+ * Convert legacy flat objects to Map structures expected by condition system
+ */
+function convertToMap(obj) {
+    const map = new Map();
+    if (!obj || typeof obj !== 'object') return map;
+    if (obj instanceof Map) return obj;
+
+    Object.entries(obj).forEach(([key, value]) => {
+        map.set(key, value);
+    });
+
+    return map;
 }
 
 function handleAllRoomsData(event, rooms) {
@@ -578,7 +478,6 @@ function createLockCard(lock, index) {
     removeBtn.className = 'remove-btn';
     removeBtn.onclick = () => {
         card.remove();
-        // Renumber remaining cards
         const container = document.getElementById('locksContainer');
         const cards = container.querySelectorAll('.lock-card');
         cards.forEach((c, i) => {
@@ -643,27 +542,50 @@ function createLockCard(lock, index) {
     unlockLabel.style.marginBottom = '8px';
     unlockLabel.style.fontWeight = '600';
 
-    const unlockContainer = document.createElement('div');
-    unlockContainer.style.border = '1px solid #ddd';
-    unlockContainer.style.borderRadius = '6px';
-    unlockContainer.style.padding = '8px';
-    unlockContainer.style.backgroundColor = 'white';
-    unlockContainer.innerHTML = '<em>Unlock strats would be defined here (similar to room properties strats)</em>';
+    const unlockStratsContainer = document.createElement('div');
+    unlockStratsContainer.style.border = '1px solid #ddd';
+    unlockStratsContainer.style.borderRadius = '6px';
+    unlockStratsContainer.style.padding = '8px';
+    unlockStratsContainer.style.backgroundColor = 'white';
+
+    // Initialize unlock strat editors
+    card.unlockStratEditors = [];
+    const unlockStrats = lock.unlockStrats || [];
+
+    unlockStrats.forEach((strat, stratIndex) => {
+        const stratEditor = createUnlockStratEditor(strat, stratIndex);
+        unlockStratsContainer.appendChild(stratEditor);
+        card.unlockStratEditors.push(stratEditor);
+    });
+
+    // Add button for unlock strats
+    const addStratBtn = document.createElement('button');
+    addStratBtn.textContent = '+ Add Unlock Strat';
+    addStratBtn.className = 'add-btn';
+    addStratBtn.style.fontSize = '12px';
+    addStratBtn.style.marginTop = '8px';
+    addStratBtn.onclick = () => {
+        const stratIndex = card.unlockStratEditors.length;
+        const stratEditor = createUnlockStratEditor({}, stratIndex);
+        unlockStratsContainer.insertBefore(stratEditor, addStratBtn);
+        card.unlockStratEditors.push(stratEditor);
+    };
+    unlockStratsContainer.appendChild(addStratBtn);
 
     card.appendChild(unlockLabel);
-    card.appendChild(unlockContainer);
+    card.appendChild(unlockStratsContainer);
 
     // Store references
     card.nameInput = nameInput;
     card.typeSelect = typeSelect;
     card.lockCondEditor = lockCondEditor;
-    card.unlockContainer = unlockContainer;
+    card.unlockStratsContainer = unlockStratsContainer;
 
     card.getValue = () => {
         const result = {
             name: nameInput.value.trim() || `Lock ${index + 1}`,
             lockType: typeSelect.value,
-            unlockStrats: [] // TODO: Implement unlock strats
+            unlockStrats: []
         };
 
         const lockCond = lockCondEditor.getValue();
@@ -671,10 +593,142 @@ function createLockCard(lock, index) {
             result.lock = lockCond;
         }
 
+        // Collect unlock strats
+        result.unlockStrats = card.unlockStratEditors
+            .map(editor => editor.getValue ? editor.getValue() : null)
+            .filter(strat => strat !== null);
+
         return result;
     };
 
     return card;
+}
+
+function createUnlockStratEditor(initialData, index) {
+    const stratCard = document.createElement('div');
+    stratCard.className = 'unlock-strat-card';
+    stratCard.style.border = '1px solid #ccc';
+    stratCard.style.borderRadius = '6px';
+    stratCard.style.padding = '10px';
+    stratCard.style.marginBottom = '8px';
+    stratCard.style.backgroundColor = '#f9f9f9';
+
+    // Header with name and remove button
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '8px';
+
+    const headerTitle = document.createElement('strong');
+    headerTitle.textContent = `Unlock Strat ${index + 1}`;
+    headerTitle.style.fontSize = '13px';
+
+    const removeStratBtn = document.createElement('button');
+    removeStratBtn.textContent = '×';
+    removeStratBtn.className = 'remove-btn';
+    removeStratBtn.style.fontSize = '12px';
+    removeStratBtn.onclick = () => {
+        stratCard.remove();
+        // Renumber remaining strats
+        const parent = stratCard.parentElement;
+        if (parent) {
+            parent.querySelectorAll('.unlock-strat-card').forEach((card, i) => {
+                card.querySelector('strong').textContent = `Unlock Strat ${i + 1}`;
+            });
+        }
+    };
+
+    header.appendChild(headerTitle);
+    header.appendChild(removeStratBtn);
+    stratCard.appendChild(header);
+
+    // Strat name
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Strat name (e.g., "Shoot Door with Super Missile")';
+    nameInput.value = initialData.name || '';
+    nameInput.style.width = '100%';
+    nameInput.style.marginBottom = '8px';
+    stratCard.appendChild(nameInput);
+
+    // Requires condition
+    const requiresLabel = document.createElement('label');
+    requiresLabel.textContent = 'Requirements:';
+    requiresLabel.style.display = 'block';
+    requiresLabel.style.marginBottom = '4px';
+    requiresLabel.style.fontWeight = '600';
+    requiresLabel.style.fontSize = '12px';
+
+    const requiresContainer = document.createElement('div');
+    requiresContainer.style.marginBottom = '8px';
+
+    // Extract first element from requires array if it exists
+    let rootCondition = null;
+    if (Array.isArray(initialData.requires) && initialData.requires.length > 0) {
+        const firstElement = initialData.requires[0];
+        if (firstElement && typeof firstElement === 'object' &&
+            (firstElement.and || firstElement.or || firstElement.not)) {
+            rootCondition = firstElement;
+        } else {
+            rootCondition = firstElement;
+        }
+    }
+
+    const requiresEditor = makeConditionEditor(requiresContainer, rootCondition, 0, true);
+
+    stratCard.appendChild(requiresLabel);
+    stratCard.appendChild(requiresContainer);
+
+    // Note field
+    const noteLabel = document.createElement('label');
+    noteLabel.textContent = 'Note (optional):';
+    noteLabel.style.display = 'block';
+    noteLabel.style.marginBottom = '4px';
+    noteLabel.style.fontWeight = '600';
+    noteLabel.style.fontSize = '12px';
+
+    const noteInput = document.createElement('textarea');
+    noteInput.placeholder = 'Additional notes about this unlock method...';
+    noteInput.value = initialData.note || '';
+    noteInput.style.width = '100%';
+    noteInput.style.minHeight = '50px';
+    noteInput.style.resize = 'vertical';
+
+    stratCard.appendChild(noteLabel);
+    stratCard.appendChild(noteInput);
+
+    // Store references
+    stratCard.nameInput = nameInput;
+    stratCard.requiresEditor = requiresEditor;
+    stratCard.noteInput = noteInput;
+
+    stratCard.getValue = () => {
+        const name = nameInput.value.trim();
+        if (!name) return null;
+
+        const result = {
+            name: name,
+            requires: []
+        };
+
+        // Get requires condition and ensure it's in array format
+        const requiresValue = requiresEditor.getValue();
+        if (requiresValue !== null) {
+            if (Array.isArray(requiresValue)) {
+                result.requires = requiresValue;
+            } else {
+                result.requires = [requiresValue];
+            }
+        }
+
+        const note = noteInput.value.trim();
+        if (note) result.note = note;
+
+        return result;
+    };
+
+    return stratCard;
 }
 
 // ----------------------------------------------------------------------------
@@ -817,9 +871,29 @@ function populateViewableNodes() {
     if (!container) return;
 
     container.innerHTML = '';
-    container.innerHTML = '<em>Viewable nodes configuration coming soon...</em>';
 
-    // TODO: Implement viewable nodes with strats
+    const viewableNodes = doorNode.viewableNodes || [];
+    const roomItemNodes = doorData.roomItemNodes || [];
+
+    if (roomItemNodes.length === 0) {
+        container.innerHTML = '<em style="color: #999;">No item nodes available in this room</em>';
+        return;
+    }
+
+    // Create checkbox list for viewable nodes
+    const selectedNodeIds = viewableNodes.map(vn => String(vn.id));
+
+    const checkboxList = createNodeCheckboxList(
+        selectedNodeIds,
+        'Viewable Item Nodes',
+        Infinity,
+        'item' // Filter to only show item nodes
+    );
+
+    container.appendChild(checkboxList);
+
+    // Store reference for getValue
+    container.checkboxList = checkboxList;
 }
 
 // ----------------------------------------------------------------------------
@@ -838,6 +912,7 @@ function populateOtherProperties() {
     immediateLabel.style.alignItems = 'flex-start';
     immediateLabel.style.gap = '12px';
     immediateLabel.style.padding = '12px';
+
     immediateLabel.style.cursor = 'pointer';
     immediateLabel.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
     immediateLabel.style.border = '1px solid rgba(52, 152, 219, 0.2)';
@@ -862,10 +937,10 @@ function populateOtherProperties() {
     helpText.style.color = '#555';
     helpText.style.lineHeight = '1.4';
     helpText.innerHTML = `
-        <strong>What it means:</strong> Door closes instantly with no animation when entering room.<br>
-        <strong>Why it matters:</strong> Affects shinespark timing, blue speed tech, and enemy spawn frames.<br>
-        <strong>When to enable:</strong> Only enable if this specific door has instant-close behavior in-game.
-    `;
+    <strong>What it means:</strong> Door closes instantly with no animation when entering room.<br>
+    <strong>Why it matters:</strong> Affects shinespark timing, blue speed tech, and enemy spawn frames.<br>
+    <strong>When to enable:</strong> Only enable if this specific door has instant-close behavior in-game.
+`;
 
     const tooltip = document.createElement('div');
     tooltip.style.fontSize = '11px';
@@ -890,15 +965,12 @@ function populateOtherProperties() {
 
     container.appendChild(immediateLabel);
 }
-
 // ----------------------------------------------------------------------------
 // Connection Info (Read-Only)
 // ----------------------------------------------------------------------------
-
 function populateConnectionInfo() {
     const container = document.getElementById('connectionInfoContainer');
     if (!container) return;
-
     container.innerHTML = '';
 
     if (!connectionInfo) {
@@ -911,11 +983,11 @@ function populateConnectionInfo() {
     infoCard.style.border = '1px solid #dee2e6';
     infoCard.style.borderRadius = '6px';
     infoCard.style.padding = '12px';
-	
-	const targetRoomDisplay = connectionInfo.targetSubroom
-		? `[Sub-Room] ${connectionInfo.targetSubroom}`
-		: connectionInfo.targetRoom;
-		
+
+    const targetRoomDisplay = connectionInfo.targetSubroom ?
+        `[Sub-Room] ${connectionInfo.targetSubroom}` :
+        connectionInfo.targetRoom;
+
     const infoItems = [{
             label: 'Target Room',
             value: targetRoomDisplay
@@ -961,15 +1033,12 @@ function populateConnectionInfo() {
 
     container.appendChild(infoCard);
 }
-
 // ============================================================================
 // Save/Load Operations
 // ============================================================================
-
 function handleSave() {
     try {
         const updatedNode = collectDoorNodeData();
-
         const payload = {
             nodeId: doorNode.id,
             updatedNode: updatedNode
@@ -985,14 +1054,30 @@ function handleSave() {
 }
 
 function collectDoorNodeData() {
+    // Ensure we have the base door node data
+    if (!doorNode || !doorNode.id) {
+        console.error('Door node data is missing!', doorNode);
+        throw new Error('Cannot save: door node data is incomplete');
+    }
+
     const result = {
         id: doorNode.id,
         name: doorNode.name,
-        nodeType: 'door',
+        nodeType: doorNode.nodeType || 'door',
         nodeSubType: document.querySelector('input[name="doorSubType"]:checked')?.value || 'blue',
         nodeAddress: doorNode.nodeAddress || '0x0',
         doorOrientation: doorNode.doorOrientation
     };
+
+    // Preserve geometry if it exists
+    if (doorNode.geometry) {
+        result.geometry = doorNode.geometry;
+    }
+
+    // Preserve color if it exists
+    if (doorNode.color) {
+        result.color = doorNode.color;
+    }
 
     // Door environments
     const environmentCards = Array.from(document.querySelectorAll('#doorEnvironmentsContainer .environment-card'));
@@ -1019,7 +1104,7 @@ function collectDoorNodeData() {
     // Map tile mask
     if (tileMapEditor) {
         const tileMask = tileMapEditor.getValue();
-        if (tileMask) {
+        if (tileMask && tileMask.length > 0) {
             result.mapTileMask = tileMask;
         }
     }
@@ -1042,12 +1127,25 @@ function collectDoorNodeData() {
         result.twinDoorAddresses = twinAddresses;
     }
 
+    // Viewable nodes
+    const viewableContainer = document.getElementById('viewableNodesContainer');
+    if (viewableContainer && viewableContainer.checkboxList) {
+        const selectedNodeIds = viewableContainer.checkboxList.getSelectedValues();
+        if (selectedNodeIds && selectedNodeIds.length > 0) {
+            result.viewableNodes = selectedNodeIds.map(id => ({
+                id: parseInt(id),
+                strats: []
+            }));
+        }
+    }
+
     // Other properties
     const immediateCheckbox = document.getElementById('isDoorImmediatelyClosed');
     if (immediateCheckbox?.checked) {
         result.isDoorImmediatelyClosed = true;
     }
 
+    console.log('Collected door node data:', result);
     return result;
 }
 
@@ -1063,11 +1161,9 @@ function hasUnsavedChanges() {
     // Simple check - could be more sophisticated
     return true; // For now, always ask
 }
-
 // ============================================================================
 // Error Handling
 // ============================================================================
-
 function showValidationError(message) {
     let errorElement = document.getElementById('validationError');
     if (!errorElement) {
@@ -1095,11 +1191,9 @@ function showValidationError(message) {
         }
     }, 5000);
 }
-
 // ============================================================================
 // Event Handlers
 // ============================================================================
-
 function handleKeydown(event) {
     switch (event.key) {
         case 'Escape':

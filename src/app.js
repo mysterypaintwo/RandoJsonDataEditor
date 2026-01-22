@@ -122,18 +122,24 @@ class RandoJsonDataEditor {
         });
 
         // JSON editor live sync
-        this.uiManager.setupJsonEditor((parsedData) => {
-            state.currentRoomData = parsedData;
-            state.nodes = parsedData.nodes ? [...parsedData.nodes] : [];
-            this.renderer.redraw(
-                state.currentRoomImage,
-                state.nodes,
-                state.selectedNode,
-                state.currentRect,
-                state.scale
-            );
-        });
-
+		this.uiManager.setupJsonEditor((parsedData) => {
+			state.currentRoomData = parsedData;
+			state.nodes = parsedData.nodes ? [...parsedData.nodes] : [];
+			
+			// Mark as unsaved when JSON is manually edited
+			if (this.roomManager) {
+				this.roomManager.markUnsaved();
+			}
+			
+			this.renderer.redraw(
+				state.currentRoomImage,
+				state.nodes,
+				state.selectedNodes,
+				state.currentRect,
+				state.scale
+			);
+		});
+		
         // Door Editor updates
         window.api.onUpdateDoorNode((payload) => {
             this.roomManager.handleDoorNodeUpdate(payload);
