@@ -381,6 +381,43 @@ export class CanvasRenderer {
 	}
 	
 	/**
+	 * Get all hovered strat connection info
+	 * worldX, worldY should be in WORLD SPACE coordinates
+	 * scale is used to convert to canvas space for comparison
+	 */
+	getHoveredStratConnections(worldX, worldY, scale) {
+		if (!this.stratConnections || worldX === undefined || worldY === undefined) {
+			return [];
+		}
+		
+		// Convert world space to canvas space (stratConnections are stored in canvas space)
+		const canvasX = worldX * scale;
+		const canvasY = worldY * scale;
+		
+		// Threshold in canvas space (remains constant regardless of zoom)
+		const threshold = 8;
+		
+		const hits = [];
+		
+		for (const conn of this.stratConnections) {
+			// Connection coords are in canvas space, mouse coords now converted to canvas space
+			if (this.isPointNearLine(
+				canvasX,
+				canvasY,
+				conn.fromX,
+				conn.fromY,
+				conn.toX,
+				conn.toY,
+				threshold
+			)) {
+				hits.push(conn);
+			}
+		}
+		
+		return hits;
+	}
+	
+	/**
 	 * Check if point is near a line segment
 	 */
 	isPointNearLine(px, py, x1, y1, x2, y2, threshold) {

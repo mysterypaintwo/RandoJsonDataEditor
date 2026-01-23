@@ -5,10 +5,11 @@
    process and editor components. Manages initialization, save/load operations,
    and container management. Updated to use new modular condition system.
    ============================================================================= */
-
 const {
 	ipcRenderer
 } = require('electron');
+
+import { StratFilter } from '../strats/stratFilter.js';
 
 window.addEventListener('DOMContentLoaded', () => {
 	console.log('DOMContentLoaded fired - about to initialize with delay');
@@ -115,7 +116,74 @@ class RoomPropertiesEditor {
 		this.setupEventHandlers();
 		this.setupUnsavedChangesWarning();
 		this.setupWindowCloseHandler();
+		this.setupKeyboardShortcuts();
 	}
+
+	setupKeyboardShortcuts() {
+		document.addEventListener('keydown', (e) => {
+			// CTRL+Left = collapse all visible strats
+			if (e.ctrlKey && e.key === 'ArrowLeft') {
+				e.preventDefault();
+				this.collapseAllVisibleStrats();
+			}
+			
+			// CTRL+Right = expand all visible strats
+			if (e.ctrlKey && e.key === 'ArrowRight') {
+				e.preventDefault();
+				this.expandAllVisibleStrats();
+			}
+			
+			// BONUS: CTRL+F = focus strat filter
+			if (e.ctrlKey && e.key === 'f') {
+				e.preventDefault();
+				if (this.stratFilter) {
+					if (!this.stratFilter.isExpanded) {
+						this.stratFilter.toggle();
+					}
+					const firstInput = this.stratFilter.content.querySelector('input');
+					if (firstInput) firstInput.focus();
+				}
+			}
+		});
+	}
+	
+	collapseAllVisibleStrats() {
+		const stratsContainer = document.getElementById('stratsContainer');
+		if (!stratsContainer) return;
+		
+		const stratCards = stratsContainer.querySelectorAll('.strat-card');
+		let count = 0;
+		
+		stratCards.forEach(card => {
+			// Only collapse visible cards
+			if (card.style.display !== 'none' && card.collapse) {
+				card.collapse();
+				count++;
+			}
+		});
+		
+		console.log(`Collapsed ${count} visible strats`);
+	}
+
+	expandAllVisibleStrats() {
+		const stratsContainer = document.getElementById('stratsContainer');
+		if (!stratsContainer) return;
+		
+		const stratCards = stratsContainer.querySelectorAll('.strat-card');
+		let count = 0;
+		
+		stratCards.forEach(card => {
+			// Only expand visible cards
+			if (card.style.display !== 'none' && card.expand) {
+				card.expand();
+				count++;
+			}
+		});
+		
+		console.log(`Expanded ${count} visible strats`);
+	}
+
+
 
 	setupWindowCloseHandler() {
 		// Handle window close event (X button)
@@ -323,6 +391,20 @@ class RoomPropertiesEditor {
 		}
 	}
 
+	setupStratFilter() {
+		const stratsContainer = document.getElementById('stratsContainer');
+		if (!stratsContainer) return;
+		
+		// Find the strats section
+		const stratsSection = Array.from(document.querySelectorAll('section'))
+			.find(s => s.querySelector('h3')?.textContent?.includes('📘 Strats'));
+		
+		if (!stratsSection) return;
+		
+		// Create filter UI and insert before the container
+		this.stratFilter = new StratFilter(stratsSection);
+	}
+
 	populateEditors() {
 		// Clear existing content and instances
 		Object.values(this.containers).forEach(container => {
@@ -349,6 +431,9 @@ class RoomPropertiesEditor {
 			}
 		});
 
+		// Setup strat filter after strats are created
+		this.setupStratFilter();
+		
 		// Setup mapTileMask editor
 		this.setupMapTileMaskEditor();
 
@@ -603,7 +688,6 @@ class RoomPropertiesEditor {
 						.map(element => element.getValue ? element.getValue() : null)
 						.filter(Boolean);
 				} else if (type === 'strats') {
-					// Special handling for strats - sort by link
 					const rawData = collectAndAssignIDs(
 						this.containers[type],
 						type,
@@ -613,37 +697,49 @@ class RoomPropertiesEditor {
 					const stratsData = rawData
 						.map(item => {
 							if (item && typeof item === 'object') {
-								const validatedItem = {
-									...item
-								};
+								const validatedItem = { ...item };
 
-								// Validate requires field - REQUIRED for strats, must always be present
+								// Remove editor-specific fields
 								delete validatedItem.id;
 								delete validatedItem.comesThroughToilet;
 								delete validatedItem.bypassesDoorShell;
 								delete validatedItem.wallJumpAvoid;
 								delete validatedItem.flashSuitChecked;
 
-								// Requires is MANDATORY for strats - always ensure it exists
+								// Requires is MANDATORY for strats
 								if (item.requires !== undefined) {
 									let cleanedRequires = this.validateConditionOutput(item.requires, 'requires');
-
-									// Ensure requires is always an array at the top level
 									if (cleanedRequires !== null) {
 										if (!Array.isArray(cleanedRequires)) {
 											cleanedRequires = [cleanedRequires];
 										}
 										validatedItem.requires = cleanedRequires;
 									} else {
-										// If validation returns null, use empty array
 										validatedItem.requires = [];
 									}
 								} else {
-									// If requires field is missing, add empty array
 									validatedItem.requires = [];
 								}
 
-								// Validate other condition fields
+								// Validate entrance/exit conditions SEPARATELY
+								// Don't use validateConditionOutput for these - just use cleanObject
+								if (item.entranceCondition) {
+									const cleaned = cleanObject(item.entranceCondition);
+									// PRESERVE empty objects - they're valid for entrance conditions
+									if (cleaned && Object.keys(cleaned).length > 0) {
+										validatedItem.entranceCondition = cleaned;
+									}
+								}
+								
+								if (item.exitCondition) {
+									const cleaned = cleanObject(item.exitCondition);
+									// PRESERVE empty objects - they're valid for exit conditions
+									if (cleaned && Object.keys(cleaned).length > 0) {
+										validatedItem.exitCondition = cleaned;
+									}
+								}
+
+								// Validate spawn/stopSpawn normally
 								if (item.spawn) {
 									const cleanedSpawn = this.validateConditionOutput(item.spawn, 'spawn');
 									if (cleanedSpawn) validatedItem.spawn = cleanedSpawn;
@@ -651,14 +747,6 @@ class RoomPropertiesEditor {
 								if (item.stopSpawn) {
 									const cleanedStopSpawn = this.validateConditionOutput(item.stopSpawn, 'stopSpawn');
 									if (cleanedStopSpawn) validatedItem.stopSpawn = cleanedStopSpawn;
-								}
-								if (item.entranceCondition) {
-									const cleanedEntrance = this.validateConditionOutput(item.entranceCondition, 'entranceCondition');
-									if (cleanedEntrance) validatedItem.entranceCondition = cleanedEntrance;
-								}
-								if (item.exitCondition) {
-									const cleanedExit = this.validateConditionOutput(item.exitCondition, 'exitCondition');
-									if (cleanedExit) validatedItem.exitCondition = cleanedExit;
 								}
 
 								const cleaned = cleanObject(validatedItem);
@@ -674,18 +762,13 @@ class RoomPropertiesEditor {
 						})
 						.filter(item => item !== null && Object.keys(item).length > 0);
 
-					// Sort strats by link [from, to]
+					// Sort strats by link
 					stratsData.sort((a, b) => {
-						// Strats without links go to the end
 						if (!a.link || !Array.isArray(a.link)) return 1;
 						if (!b.link || !Array.isArray(b.link)) return -1;
-
-						// Compare first element (from node)
 						if (a.link[0] !== b.link[0]) {
 							return a.link[0] - b.link[0];
 						}
-
-						// If first elements are equal, compare second element (to node)
 						return a.link[1] - b.link[1];
 					});
 
@@ -963,31 +1046,36 @@ class RoomPropertiesEditor {
 			return condition;
 		}
 
+		// Special handling for entrance/exit conditions
+		// These can have empty objects as valid values (e.g., comeInShinecharged: {})
+		const isEntranceOrExitCondition = path.includes('entranceCondition') || path.includes('exitCondition');
+		
+		if (isEntranceOrExitCondition) {
+			// For entrance/exit conditions, preserve empty objects - they're meaningful
+			// Examples: { comeInShinecharged: {} }, { leaveWithRunway: {} }
+			console.debug('[validateConditionOutput] entrance/exit condition:', path, condition);
+			return condition;
+		}
+
 		// Logical operators - recursively validate and preserve structure
 		if ('and' in condition) {
 			const v = this.validateConditionOutput(condition.and, `${path}.and`);
 			console.debug('[validateConditionOutput] and:', path, v);
 			// Return null if 'and' array is empty after validation
-			return v && (Array.isArray(v) ? v.length > 0 : true) ? {
-				and: v
-			} : null;
+			return v && (Array.isArray(v) ? v.length > 0 : true) ? { and: v } : null;
 		}
 
 		if ('or' in condition) {
 			const v = this.validateConditionOutput(condition.or, `${path}.or`);
 			console.debug('[validateConditionOutput] or:', path, v);
 			// Return null if 'or' array is empty after validation
-			return v && (Array.isArray(v) ? v.length > 0 : true) ? {
-				or: v
-			} : null;
+			return v && (Array.isArray(v) ? v.length > 0 : true) ? { or: v } : null;
 		}
 
 		if ('not' in condition) {
 			const v = this.validateConditionOutput(condition.not, `${path}.not`);
 			console.debug('[validateConditionOutput] not:', path, v);
-			return v ? {
-				not: v
-			} : null;
+			return v ? { not: v } : null;
 		}
 
 		// Plain requirement object - clean and validate

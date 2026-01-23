@@ -563,25 +563,43 @@ export class InteractionHandler {
         const cursor = getCursorStyle(this.state.mode, hoverNode, isResizeCorner, isMoving);
         this.canvas.style.cursor = cursor;
     }
-	
-	updateTooltip(x, y, e) {
-		const hoverNode = this.findNodeAtPosition(x, y);
-		
-		// Check for strat connection hover (only if not hovering a node)
-		if (!hoverNode) {
-			// x, y are already in world space from getMousePos
-			const stratConn = this.renderer.getHoveredStratConnection(x, y, this.state.scale);
-			if (stratConn) {
-				const stratList = stratConn.connections
-					.map(c => `• [${c.index}] ${c.name}`)
-					.join('\n');
-				this.uiManager.updateTooltip({ name: `Strats:\n${stratList}` }, e.clientX, e.clientY);
-				return;
-			}
-		}
-		
-		this.uiManager.updateTooltip(hoverNode, e.clientX, e.clientY);
-	}
+    
+    updateTooltip(x, y, e) {
+        // Check if hovering over any node at the current world position
+        const hoverNode = this.findNodeAtPosition(x, y);
+
+        // Nodes take priority over strat connections
+        if (hoverNode) {
+            this.uiManager.updateTooltip(hoverNode, e.clientX, e.clientY);
+            return;
+        }
+
+        // Check for all hovered strat connections at the current world position
+        const stratConns = this.renderer.getHoveredStratConnections(
+            x,
+            y,
+            this.state.scale
+        );
+
+        // If one or more strat connections are hovered, list all of them in the tooltip
+        if (stratConns.length > 0) {
+            const stratList = stratConns
+                .flatMap(conn => conn.connections)
+                .map(c => `• [${c.index}] ${c.name}`)
+                .join('\n');
+
+            this.uiManager.updateTooltip(
+                { name: `Strats:\n${stratList}` },
+                e.clientX,
+                e.clientY
+            );
+            return;
+        }
+
+        // Clear tooltip if nothing is currently hovered
+        this.uiManager.updateTooltip(null, e.clientX, e.clientY);
+    }
+
 	
     handleZoom(e, centerX, centerY) {
         if (!this.state.currentRoomImage) return;

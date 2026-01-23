@@ -505,100 +505,101 @@ class EntranceConditionEditor {
     }
 
     getValue() {
-        if (!this.validate()) {
-            return null;
+            if (!this.validate()) {
+                return null;
+            }
+
+            const type = this.typeSelect.value;
+            if (!type) return null;
+
+            const result = {};
+
+            switch (type) {
+                case 'comeInNormally':
+                case 'comeInShinecharged':
+                case 'comeInShinechargedJumping':
+                case 'comeInWithBombBoost':
+                case 'comeInWithDoorStuckSetup':
+                case 'comeInWithSuperSink':
+                    // IMPORTANT: Return empty object, not {}
+                    // This ensures the type key exists in the result
+                    result[type] = {};
+                    break;
+
+                case 'comeInRunning':
+                case 'comeInJumping':
+                case 'comeInSpaceJumping':
+                    result[type] = this.getSpeedBoosterMinMaxTiles();
+                    break;
+
+                case 'comeInBlueSpaceJumping':
+                    result[type] = this.getExtraRunSpeed();
+                    break;
+
+                case 'comeInShinecharging':
+                case 'comeInGettingBlueSpeed':
+                    result[type] = this.getRunway(type === 'comeInGettingBlueSpeed');
+                    break;
+
+                case 'comeInWithSpark':
+                    result[type] = this.getSparkPosition();
+                    break;
+
+                case 'comeInStutterShinecharging':
+                    result[type] = this.getMinTiles();
+                    break;
+
+                case 'comeInSpeedballing':
+                    result[type] = this.getSpeedballing();
+                    break;
+
+                case 'comeInWithTemporaryBlue':
+                    result[type] = this.getDirection();
+                    break;
+
+                case 'comeInSpinning':
+                    result[type] = this.getSpinning();
+                    break;
+
+                case 'comeInBlueSpinning':
+                    result[type] = this.getBlueSpinning();
+                    break;
+
+                case 'comeInWithMockball':
+                    result[type] = this.getMockball();
+                    break;
+
+                case 'comeInWithSpringBallBounce':
+                    result[type] = this.getSpringBallBounce();
+                    break;
+
+                case 'comeInWithBlueSpringBallBounce':
+                    result[type] = this.getBlueSpringBallBounce();
+                    break;
+
+                case 'comeInWithStoredFallSpeed':
+                    result[type] = this.getFallSpeed();
+                    break;
+
+                case 'comeInWithWallJumpBelow':
+                case 'comeInWithSpaceJumpBelow':
+                    result[type] = this.getMinHeight();
+                    break;
+
+                case 'comeInWithPlatformBelow':
+                    result[type] = this.getPlatformBelow();
+                    break;
+
+                case 'comeInWithGrappleJump':
+                    result[type] = this.getGrappleJumpPosition();
+                    break;
+            }
+
+            if (this.comesThroughToiletSelect && this.comesThroughToiletSelect.value !== 'no') {
+                result.comesThroughToilet = this.comesThroughToiletSelect.value;
+            }
+            return result;
         }
-
-        const type = this.typeSelect.value;
-        if (!type) return null;
-
-        const result = {};
-
-        switch (type) {
-            case 'comeInNormally':
-            case 'comeInShinecharged':
-            case 'comeInShinechargedJumping':
-            case 'comeInWithBombBoost':
-            case 'comeInWithDoorStuckSetup':
-            case 'comeInWithSuperSink':
-                result[type] = {};
-                break;
-
-            case 'comeInRunning':
-            case 'comeInJumping':
-            case 'comeInSpaceJumping':
-                result[type] = this.getSpeedBoosterMinMaxTiles();
-                break;
-
-            case 'comeInBlueSpaceJumping':
-                result[type] = this.getExtraRunSpeed();
-                break;
-
-            case 'comeInShinecharging':
-            case 'comeInGettingBlueSpeed':
-                result[type] = this.getRunway(type === 'comeInGettingBlueSpeed');
-                break;
-
-            case 'comeInWithSpark':
-                result[type] = this.getSparkPosition();
-                break;
-
-            case 'comeInStutterShinecharging':
-                result[type] = this.getMinTiles();
-                break;
-
-            case 'comeInSpeedballing':
-                result[type] = this.getSpeedballing();
-                break;
-
-            case 'comeInWithTemporaryBlue':
-                result[type] = this.getDirection();
-                break;
-
-            case 'comeInSpinning':
-                result[type] = this.getSpinning();
-                break;
-
-            case 'comeInBlueSpinning':
-                result[type] = this.getBlueSpinning();
-                break;
-
-            case 'comeInWithMockball':
-                result[type] = this.getMockball();
-                break;
-
-            case 'comeInWithSpringBallBounce':
-                result[type] = this.getSpringBallBounce();
-                break;
-
-            case 'comeInWithBlueSpringBallBounce':
-                result[type] = this.getBlueSpringBallBounce();
-                break;
-
-            case 'comeInWithStoredFallSpeed':
-                result[type] = this.getFallSpeed();
-                break;
-
-            case 'comeInWithWallJumpBelow':
-            case 'comeInWithSpaceJumpBelow':
-                result[type] = this.getMinHeight();
-                break;
-
-            case 'comeInWithPlatformBelow':
-                result[type] = this.getPlatformBelow();
-                break;
-
-            case 'comeInWithGrappleJump':
-                result[type] = this.getGrappleJumpPosition();
-                break;
-        }
-
-        if (this.comesThroughToiletSelect && this.comesThroughToiletSelect.value !== 'no') {
-            result.comesThroughToilet = this.comesThroughToiletSelect.value;
-        }
-
-        return result;
-    }
 
     // getValue helper methods
     getSpeedBoosterMinMaxTiles() {
