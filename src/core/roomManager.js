@@ -281,6 +281,7 @@ export class RoomManager {
 			region: this.state.currentSubarea,
 			roomName: roomData.name || 'Unknown Room',
 			roomItemNodes: this.state.currentRoomData.nodes.filter(node => node.nodeType === "item"),
+			roomUtilityNodes: this.state.currentRoomData.nodes.filter(node => node.nodeType === "utility"),
 			connection: connection,
 			doorNode: doorNode,
 			allRoomsMetadata: this.state.allRoomsMetadata

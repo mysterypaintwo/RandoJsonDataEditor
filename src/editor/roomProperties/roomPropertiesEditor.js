@@ -228,8 +228,9 @@ class RoomPropertiesEditor {
 		const allNodes = this.currentRoomData.nodes || [];
 		const itemNodes = allNodes.filter(n => n.nodeType === 'item').sort((a, b) => a.id - b.id);
 		const doorNodes = allNodes.filter(n => n.nodeType === 'door').sort((a, b) => a.id - b.id);
+		const utilityNodes = allNodes.filter(n => n.nodeType === 'utility').sort((a, b) => a.id - b.id);
 		const junctionNodes = allNodes.filter(n => n.nodeType === 'junction').sort((a, b) => a.id - b.id);
-		const sortedNodes = [...itemNodes, ...doorNodes, ...junctionNodes];
+		const sortedNodes = [...doorNodes, ...itemNodes, ...utilityNodes, ...junctionNodes];
 
 		this.validRoomNodes = sortedNodes.map(node => ({
 			id: node.id,
@@ -592,9 +593,10 @@ class RoomPropertiesEditor {
 					const allNodes = data.nodes || [];
 					const itemNodes = allNodes.filter(n => n.nodeType === 'item');
 					const doorNodes = allNodes.filter(n => n.nodeType === 'door');
+					const utilityNodes = allNodes.filter(n => n.nodeType === 'utility');
 
-					// Merge: items first, then doors, then updated junctions (maintain order)
-					collectedData[type] = [...itemNodes, ...doorNodes, ...updatedJunctionNodes];
+					// Merge: Doors first, then items, then updated junctions, then utility nodes (maintain order)
+					collectedData[type] = [...doorNodes, ...itemNodes, ...utilityNodes, ...updatedJunctionNodes];
 				} else if (type === 'roomEnvironments') {
 					// Get room environments without ID assignment
 					collectedData[type] = Array.from(this.containers[type].children)

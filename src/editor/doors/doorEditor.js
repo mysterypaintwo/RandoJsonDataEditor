@@ -79,7 +79,8 @@ function handleDoorDataReceived(event, data, enemyList, itemList, eventList, wea
         convertToMap(techMap || {}),
         convertToMap(helperMap || {}),
         enemyList || {},
-        doorData.roomItemNodes || [] // Pass room item nodes for viewable nodes
+        doorData.roomItemNodes || [], // Pass room item nodes for viewable nodes,
+        doorData.roomUtilityNodes || []
     );
 
     updateHeaderInfo();
@@ -874,6 +875,7 @@ function populateViewableNodes() {
 
     const viewableNodes = doorNode.viewableNodes || [];
     const roomItemNodes = doorData.roomItemNodes || [];
+    const roomUtilityNodes = doorData.roomUtilityNodes || [];
 
     if (roomItemNodes.length === 0) {
         container.innerHTML = '<em style="color: #999;">No item nodes available in this room</em>';
@@ -1098,7 +1100,8 @@ function collectDoorNodeData() {
     const implicitFlags = Array.from(document.querySelectorAll('#implicitFlagsContainer input[type="checkbox"]'));
     implicitFlags.forEach(checkbox => {
         const key = checkbox.dataset.key;
-        result[key] = checkbox.checked;
+        if (checkbox.checked)
+            result[key] = checkbox.checked;
     });
 
     // Map tile mask
