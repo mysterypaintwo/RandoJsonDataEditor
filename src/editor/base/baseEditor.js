@@ -6,41 +6,41 @@
    ============================================================================= */
 
 class BaseEditor {
-    constructor(initialData = {}, config = {}) {
-        this.config = config;
-        this.initialData = this.normalizeData(initialData);
-        this.isCollapsed = true; // Start collapsed by default
-        this.hasRendered = false; // Track if content has been rendered
-        this._uid = this.generateUID();
-        this._assignedId = this.initialData.id ?? null;
-        this.createElement();
-        this.populateFields();
-        this.setupEventHandlers();
+	constructor(initialData = {}, config = {}) {
+		this.config = config;
+		this.initialData = this.normalizeData(initialData);
+		this.isCollapsed = true; // Start collapsed by default
+		this.hasRendered = false; // Track if content has been rendered
+		this._uid = this.generateUID();
+		this._assignedId = this.initialData.id ?? null;
+		this.createElement();
+		this.populateFields();
+		this.setupEventHandlers();
 
-        // IMPORTANT: Always render content immediately on construction
-        // Lazy rendering caused the data to never display when loading from file
-        this.renderContent();
+		// IMPORTANT: Always render content immediately on construction
+		// Lazy rendering caused the data to never display when loading from file
+		this.renderContent();
 
-        // Then collapse it for performance
-        this.collapse();
-    }
+		// Then collapse it for performance
+		this.collapse();
+	}
 
-    generateUID() {
-        return `${this.config.type}-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`;
-    }
+	generateUID() {
+		return `${this.config.type}-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`;
+	}
 
-    createElement() {
-        this.root = document.createElement('div');
-        this.root.className = `editor-card ${this.config.className}-card collapsed`;
-        this.createHeader();
-        this.createContentArea();
-        this.root._uid = this._uid;
-        this.root._assignedId = this._assignedId;
-        this.root.getValue = () => this.getValue();
-        this.root.collapse = () => this.collapse();
-        this.root.expand = () => this.expand();
-        this.root.setAssignedId = (newId) => this.setAssignedId(newId);
-    }
+	createElement() {
+		this.root = document.createElement('div');
+		this.root.className = `editor-card ${this.config.className}-card collapsed`;
+		this.createHeader();
+		this.createContentArea();
+		this.root._uid = this._uid;
+		this.root._assignedId = this._assignedId;
+		this.root.getValue = () => this.getValue();
+		this.root.collapse = () => this.collapse();
+		this.root.expand = () => this.expand();
+		this.root.setAssignedId = (newId) => this.setAssignedId(newId);
+	}
 
 	createHeader() {
 		this.headerContainer = document.createElement('div');
@@ -87,13 +87,13 @@ class BaseEditor {
 		this.root.appendChild(this.headerContainer);
 	}
 
-    createContentArea() {
-        this.contentArea = document.createElement('div');
-        this.contentArea.className = 'editor-card-content';
-        this.contentArea.style.paddingTop = '8px';
-        this.contentArea.style.display = 'none'; // Start hidden
-        this.root.appendChild(this.contentArea);
-    }
+	createContentArea() {
+		this.contentArea = document.createElement('div');
+		this.contentArea.className = 'editor-card-content';
+		this.contentArea.style.paddingTop = '8px';
+		this.contentArea.style.display = 'none'; // Start hidden
+		this.root.appendChild(this.contentArea);
+	}
 
 	setupEventHandlers() {
 		this.toggleButton.addEventListener('click', (e) => {
@@ -128,100 +128,100 @@ class BaseEditor {
 		this.setupTitleUpdates();
 	}
 
-    setupTitleUpdates() {
-        // To be overridden by subclasses to monitor specific fields
-    }
+	setupTitleUpdates() {
+		// To be overridden by subclasses to monitor specific fields
+	}
 
-    updateTitle(customTitle = null) {
-        // Debounce title updates
-        if (this._titleUpdateTimeout) {
-            clearTimeout(this._titleUpdateTimeout);
-        }
+	updateTitle(customTitle = null) {
+		// Debounce title updates
+		if (this._titleUpdateTimeout) {
+			clearTimeout(this._titleUpdateTimeout);
+		}
 
-        this._titleUpdateTimeout = setTimeout(() => {
-            const title = customTitle || this.getTitleFromData() || this.config.defaultName || 'Unnamed';
-            const id = this._assignedId;
-            this.titleSpan.textContent = `${this.config.emoji} ${title} ${id != null ? `(ID: ${id})` : ''}`;
-        }, 100); // 100ms debounce
-    }
+		this._titleUpdateTimeout = setTimeout(() => {
+			const title = customTitle || this.getTitleFromData() || this.config.defaultName || 'Unnamed';
+			const id = this._assignedId;
+			this.titleSpan.textContent = `${this.config.emoji} ${title} ${id != null ? `(ID: ${id})` : ''}`;
+		}, 100); // 100ms debounce
+	}
 
-    getTitleFromData() {
-        // To be overridden by subclasses
-        return null;
-    }
+	getTitleFromData() {
+		// To be overridden by subclasses
+		return null;
+	}
 
-    populateFields() {
-        // To be overridden by subclasses
-        throw new Error('populateFields must be implemented by subclass');
-    }
+	populateFields() {
+		// To be overridden by subclasses
+		throw new Error('populateFields must be implemented by subclass');
+	}
 
-    normalizeData(data) {
-        // To be overridden by subclasses
-        return data || {};
-    }
+	normalizeData(data) {
+		// To be overridden by subclasses
+		return data || {};
+	}
 
-    getValue() {
-        // If not rendered yet, render now to get values
-        if (!this.hasRendered) {
-            this.renderContent();
-        }
+	getValue() {
+		// If not rendered yet, render now to get values
+		if (!this.hasRendered) {
+			this.renderContent();
+		}
 
-        // If still rendering (async operations), wait for completion
-        if (this._isRendering) {
-            console.warn('getValue called while still rendering, waiting...');
-            // This shouldn't happen but we handle it gracefully
-        }
+		// If still rendering (async operations), wait for completion
+		if (this._isRendering) {
+			console.warn('getValue called while still rendering, waiting...');
+			// This shouldn't happen but we handle it gracefully
+		}
 
-        // To be overridden by subclasses
-        throw new Error('getValue must be implemented by subclass');
-    }
+		// To be overridden by subclasses
+		throw new Error('getValue must be implemented by subclass');
+	}
 
-    renderContent() {
-        if (this.hasRendered) return;
+	renderContent() {
+		if (this.hasRendered) return;
 
-        console.log(`Rendering content for ${this.config.type} ${this._uid}`);
-        this._isRendering = true;
-        this.hasRendered = true;
+		console.log(`Rendering content for ${this.config.type} ${this._uid}`);
+		this._isRendering = true;
+		this.hasRendered = true;
 
-        // Clear any placeholder content
-        this.contentArea.innerHTML = '';
+		// Clear any placeholder content
+		this.contentArea.innerHTML = '';
 
-        // Populate fields (implemented by subclasses)
-        this.populateFields();
+		// Populate fields (implemented by subclasses)
+		this.populateFields();
 
-        this._isRendering = false;
-    }
+		this._isRendering = false;
+	}
 
-    toggle() {
-        if (this.isCollapsed) {
-            this.expand();
-        } else {
-            this.collapse();
-        }
-    }
+	toggle() {
+		if (this.isCollapsed) {
+			this.expand();
+		} else {
+			this.collapse();
+		}
+	}
 
-    collapse() {
-        this.isCollapsed = true;
-        this.contentArea.style.display = 'none';
-        this.toggleButton.textContent = '▶';
-        this.root.classList.add('collapsed');
-    }
+	collapse() {
+		this.isCollapsed = true;
+		this.contentArea.style.display = 'none';
+		this.toggleButton.textContent = '▶';
+		this.root.classList.add('collapsed');
+	}
 
-    expand() {
-        // Lazy render content on first expand
-        if (!this.hasRendered) {
-            this.renderContent();
-        }
+	expand() {
+		// Lazy render content on first expand
+		if (!this.hasRendered) {
+			this.renderContent();
+		}
 
-        this.isCollapsed = false;
-        this.contentArea.style.display = 'block';
-        this.toggleButton.textContent = '▼';
-        this.root.classList.remove('collapsed');
-    }
+		this.isCollapsed = false;
+		this.contentArea.style.display = 'block';
+		this.toggleButton.textContent = '▼';
+		this.root.classList.remove('collapsed');
+	}
 
 	remove() {
 		console.log(`[BaseEditor] Removing ${this.config.type} ${this._uid}`);
-		
+
 		// Call the onRemove callback FIRST, before any DOM manipulation
 		if (this.onRemove) {
 			this.onRemove();
@@ -247,30 +247,35 @@ class BaseEditor {
 		this.root.remove();
 	}
 
-    // Utility method for creating remove buttons
-    createRemoveButton(text, customCallback = null) {
-        const button = createRemoveButton(text, () => {
-            if (customCallback) {
-                customCallback();
-            } else {
-                this.remove();
-            }
-        });
-        return button;
-    }
+	// Utility method for creating remove buttons
+	createRemoveButton(text, customCallback = null) {
+		const button = createRemoveButton(text, () => {
+			if (customCallback) {
+				customCallback();
+			} else {
+				this.remove();
+			}
+		});
+		return button;
+	}
 
-    // Utility method for attaching to containers with drag support
-    attachToContainer(container, renumberCallback) {
-        container.appendChild(this.root);
-        makeCardDraggable(this.root, container, this.config.type, renumberCallback);
-        return this.root;
-    }
+	// Utility method for attaching to containers with drag support
+	attachToContainer(container, renumberCallback) {
+		container.appendChild(this.root);
+		switch (this.config.type) {
+			default:
+				makeCardDraggable(this.root, container, this.config.type, renumberCallback);
+			case 'strats':
+				break;
+		}
+		return this.root;
+	}
 
-    // Method to update assigned ID (called during renumbering)
-    setAssignedId(newId) {
-        console.log(`Setting ID: ${newId} for ${this.config.type}`);
-        this._assignedId = newId;
-        this.root._assignedId = newId;
-        this.updateTitle();
-    }
+	// Method to update assigned ID (called during renumbering)
+	setAssignedId(newId) {
+		console.log(`Setting ID: ${newId} for ${this.config.type}`);
+		this._assignedId = newId;
+		this.root._assignedId = newId;
+		this.updateTitle();
+	}
 }

@@ -99,7 +99,7 @@ export class RoomManager {
 			this.state.scale,
 			this.state.currentRoomData?.strats,
 			undefined, // mouseX - will be set by handleMouseMove
-			undefined  // mouseY
+			undefined // mouseY
 		);
 	}
 	/**
@@ -266,28 +266,84 @@ export class RoomManager {
 		return this.navigateToRoom(connection.targetRoom);
 	}
 	/**
+	 * Find door node in the current room by node id
+	 * @param {number} nodeId
+	 * @returns {Object|null}
+	 */
+	findDoorNodeById(nodeId) {
+		if (!this.state.currentRoomData?.nodes)
+			return null;
+
+		return this.state.currentRoomData.nodes.find(
+			n => n.nodeType === 'door' && n.id === nodeId
+		) || null;
+	}
+	directionToPosition(direction) {
+		switch (direction) {
+			case 'left':
+				return 'left';
+			case 'right':
+				return 'right';
+			case 'up':
+				return 'top';
+			case 'down':
+				return 'bottom';
+			default:
+				return null;
+		}
+	}
+	/**
+	 * Resolve the connection endpoint corresponding to the clicked door
+	 * @param {Object} connection
+	 * @param {string} direction - door.doorOrientation
+	 * @returns {Object|null}
+	 */
+	getConnectionNodeFromClick(connection, direction) {
+		if (!connection?.nodes || !direction)
+			return null;
+
+		const expectedPosition = this.directionToPosition(direction);
+		if (!expectedPosition)
+			return null;
+
+		return connection.nodes.find(
+			n => n.position === expectedPosition
+		) || null;
+	}
+	/**
 	 * Open the door editor for a specific door node
 	 * @param {string} direction - Door direction
-	 * @param {Object|null} connection - Existing connection data, if any  
+	 * @param {Object|null} connection - Existing connection data, if any
 	 * @param {Object} roomData - Current room data
 	 */
 	openDoorEditor(direction, connection, roomData) {
-		// Find the corresponding door node in the current room data
-		const doorNode = this.findDoorNodeByDirection(direction);
-		// Convert to format expected by door editor
+		const connNode = this.getConnectionNodeFromClick(connection, direction);
+
+		if (!connNode) {
+			console.warn('Connection does not include current room:', connection);
+			return;
+		}
+
+		const doorNode = connNode ?
+			this.findDoorNodeById(connNode.nodeid) :
+			null;
+
 		const editorData = {
 			dir: direction,
 			sector: this.state.currentArea,
 			region: this.state.currentSubarea,
 			roomName: roomData.name || 'Unknown Room',
-			roomItemNodes: this.state.currentRoomData.nodes.filter(node => node.nodeType === "item"),
-			roomUtilityNodes: this.state.currentRoomData.nodes.filter(node => node.nodeType === "utility"),
-			connection: connection,
-			doorNode: doorNode,
+			roomItemNodes: this.state.currentRoomData.nodes.filter(n => n.nodeType === "item"),
+			roomUtilityNodes: this.state.currentRoomData.nodes.filter(n => n.nodeType === "utility"),
+			connection,
+			doorNode,
 			allRoomsMetadata: this.state.allRoomsMetadata
 		};
+
 		console.log('Opening door editor with data:', editorData);
-		window.api.openDoorEditor(editorData,
+
+		window.api.openDoorEditor(
+			editorData,
 			this.state.getEnemyList(),
 			this.state.getItemList(),
 			this.state.getEventList(),
@@ -296,6 +352,7 @@ export class RoomManager {
 			this.state.getHelperMap()
 		);
 	}
+
 	/**
 	 * Find door node that corresponds to a given direction
 	 * @param {string} direction - Door direction

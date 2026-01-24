@@ -10,61 +10,78 @@
 // =============================================================================
 
 const ValidationUtils = {
-    // Validate hex pattern for extra run speed
-    validateHexSpeed(value) {
-        if (!value || value.trim() === '') return { valid: true };
-        const pattern = /^\$[0-9A-F]\.[0-9A-F]+$/;
-        if (!pattern.test(value)) {
-            return {
-                valid: false,
-                message: 'Must match pattern $X.Y (e.g., $4.0, $F.8) where X and Y are hex digits 0-9 or A-F'
-            };
-        }
-        return { valid: true };
-    },
+	// Validate hex pattern for extra run speed
+	validateHexSpeed(value) {
+		if (!value || value.trim() === '') return {
+			valid: true
+		};
+		const pattern = /^\$[0-9A-F]\.[0-9A-F]+$/;
+		if (!pattern.test(value)) {
+			return {
+				valid: false,
+				message: 'Must match pattern $X.Y (e.g., $4.0, $F.8) where X and Y are hex digits 0-9 or A-F'
+			};
+		}
+		return {
+			valid: true
+		};
+	},
 
-    // Validate number range
-    validateNumber(value, min, max, label) {
-        if (value === '' || value === null || value === undefined) {
-            return { valid: true };
-        }
-        const num = parseFloat(value);
-        if (isNaN(num)) {
-            return { valid: false, message: `${label} must be a number` };
-        }
-        if (min !== undefined && num < min) {
-            return { valid: false, message: `${label} must be at least ${min}` };
-        }
-        if (max !== undefined && num > max) {
-            return { valid: false, message: `${label} must be at most ${max}` };
-        }
-        return { valid: true };
-    },
+	// Validate number range
+	validateNumber(value, min, max, label) {
+		if (value === '' || value === null || value === undefined) {
+			return {
+				valid: true
+			};
+		}
+		const num = parseFloat(value);
+		if (isNaN(num)) {
+			return {
+				valid: false,
+				message: `${label} must be a number`
+			};
+		}
+		if (min !== undefined && num < min) {
+			return {
+				valid: false,
+				message: `${label} must be at least ${min}`
+			};
+		}
+		if (max !== undefined && num > max) {
+			return {
+				valid: false,
+				message: `${label} must be at most ${max}`
+			};
+		}
+		return {
+			valid: true
+		};
+	},
 
-    // Show inline error
-    showFieldError(input, message) {
-        // Remove existing error
-        const existing = input.parentElement.querySelector('.field-error');
-        if (existing) existing.remove();
+	// Show inline error
+	showFieldError(input, message) {
+		// Remove existing error
+		const existing = input.parentElement.querySelector('.field-error');
+		if (existing) existing.remove();
 
-        if (!message) return;
+		if (!message) return;
 
-        const error = document.createElement('div');
-        error.className = 'field-error';
-        error.textContent = message;
-        error.style.color = '#e74c3c';
-        error.style.fontSize = '11px';
-        error.style.marginTop = '4px';
-        error.style.fontWeight = '600';
-        input.parentElement.appendChild(error);
-        input.style.borderColor = '#e74c3c';
-    },
+		const error = document.createElement('div');
+		error.className = 'field-error';
+		error.textContent = message;
+		error.style.color = '#e74c3c';
+		error.style.fontSize = '11px';
+		error.style.marginTop = '4px';
+		error.style.fontWeight = '600';
+		input.parentElement.appendChild(error);
+		input.style.borderColor = '#e74c3c';
+	},
 
-    clearFieldError(input) {
-        const existing = input.parentElement.querySelector('.field-error');
-        if (existing) existing.remove();
-        input.style.borderColor = '';
-    }
+	clearFieldError(input) {
+		const existing = input.parentElement.querySelector('.field-error');
+		if (existing) existing.remove();
+		input.style.borderColor = '';
+	}
 };
 
 // =============================================================================
@@ -177,7 +194,7 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 
 			const checkboxCell = document.createElement('div');
 			checkboxCell.className = 'improved-checkbox-cell';
-			
+
 			const checkbox = document.createElement('input');
 			checkbox.type = 'checkbox';
 			checkbox.className = 'improved-checkbox-input';
@@ -228,7 +245,7 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 			// If we have a mutual exclusion list, check if this list has selections
 			if (container._mutualExclusionList) {
 				const thisHasSelections = checkboxes.some(cb => cb.checked);
-				
+
 				// Grey out the mutual exclusion list if this list has selections
 				if (container._mutualExclusionList.setDisabled) {
 					container._mutualExclusionList.setDisabled(thisHasSelections);
@@ -281,7 +298,7 @@ function createNodeCheckboxList(selectedNodes, title, maxSelected = Infinity, fi
 				.filter(cb => cb.checked)
 				.map(cb => cb.dataset.nodeId);
 		};
-		
+
 		// Method to disable/enable all checkboxes
 		container.setDisabled = (disabled) => {
 			checkboxes.forEach(cb => {
@@ -350,12 +367,12 @@ function createObstacleCheckboxList(selectedObstacles, title) {
 
 	function buildRows(snapshot) {
 		checkboxContainer.innerHTML = '';
-		
+
 		// Clean up selections for obstacles that no longer exist
 		const currentUIDs = new Set(snapshot.map(obs => obs.uid));
 		const toRemove = [...selectedUIDs].filter(uid => !currentUIDs.has(uid));
 		toRemove.forEach(uid => selectedUIDs.delete(uid));
-		
+
 		if (!snapshot.length) {
 			const emptyDiv = document.createElement('div');
 			emptyDiv.textContent = '(no obstacles in this room)';
@@ -374,7 +391,7 @@ function createObstacleCheckboxList(selectedObstacles, title) {
 
 			const checkboxCell = document.createElement('div');
 			checkboxCell.className = 'improved-checkbox-cell';
-			
+
 			const checkbox = document.createElement('input');
 			checkbox.type = 'checkbox';
 			checkbox.className = 'improved-checkbox-input';
@@ -506,15 +523,13 @@ function createObstacleCheckboxList(selectedObstacles, title) {
  */
 function cleanObject(obj) {
 	if (!obj || typeof obj !== 'object') return obj;
-	
+
 	const cleaned = {};
 	Object.entries(obj).forEach(([key, value]) => {
-		// Skip null, undefined, empty strings, and empty arrays
 		if (value === null || value === undefined || value === '') return;
 		if (Array.isArray(value) && value.length === 0) return;
 		if (typeof value === 'object' && Object.keys(value).length === 0) return;
-		
-		// Recursively clean nested objects
+
 		if (typeof value === 'object' && !Array.isArray(value)) {
 			const cleanedNested = cleanObject(value);
 			if (Object.keys(cleanedNested).length > 0) {
@@ -524,7 +539,31 @@ function cleanObject(obj) {
 			cleaned[key] = value;
 		}
 	});
-	
+
+	return cleaned;
+}
+
+/**
+ * Clean entrance/exit condition objects.
+ * Preserves empty objects recursively, but still removes null/undefined/empty strings.
+ */
+function cleanConditionObject(obj) {
+	if (!obj || typeof obj !== 'object') return obj;
+
+	const cleaned = {};
+	Object.entries(obj).forEach(([key, value]) => {
+		if (value === null || value === undefined || value === '') return;
+		if (Array.isArray(value) && value.length === 0) return;
+
+		if (typeof value === 'object') {
+			// recurse and PRESERVE empties
+			const nested = cleanConditionObject(value);
+			cleaned[key] = nested ?? {};
+		} else {
+			cleaned[key] = value;
+		}
+	});
+
 	return cleaned;
 }
 
@@ -536,323 +575,328 @@ function cleanObject(obj) {
  * Creates a checkbox list for tech/helper maps with search and filtering
  */
 function createMapCheckboxList(map, label, initialSelected = []) {
-    const container = document.createElement('div');
-    container.className = 'checkbox-map-container';
+	const container = document.createElement('div');
+	container.className = 'checkbox-map-container';
 
-    // Add type-specific class for CSS hover
-    container.classList.add(label.toLowerCase()); // 'tech' or 'helper'
+	// Add type-specific class for CSS hover
+	container.classList.add(label.toLowerCase()); // 'tech' or 'helper'
 
-    const initialSet = new Set((initialSelected || []).map(x => String(x)));
+	const initialSet = new Set((initialSelected || []).map(x => String(x)));
 
-    // Button container for all three buttons
-    const buttonContainer = document.createElement('div');
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.gap = '6px';
-    buttonContainer.style.marginBottom = '6px';
+	// Button container for all three buttons
+	const buttonContainer = document.createElement('div');
+	buttonContainer.style.display = 'flex';
+	buttonContainer.style.gap = '6px';
+	buttonContainer.style.marginBottom = '6px';
 
-    const collapseButton = document.createElement('button');
-    collapseButton.textContent = 'Hide List ▼';
-    collapseButton.style.padding = '4px 8px';
-    collapseButton.style.fontSize = '12px';
-    collapseButton.style.cursor = 'pointer';
-    collapseButton.style.background = '#f8f9fa';
-    collapseButton.style.border = '1px solid #dee2e6';
-    collapseButton.style.borderRadius = '4px';
-    collapseButton.style.flex = '1';
+	const collapseButton = document.createElement('button');
+	collapseButton.textContent = 'Hide List ▼';
+	collapseButton.style.padding = '4px 8px';
+	collapseButton.style.fontSize = '12px';
+	collapseButton.style.cursor = 'pointer';
+	collapseButton.style.background = '#f8f9fa';
+	collapseButton.style.border = '1px solid #dee2e6';
+	collapseButton.style.borderRadius = '4px';
+	collapseButton.style.flex = '1';
 
-    const showCheckedButton = document.createElement('button');
-    showCheckedButton.textContent = 'Hide Unchecked ▼';
-    showCheckedButton.style.padding = '4px 8px';
-    showCheckedButton.style.fontSize = '12px';
-    showCheckedButton.style.cursor = 'pointer';
-    showCheckedButton.style.background = '#f8f9fa';
-    showCheckedButton.style.border = '1px solid #dee2e6';
-    showCheckedButton.style.borderRadius = '4px';
-    showCheckedButton.style.flex = '1';
+	const showCheckedButton = document.createElement('button');
+	showCheckedButton.textContent = 'Hide Unchecked ▼';
+	showCheckedButton.style.padding = '4px 8px';
+	showCheckedButton.style.fontSize = '12px';
+	showCheckedButton.style.cursor = 'pointer';
+	showCheckedButton.style.background = '#f8f9fa';
+	showCheckedButton.style.border = '1px solid #dee2e6';
+	showCheckedButton.style.borderRadius = '4px';
+	showCheckedButton.style.flex = '1';
 
-    const showDescButton = document.createElement('button');
-    showDescButton.textContent = 'Hide Descriptions ▼';
-    showDescButton.style.padding = '4px 8px';
-    showDescButton.style.fontSize = '12px';
-    showDescButton.style.cursor = 'pointer';
-    showDescButton.style.background = '#f8f9fa';
-    showDescButton.style.border = '1px solid #dee2e6';
-    showDescButton.style.borderRadius = '4px';
-    showDescButton.style.flex = '1';
+	const showDescButton = document.createElement('button');
+	showDescButton.textContent = 'Hide Descriptions ▼';
+	showDescButton.style.padding = '4px 8px';
+	showDescButton.style.fontSize = '12px';
+	showDescButton.style.cursor = 'pointer';
+	showDescButton.style.background = '#f8f9fa';
+	showDescButton.style.border = '1px solid #dee2e6';
+	showDescButton.style.borderRadius = '4px';
+	showDescButton.style.flex = '1';
 
-    buttonContainer.appendChild(collapseButton);
-    buttonContainer.appendChild(showCheckedButton);
-    buttonContainer.appendChild(showDescButton);
-    container.appendChild(buttonContainer);
+	buttonContainer.appendChild(collapseButton);
+	buttonContainer.appendChild(showCheckedButton);
+	buttonContainer.appendChild(showDescButton);
+	container.appendChild(buttonContainer);
 
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = `Filter ${label}...`;
-    searchInput.style.marginBottom = '6px';
-    searchInput.style.padding = '6px 10px';
-    searchInput.style.border = '1px solid #ccc';
-    searchInput.style.borderRadius = '4px';
-    searchInput.style.fontSize = '13px';
-    searchInput.style.width = '100%';
-    searchInput.style.boxSizing = 'border-box';
-    container.appendChild(searchInput);
+	const searchInput = document.createElement('input');
+	searchInput.type = 'text';
+	searchInput.placeholder = `Filter ${label}...`;
+	searchInput.style.marginBottom = '6px';
+	searchInput.style.padding = '6px 10px';
+	searchInput.style.border = '1px solid #ccc';
+	searchInput.style.borderRadius = '4px';
+	searchInput.style.fontSize = '13px';
+	searchInput.style.width = '100%';
+	searchInput.style.boxSizing = 'border-box';
+	container.appendChild(searchInput);
 
-    const tableWrapper = document.createElement('div');
-    tableWrapper.style.maxHeight = '400px';
-    tableWrapper.style.overflowY = 'auto';
-    tableWrapper.style.border = '1px solid #e0e0e0';
-    tableWrapper.style.borderRadius = '6px';
-    tableWrapper.style.background = 'rgba(255, 255, 255, 0.95)';
-    container.appendChild(tableWrapper);
+	const tableWrapper = document.createElement('div');
+	tableWrapper.style.maxHeight = '400px';
+	tableWrapper.style.overflowY = 'auto';
+	tableWrapper.style.border = '1px solid #e0e0e0';
+	tableWrapper.style.borderRadius = '6px';
+	tableWrapper.style.background = 'rgba(255, 255, 255, 0.95)';
+	container.appendChild(tableWrapper);
 
-    const table = document.createElement('table');
-    table.style.width = '100%';
-    table.style.borderCollapse = 'collapse';
-    table.style.fontSize = '13px';
-    tableWrapper.appendChild(table);
+	const table = document.createElement('table');
+	table.style.width = '100%';
+	table.style.borderCollapse = 'collapse';
+	table.style.fontSize = '13px';
+	tableWrapper.appendChild(table);
 
-    const tbody = document.createElement('tbody');
-    table.appendChild(tbody);
+	const tbody = document.createElement('tbody');
+	table.appendChild(tbody);
 
-    const checkboxes = [];
-    let hideUnchecked = initialSet.size > 0; // Start with unchecked hidden if there are selections
-    let hideDescriptions = hideUnchecked ? true : false;
+	const checkboxes = [];
+	let hideUnchecked = initialSet.size > 0; // Start with unchecked hidden if there are selections
+	let hideDescriptions = hideUnchecked ? true : false;
 
-    function updateRowVisibility() {
-        const filter = searchInput.value.toLowerCase();
-        
-        tbody.querySelectorAll('tr').forEach(row => {
-            // Handle category headers
-            const catHeader = row.querySelector('td[colspan="3"]');
-            if (catHeader) {
-                // Hide category headers when showing only checked items
-                row.style.display = hideUnchecked ? 'none' : 'block';
-                return;
-            }
+	function updateRowVisibility() {
+		const filter = searchInput.value.toLowerCase();
 
-            const nameCell = row.querySelector('td:nth-child(2)');
-            const noteCell = row.querySelector('td:nth-child(3)');
-            if (!nameCell) return;
+		tbody.querySelectorAll('tr').forEach(row => {
+			// Handle category headers
+			const catHeader = row.querySelector('td[colspan="3"]');
+			if (catHeader) {
+				// Hide category headers when showing only checked items
+				row.style.display = hideUnchecked ? 'none' : 'block';
+				return;
+			}
 
-            // Handle description visibility
-            if (noteCell) {
-                noteCell.style.display = hideDescriptions ? 'none' : '';
-            }
+			const nameCell = row.querySelector('td:nth-child(2)');
+			const noteCell = row.querySelector('td:nth-child(3)');
+			if (!nameCell) return;
 
-            // Adjust grid columns based on description visibility
-            if (hideDescriptions) {
-                row.style.gridTemplateColumns = '40px 1fr';
-            } else {
-                row.style.gridTemplateColumns = '40px 200px 1fr';
-            }
+			// Handle description visibility
+			if (noteCell) {
+				noteCell.style.display = hideDescriptions ? 'none' : '';
+			}
 
-            // Check if row matches search filter
-            const textToCheck = nameCell.textContent + ' ' + (noteCell ? noteCell.textContent : '');
-            const matchesSearch = !filter || textToCheck.toLowerCase().includes(filter);
+			// Adjust grid columns based on description visibility
+			if (hideDescriptions) {
+				row.style.gridTemplateColumns = '40px 1fr';
+			} else {
+				row.style.gridTemplateColumns = '40px 200px 1fr';
+			}
 
-            // Find the checkbox for this row
-            const checkbox = row.querySelector('input[type="checkbox"]');
-            const isChecked = checkbox ? checkbox.checked : false;
+			// Check if row matches search filter
+			const textToCheck = nameCell.textContent + ' ' + (noteCell ? noteCell.textContent : '');
+			const matchesSearch = !filter || textToCheck.toLowerCase().includes(filter);
 
-            // Show row if it matches search AND (not hiding unchecked OR is checked)
-            const shouldShow = matchesSearch && (!hideUnchecked || isChecked);
-            row.style.display = shouldShow ? '' : 'none';
-        });
-    }
+			// Find the checkbox for this row
+			const checkbox = row.querySelector('input[type="checkbox"]');
+			const isChecked = checkbox ? checkbox.checked : false;
 
-    function renderItemRow(item, depth = 0) {
-        const row = document.createElement('tr');
-        row.style.display = 'grid';
-        row.style.gridTemplateColumns = '40px 200px 1fr';
-        row.style.alignItems = 'center';
-        row.style.padding = '8px 0';
-        row.style.borderBottom = '1px solid rgba(0, 0, 0, 0.08)';
-        row.style.cursor = 'pointer';
-        row.style.transition = 'background-color 0.2s ease';
+			// Show row if it matches search AND (not hiding unchecked OR is checked)
+			const shouldShow = matchesSearch && (!hideUnchecked || isChecked);
+			row.style.display = shouldShow ? '' : 'none';
+		});
+	}
 
-        // Checkbox cell
-        const cbCell = document.createElement('td');
-        cbCell.style.display = 'flex';
-        cbCell.style.justifyContent = 'center';
-        cbCell.style.alignItems = 'center';
-        cbCell.style.padding = '0 12px';
-        cbCell.style.cursor = 'pointer';
+	function renderItemRow(item, depth = 0) {
+		const row = document.createElement('tr');
+		row.style.display = 'grid';
+		row.style.gridTemplateColumns = '40px 200px 1fr';
+		row.style.alignItems = 'center';
+		row.style.padding = '8px 0';
+		row.style.borderBottom = '1px solid rgba(0, 0, 0, 0.08)';
+		row.style.cursor = 'pointer';
+		row.style.transition = 'background-color 0.2s ease';
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.style.width = '18px';
-        checkbox.style.height = '18px';
-        checkbox.style.margin = '0';
-        checkbox.style.cursor = 'pointer';
-        checkbox.style.accentColor = '#3498db';
+		// Checkbox cell
+		const cbCell = document.createElement('td');
+		cbCell.style.display = 'flex';
+		cbCell.style.justifyContent = 'center';
+		cbCell.style.alignItems = 'center';
+		cbCell.style.padding = '0 12px';
+		cbCell.style.cursor = 'pointer';
 
-        const itemIdStr = item.id !== undefined && item.id !== null ? String(item.id) : null;
-        const isChecked = (itemIdStr && initialSet.has(itemIdStr)) || initialSet.has(String(item.name));
-        checkbox.checked = !!isChecked;
+		const checkbox = document.createElement('input');
+		checkbox.type = 'checkbox';
+		checkbox.style.width = '18px';
+		checkbox.style.height = '18px';
+		checkbox.style.margin = '0';
+		checkbox.style.cursor = 'pointer';
+		checkbox.style.accentColor = '#3498db';
 
-        // Update visibility when checkbox changes
-        checkbox.addEventListener('change', updateRowVisibility);
+		const itemIdStr = item.id !== undefined && item.id !== null ? String(item.id) : null;
+		const isChecked = (itemIdStr && initialSet.has(itemIdStr)) || initialSet.has(String(item.name));
+		checkbox.checked = !!isChecked;
 
-        cbCell.appendChild(checkbox);
-        row.appendChild(cbCell);
+		// Update visibility when checkbox changes
+		checkbox.addEventListener('change', updateRowVisibility);
 
-        // Name cell
-        const nameCell = document.createElement('td');
-        nameCell.style.fontWeight = '600';
-        nameCell.style.padding = '0 8px';
-        nameCell.style.cursor = 'pointer';
+		cbCell.appendChild(checkbox);
+		row.appendChild(cbCell);
 
-        let displayLabel = item.name;
-        if (item.extensionTech) displayLabel += ' [Ext]';
-        nameCell.textContent = displayLabel;
-        row.appendChild(nameCell);
+		// Name cell
+		const nameCell = document.createElement('td');
+		nameCell.style.fontWeight = '600';
+		nameCell.style.padding = '0 8px';
+		nameCell.style.cursor = 'pointer';
 
-        // Note/devNote cell
-        const noteCell = document.createElement('td');
-        noteCell.style.color = '#666';
-        noteCell.style.fontSize = '12px';
-        noteCell.style.lineHeight = '1.4';
-        noteCell.style.padding = '0 12px 0 8px';
-        noteCell.style.cursor = 'pointer';
-        noteCell.className = 'description-cell'; // For easier targeting
-        
-        const noteText = Array.isArray(item.devNote)
-            ? item.devNote.join(' ')
-            : item.devNote || item.note || '';
-        noteCell.textContent = noteText;
-        row.appendChild(noteCell);
+		let displayLabel = item.name;
+		if (item.extensionTech) displayLabel += ' [Ext]';
+		nameCell.textContent = displayLabel;
+		row.appendChild(nameCell);
 
-        tbody.appendChild(row);
+		// Note/devNote cell
+		const noteCell = document.createElement('td');
+		noteCell.style.color = '#666';
+		noteCell.style.fontSize = '12px';
+		noteCell.style.lineHeight = '1.4';
+		noteCell.style.padding = '0 12px 0 8px';
+		noteCell.style.cursor = 'pointer';
+		noteCell.className = 'description-cell'; // For easier targeting
 
-        checkboxes.push({ checkbox, item });
+		const noteText = Array.isArray(item.devNote) ?
+			item.devNote.join(' ') :
+			item.devNote || item.note || '';
+		noteCell.textContent = noteText;
+		row.appendChild(noteCell);
 
-        // Add hover effect
-        row.addEventListener('mouseenter', () => {
-            if (label.toLowerCase() === 'tech') {
-                row.style.backgroundColor = 'rgba(51, 153, 255, 0.12)';
-            } else {
-                row.style.backgroundColor = 'rgba(245, 66, 108, 0.12)';
-            }
-        });
+		tbody.appendChild(row);
 
-        row.addEventListener('mouseleave', () => {
-            row.style.backgroundColor = '';
-        });
+		checkboxes.push({
+			checkbox,
+			item
+		});
 
-        // Make entire row clickable to toggle checkbox
-        row.addEventListener('click', (e) => {
-            // Only toggle if we didn't click directly on the checkbox
-            if (e.target !== checkbox) {
-                checkbox.checked = !checkbox.checked;
-                // Dispatch change event to trigger any listeners
-                const changeEvent = new Event('change', { bubbles: true });
-                checkbox.dispatchEvent(changeEvent);
-            }
-        });
+		// Add hover effect
+		row.addEventListener('mouseenter', () => {
+			if (label.toLowerCase() === 'tech') {
+				row.style.backgroundColor = 'rgba(51, 153, 255, 0.12)';
+			} else {
+				row.style.backgroundColor = 'rgba(245, 66, 108, 0.12)';
+			}
+		});
 
-        // Handle extension techs recursively
-        (item.extensionTechs || []).forEach(ext => renderItemRow(ext, depth + 1));
-    }
+		row.addEventListener('mouseleave', () => {
+			row.style.backgroundColor = '';
+		});
 
-    function buildTable() {
-        tbody.innerHTML = '';
-        checkboxes.length = 0; // Clear the array
+		// Make entire row clickable to toggle checkbox
+		row.addEventListener('click', (e) => {
+			// Only toggle if we didn't click directly on the checkbox
+			if (e.target !== checkbox) {
+				checkbox.checked = !checkbox.checked;
+				// Dispatch change event to trigger any listeners
+				const changeEvent = new Event('change', {
+					bubbles: true
+				});
+				checkbox.dispatchEvent(changeEvent);
+			}
+		});
 
-        if (!map || map.size === 0) {
-            const emptyRow = document.createElement('tr');
-            const emptyCell = document.createElement('td');
-            emptyCell.colSpan = 3;
-            emptyCell.textContent = `(no ${label.toLowerCase()} available)`;
-            emptyCell.style.fontStyle = 'italic';
-            emptyCell.style.textAlign = 'center';
-            emptyCell.style.padding = '16px';
-            emptyCell.style.color = '#666';
-            emptyRow.appendChild(emptyCell);
-            tbody.appendChild(emptyRow);
-            return;
-        }
+		// Handle extension techs recursively
+		(item.extensionTechs || []).forEach(ext => renderItemRow(ext, depth + 1));
+	}
 
-        for (const [categoryName, catObj] of map.entries()) {
-            // Category header row
-            const catRow = document.createElement('tr');
-            catRow.style.display = 'block';
-            catRow.style.width = '100%';
-            catRow.className = 'category-header-row'; // For easier targeting
-            
-            const catCell = document.createElement('td');
-            catCell.colSpan = 3;
-            catCell.textContent = categoryName;
-            catCell.style.fontWeight = 'bold';
-            catCell.style.borderBottom = '2px solid #bbb';
-            catCell.style.padding = '8px 12px';
-            catCell.style.background = '#f0f2f5';
-            catCell.style.cursor = 'default';
-            catCell.style.display = 'block';
-            catRow.appendChild(catCell);
-            tbody.appendChild(catRow);
+	function buildTable() {
+		tbody.innerHTML = '';
+		checkboxes.length = 0; // Clear the array
 
-            // Add items for this category
-            (catObj.items || []).forEach(item => renderItemRow(item));
-        }
+		if (!map || map.size === 0) {
+			const emptyRow = document.createElement('tr');
+			const emptyCell = document.createElement('td');
+			emptyCell.colSpan = 3;
+			emptyCell.textContent = `(no ${label.toLowerCase()} available)`;
+			emptyCell.style.fontStyle = 'italic';
+			emptyCell.style.textAlign = 'center';
+			emptyCell.style.padding = '16px';
+			emptyCell.style.color = '#666';
+			emptyRow.appendChild(emptyCell);
+			tbody.appendChild(emptyRow);
+			return;
+		}
 
-        // Apply initial visibility
-        updateRowVisibility();
-        
-        // Update button text based on initial state
-        showCheckedButton.textContent = hideUnchecked ? 'Show Unchecked ▶' : 'Hide Unchecked ▼';
-        showDescButton.textContent = hideDescriptions ? 'Show Descriptions ▶' : 'Hide Descriptions ▼';
-    }
+		for (const [categoryName, catObj] of map.entries()) {
+			// Category header row
+			const catRow = document.createElement('tr');
+			catRow.style.display = 'block';
+			catRow.style.width = '100%';
+			catRow.className = 'category-header-row'; // For easier targeting
 
-    // Search functionality
-    searchInput.addEventListener('input', updateRowVisibility);
+			const catCell = document.createElement('td');
+			catCell.colSpan = 3;
+			catCell.textContent = categoryName;
+			catCell.style.fontWeight = 'bold';
+			catCell.style.borderBottom = '2px solid #bbb';
+			catCell.style.padding = '8px 12px';
+			catCell.style.background = '#f0f2f5';
+			catCell.style.cursor = 'default';
+			catCell.style.display = 'block';
+			catRow.appendChild(catCell);
+			tbody.appendChild(catRow);
 
-    // Collapse functionality (hides entire list)
-    collapseButton.addEventListener('click', () => {
-        const isHidden = tableWrapper.style.display === 'none';
-        tableWrapper.style.display = isHidden ? '' : 'none';
-        searchInput.style.display = isHidden ? '' : 'none';
-        collapseButton.textContent = isHidden ? 'Hide List ▼' : 'Show List ▶';
-    });
+			// Add items for this category
+			(catObj.items || []).forEach(item => renderItemRow(item));
+		}
 
-    // Show checked only functionality
-    showCheckedButton.addEventListener('click', () => {
-        hideUnchecked = !hideUnchecked;
-        showCheckedButton.textContent = hideUnchecked ? 'Show Unchecked ▶' : 'Hide Unchecked ▼';
-        updateRowVisibility();
-    });
+		// Apply initial visibility
+		updateRowVisibility();
 
-    // Show/hide descriptions functionality
-    showDescButton.addEventListener('click', () => {
-        hideDescriptions = !hideDescriptions;
-        showDescButton.textContent = hideDescriptions ? 'Show Descriptions ▶' : 'Hide Descriptions ▼';
-        updateRowVisibility();
-    });
+		// Update button text based on initial state
+		showCheckedButton.textContent = hideUnchecked ? 'Show Unchecked ▶' : 'Hide Unchecked ▼';
+		showDescButton.textContent = hideDescriptions ? 'Show Descriptions ▶' : 'Hide Descriptions ▼';
+	}
 
-    // Build initial table
-    buildTable();
+	// Search functionality
+	searchInput.addEventListener('input', updateRowVisibility);
 
-    // Rebuild when global data changes
-    const unsubscribe = window.EditorGlobals.addListener(() => {
-        // Get current selections before rebuilding
-        const currentSelections = container.getSelectedValues();
-        
-        // Update the initial set with current selections
-        initialSet.clear();
-        currentSelections.forEach(sel => initialSet.add(String(sel)));
-        
-        // Rebuild the table
-        buildTable();
-    });
+	// Collapse functionality (hides entire list)
+	collapseButton.addEventListener('click', () => {
+		const isHidden = tableWrapper.style.display === 'none';
+		tableWrapper.style.display = isHidden ? '' : 'none';
+		searchInput.style.display = isHidden ? '' : 'none';
+		collapseButton.textContent = isHidden ? 'Hide List ▼' : 'Show List ▶';
+	});
 
-    // Store cleanup function
-    container._destroy = unsubscribe;
+	// Show checked only functionality
+	showCheckedButton.addEventListener('click', () => {
+		hideUnchecked = !hideUnchecked;
+		showCheckedButton.textContent = hideUnchecked ? 'Show Unchecked ▶' : 'Hide Unchecked ▼';
+		updateRowVisibility();
+	});
 
-    // Expose method to get selected values
-    container.getSelectedValues = () => {
-        return checkboxes.filter(cb => cb.checkbox.checked).map(cb => cb.item.name);
-    };
+	// Show/hide descriptions functionality
+	showDescButton.addEventListener('click', () => {
+		hideDescriptions = !hideDescriptions;
+		showDescButton.textContent = hideDescriptions ? 'Show Descriptions ▶' : 'Hide Descriptions ▼';
+		updateRowVisibility();
+	});
 
-    return container;
+	// Build initial table
+	buildTable();
+
+	// Rebuild when global data changes
+	const unsubscribe = window.EditorGlobals.addListener(() => {
+		// Get current selections before rebuilding
+		const currentSelections = container.getSelectedValues();
+
+		// Update the initial set with current selections
+		initialSet.clear();
+		currentSelections.forEach(sel => initialSet.add(String(sel)));
+
+		// Rebuild the table
+		buildTable();
+	});
+
+	// Store cleanup function
+	container._destroy = unsubscribe;
+
+	// Expose method to get selected values
+	container.getSelectedValues = () => {
+		return checkboxes.filter(cb => cb.checkbox.checked).map(cb => cb.item.name);
+	};
+
+	return container;
 }
 
 // =============================================================================
@@ -1022,11 +1066,11 @@ function getCurrentEnemyGroups() {
 function createUnifiedCheckboxList(items, title, selectedItems = [], options = {}) {
 	const {
 		maxSelected = Infinity,
-		filterBy = null,
-		displayProperty = 'name',
-		valueProperty = 'id',
-		showToggleButton = true,
-		columns = ['Enabled', 'Name']
+			filterBy = null,
+			displayProperty = 'name',
+			valueProperty = 'id',
+			showToggleButton = true,
+			columns = ['Enabled', 'Name']
 	} = options;
 
 	const container = document.createElement('div');
@@ -1209,7 +1253,9 @@ function createUnifiedCheckboxList(items, title, selectedItems = [], options = {
 function normalizeConditionValue(value) {
 	if (typeof value === 'string') {
 		const type = ConditionEditor.detectStringType(value);
-		return type ? { [type]: value } : value;
+		return type ? {
+			[type]: value
+		} : value;
 	}
 	return value;
 }

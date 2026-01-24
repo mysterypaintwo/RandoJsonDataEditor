@@ -75,9 +75,9 @@ export class UIManager {
 		const indicator = document.getElementById('drawModeIndicator');
 		if (!indicator) return;
 
-		indicator.textContent = isTriangleMode
-			? '▲ Triangle Mode (Press T for Rectangle)'
-			: '▢ Rectangle Mode (Press T for Triangle)';
+		indicator.textContent = isTriangleMode ?
+			'▲ Triangle Mode (Press T for Rectangle)' :
+			'▢ Rectangle Mode (Press T for Triangle)';
 		indicator.style.display = 'inline-block';
 	}
 
@@ -127,7 +127,7 @@ export class UIManager {
 			timeout = setTimeout(() => {
 				try {
 					onUpdate(JSON.parse(this.jsonTextArea.value));
-				} catch { }
+				} catch {}
 			}, 500);
 		});
 	}
@@ -192,7 +192,7 @@ export class UIManager {
 		}
 
 		const instructions = document.createElement('div');
-instructions.style.cssText = `
+		instructions.style.cssText = `
 	padding: 8px;
 	margin-bottom: 8px;
 	background: #e3f2fd;
@@ -201,13 +201,12 @@ instructions.style.cssText = `
 	line-height: 1.4;
 	color: #333;
 `;
-instructions.innerHTML = `
+		instructions.innerHTML = `
 	<strong>🖱️ Controls:</strong><br>
 	<span style="margin-left: 4px;">Left-click: Navigate</span><br>
 	<span style="margin-left: 4px;">Right-click: Edit properties</span>
 `;
-container.appendChild(instructions);
-
+		container.appendChild(instructions);
 
 		const doorNodes = roomData.nodes.filter(n => n.nodeType === 'door');
 		const connections = await this.state.getDoorConnections();
@@ -228,7 +227,9 @@ container.appendChild(instructions);
 
 	groupDoorsBySubRoom(doors, fullName) {
 		if (!this.isCompositeRoom(fullName)) {
-			return { [fullName]: doors };
+			return {
+				[fullName]: doors
+			};
 		}
 
 		const subRooms = fullName.split(' / ').map(s => s.trim());
@@ -242,12 +243,12 @@ container.appendChild(instructions);
 		return groups;
 	}
 
-createSubRoomSection(container, name, doors, connections, roomData) {
-	const section = document.createElement('div');
-	section.className = 'door-section';
+	createSubRoomSection(container, name, doors, connections, roomData) {
+		const section = document.createElement('div');
+		section.className = 'door-section';
 
-	// RESTORED styling (was lost)
-	section.style.cssText = `
+		// RESTORED styling (was lost)
+		section.style.cssText = `
 		margin-bottom: 16px;
 		padding: 10px;
 		border: 2px solid #ccc;
@@ -256,12 +257,12 @@ createSubRoomSection(container, name, doors, connections, roomData) {
 		box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 	`;
 
-	const header = document.createElement('div');
-	header.className = 'door-section-header';
-	header.textContent = name;
+		const header = document.createElement('div');
+		header.className = 'door-section-header';
+		header.textContent = name;
 
-	// RESTORED header styling
-	header.style.cssText = `
+		// RESTORED header styling
+		header.style.cssText = `
 		font-weight: bold;
 		font-size: 12px;
 		margin-bottom: 10px;
@@ -270,15 +271,14 @@ createSubRoomSection(container, name, doors, connections, roomData) {
 		color: #333;
 	`;
 
-	section.appendChild(header);
-	section.appendChild(this.createDoorGrid(doors, connections, roomData));
-	container.appendChild(section);
-}
+		section.appendChild(header);
+		section.appendChild(this.createDoorGrid(doors, connections, roomData));
+		container.appendChild(section);
+	}
 
-
-createDoorGrid(doors, connections, roomData) {
-	const grid = document.createElement('div');
-	grid.style.cssText = `
+	createDoorGrid(doors, connections, roomData) {
+		const grid = document.createElement('div');
+		grid.style.cssText = `
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		grid-template-rows: repeat(6, 1fr);
@@ -286,90 +286,88 @@ createDoorGrid(doors, connections, roomData) {
 		width: 100%;
 	`;
 
-	const positionMap = {
-		'left-top': 0,
-		'right-top': 2,
-		'top-left': 3,
-		'top': 4,
-		'top-right': 5,
-		'left': 6,
-		'right': 8,
-		'left-lower': 9,
-		'right-lower': 11,
-		'bottom-left': 12,
-		'bottom': 13,
-		'bottom-right': 14,
-		'left-bottom': 15,
-		'right-bottom': 17
-	};
+		const positionMap = {
+			'left-top': 0,
+			'right-top': 2,
+			'top-left': 3,
+			'top': 4,
+			'top-right': 5,
+			'left': 6,
+			'right': 8,
+			'left-lower': 9,
+			'right-lower': 11,
+			'bottom-left': 12,
+			'bottom': 13,
+			'bottom-right': 14,
+			'left-bottom': 15,
+			'right-bottom': 17
+		};
 
-	const emptyCells = new Set([1, 7, 10, 16]);
-	const cells = Array(18).fill(null);
+		const emptyCells = new Set([1, 7, 10, 16]);
+		const cells = Array(18).fill(null);
 
-	for (const door of doors) {
-		const pos = this.getGridPosition(door.name);
-		const idx = positionMap[pos];
-		if (idx !== undefined && !emptyCells.has(idx)) {
-			cells[idx] = this.createDoorButton(door, connections, roomData);
+		for (const door of doors) {
+			const pos = this.getGridPosition(door.name);
+			const idx = positionMap[pos];
+			if (idx !== undefined && !emptyCells.has(idx)) {
+				cells[idx] = this.createDoorButton(door, connections, roomData);
+			}
 		}
-	}
 
-	cells.forEach((cell, idx) => {
-		if (emptyCells.has(idx)) {
-			const placeholder = document.createElement('div');
-			placeholder.style.cssText = `
+		cells.forEach((cell, idx) => {
+			if (emptyCells.has(idx)) {
+				const placeholder = document.createElement('div');
+				placeholder.style.cssText = `
 				border: 1px dashed #e0e0e0;
 				border-radius: 3px;
 				min-height: 40px;
 			`;
-			grid.appendChild(placeholder);
-		} else if (cell) {
-			grid.appendChild(cell);
-		} else {
-			const empty = document.createElement('div');
-			empty.style.cssText = `
+				grid.appendChild(placeholder);
+			} else if (cell) {
+				grid.appendChild(cell);
+			} else {
+				const empty = document.createElement('div');
+				empty.style.cssText = `
 				border: 1px solid #f0f0f0;
 				border-radius: 3px;
 				min-height: 40px;
 			`;
-			grid.appendChild(empty);
-		}
-	});
+				grid.appendChild(empty);
+			}
+		});
 
-	return grid;
-}
+		return grid;
+	}
 
+	getGridPosition(name) {
+		const part = name.split(' - ').pop().toLowerCase();
 
-getGridPosition(name) {
-	const part = name.split(' - ').pop().toLowerCase();
+		if (part.includes('top-left')) return 'top-left';
+		if (part.includes('top-right')) return 'top-right';
+		if (part.includes('bottom-left')) return 'bottom-left';
+		if (part.includes('bottom-right')) return 'bottom-right';
 
-	if (part.includes('top-left')) return 'top-left';
-	if (part.includes('top-right')) return 'top-right';
-	if (part.includes('bottom-left')) return 'bottom-left';
-	if (part.includes('bottom-right')) return 'bottom-right';
+		if (part.includes('left-lower')) return 'left-lower';
+		if (part.includes('right-lower')) return 'right-lower';
 
-	if (part.includes('left-lower')) return 'left-lower';
-	if (part.includes('right-lower')) return 'right-lower';
+		if (part.includes('left-top')) return 'left-top';
+		if (part.includes('right-top')) return 'right-top';
+		if (part.includes('left-bottom')) return 'left-bottom';
+		if (part.includes('right-bottom')) return 'right-bottom';
 
-	if (part.includes('left-top')) return 'left-top';
-	if (part.includes('right-top')) return 'right-top';
-	if (part.includes('left-bottom')) return 'left-bottom';
-	if (part.includes('right-bottom')) return 'right-bottom';
+		if (part.startsWith('top')) return 'top';
+		if (part.startsWith('bottom')) return 'bottom';
+		if (part.startsWith('left')) return 'left';
+		if (part.startsWith('right')) return 'right';
 
-	if (part.startsWith('top')) return 'top';
-	if (part.startsWith('bottom')) return 'bottom';
-	if (part.startsWith('left')) return 'left';
-	if (part.startsWith('right')) return 'right';
-
-	return 'right';
-}
-
+		return 'right';
+	}
 
 	createDoorButton(door, connections, roomData) {
 		const btn = document.createElement('button');
 		btn.className = 'door-btn';
 
-btn.style.cssText = `
+		btn.style.cssText = `
 	padding: 4px;
 	font-size: 10px;
 	line-height: 1.3;
@@ -378,7 +376,6 @@ btn.style.cssText = `
 	min-height: 40px;
 	box-sizing: border-box;
 `;
-
 
 		const connection = connections[door.name];
 		const abbrev = this.getAbbreviatedPosition(door.name);
@@ -391,45 +388,45 @@ btn.style.cssText = `
 
 		btn.textContent = `${icon} ${abbrev}`;
 
-if (connection) {
-	btn.classList.add('door-connected');
+		if (connection) {
+			btn.classList.add('door-connected');
 
-	// Forward vs bidirectional
-	if (connection.direction === 'Forward') {
-		btn.classList.add('door-btn-oneway');
-	} else {
-		btn.classList.add('door-btn-bidirectional');
-	}
+			// Forward vs bidirectional
+			if (connection.direction === 'Forward') {
+				btn.classList.add('door-btn-oneway');
+			} else {
+				btn.classList.add('door-btn-bidirectional');
+			}
 
-	// Sub-room connections (same composite room)
-	if (
-		this.isCompositeRoom(roomData.name) &&
-		connection.targetRoom === roomData.name
-	) {
-		btn.classList.add('door-subroom');
-	}
+			// Sub-room connections (same composite room)
+			if (
+				this.isCompositeRoom(roomData.name) &&
+				connection.targetRoom === roomData.name
+			) {
+				btn.classList.add('door-subroom');
+			}
 
-	// Tunnel vs door
-	if (door.nodeSubType === 'passage') {
-		btn.classList.add('door-passage');
-	}
+			// Tunnel vs door
+			if (door.nodeSubType === 'passage') {
+				btn.classList.add('door-passage');
+			}
 
-	btn.title = this.buildConnectionTooltip(connection, roomData, door);
+			btn.title = this.buildConnectionTooltip(connection, roomData, door);
 
-	btn.onclick = () =>
-		this.state.roomManager?.navigateThroughDoor(connection);
+			btn.onclick = () =>
+				this.state.roomManager?.navigateThroughDoor(connection);
 
-	btn.oncontextmenu = e => {
-		e.preventDefault();
-		this.state.roomManager?.openDoorEditor(
-			door.doorOrientation,
-			connection,
-			roomData
-		);
-	};
-} else {
-	btn.classList.add('door-disconnected');
-}
+			btn.oncontextmenu = e => {
+				e.preventDefault();
+				this.state.roomManager?.openDoorEditor(
+					door.doorOrientation,
+					connection,
+					roomData
+				);
+			};
+		} else {
+			btn.classList.add('door-disconnected');
+		}
 
 		return btn;
 	}
@@ -506,35 +503,35 @@ if (connection) {
 		const modal = document.createElement('div');
 		modal.className = 'modal-overlay';
 		modal.style.cssText = 'display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;';
-		
+
 		const content = document.createElement('div');
 		content.style.cssText = 'background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 300px;';
-		
+
 		const message = document.createElement('div');
 		message.textContent = msg;
 		message.style.cssText = 'margin-bottom: 16px; font-size: 14px;';
-		
+
 		const okBtn = document.createElement('button');
 		okBtn.textContent = 'OK';
 		okBtn.style.cssText = 'padding: 8px 16px; background: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; float: right;';
-		
+
 		content.appendChild(message);
 		content.appendChild(okBtn);
 		modal.appendChild(content);
 		document.body.appendChild(modal);
-		
+
 		const cleanup = () => modal.remove();
-		
+
 		okBtn.onclick = cleanup;
 		okBtn.focus();
-		
+
 		okBtn.addEventListener('keydown', (e) => {
 			if (e.key === 'Enter' || e.key === 'Escape') {
 				e.preventDefault();
 				cleanup();
 			}
 		});
-		
+
 		modal.addEventListener('click', (e) => {
 			if (e.target === modal) cleanup();
 		});

@@ -9,7 +9,9 @@ const {
 	ipcRenderer
 } = require('electron');
 
-import { StratFilter } from '../strats/stratFilter.js';
+import {
+	StratFilter
+} from '../strats/stratFilter.js';
 
 window.addEventListener('DOMContentLoaded', () => {
 	console.log('DOMContentLoaded fired - about to initialize with delay');
@@ -121,18 +123,32 @@ class RoomPropertiesEditor {
 
 	setupKeyboardShortcuts() {
 		document.addEventListener('keydown', (e) => {
+			// Ignore shortcuts if we're in an input field
+			const activeElement = document.activeElement;
+			const isInInputField = activeElement && (
+				activeElement.tagName === 'INPUT' ||
+				activeElement.tagName === 'TEXTAREA' ||
+				activeElement.tagName === 'SELECT' ||
+				activeElement.isContentEditable
+			);
+
+			if (isInInputField && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+				// Allow normal cursor movement in input fields
+				return;
+			}
+
 			// CTRL+Left = collapse all visible strats
 			if (e.ctrlKey && e.key === 'ArrowLeft') {
 				e.preventDefault();
 				this.collapseAllVisibleStrats();
 			}
-			
+
 			// CTRL+Right = expand all visible strats
 			if (e.ctrlKey && e.key === 'ArrowRight') {
 				e.preventDefault();
 				this.expandAllVisibleStrats();
 			}
-			
+
 			// BONUS: CTRL+F = focus strat filter
 			if (e.ctrlKey && e.key === 'f') {
 				e.preventDefault();
@@ -146,14 +162,82 @@ class RoomPropertiesEditor {
 			}
 		});
 	}
-	
+
 	collapseAllVisibleStrats() {
 		const stratsContainer = document.getElementById('stratsContainer');
 		if (!stratsContainer) return;
-		
+
 		const stratCards = stratsContainer.querySelectorAll('.strat-card');
 		let count = 0;
-		
+
+		stratCards.forEach(card => {
+			// Only collapse visible cards
+			if (card.style.display !== 'none') {
+				// Collapse the card itself
+				if (card.collapse) {
+					card.collapse();
+				}
+
+				// Also collapse all collapsible sections within the card
+				const sections = card.querySelectorAll('.collapsible-section');
+				sections.forEach(section => {
+					const header = section.querySelector('.collapsible-header');
+					const contentArea = section.querySelector('.collapsible-header + div');
+					const icon = section.querySelector('.collapsible-header span:first-child');
+
+					if (contentArea && contentArea.style.display !== 'none') {
+						header?.click();
+					}
+				});
+
+				count++;
+			}
+		});
+
+		console.log(`Collapsed ${count} visible strats and their sections`);
+	}
+
+	expandAllVisibleStrats() {
+		const stratsContainer = document.getElementById('stratsContainer');
+		if (!stratsContainer) return;
+
+		const stratCards = stratsContainer.querySelectorAll('.strat-card');
+		let count = 0;
+
+		stratCards.forEach(card => {
+			// Only expand visible cards
+			if (card.style.display !== 'none') {
+				// Expand the card itself
+				if (card.expand) {
+					card.expand();
+				}
+
+				// Also expand all collapsible sections within the card
+				const sections = card.querySelectorAll('.collapsible-section');
+				sections.forEach(section => {
+					const header = section.querySelector('.collapsible-header');
+					const contentArea = section.querySelector('.collapsible-header + div');
+					const icon = section.querySelector('.collapsible-header span:first-child');
+
+					if (contentArea && contentArea.style.display === 'none') {
+						header?.click();
+					}
+				});
+
+				count++;
+			}
+		});
+
+		console.log(`Expanded ${count} visible strats and their sections`);
+	}
+
+	collapseAllVisibleStrats() {
+		const stratsContainer = document.getElementById('stratsContainer');
+		if (!stratsContainer) return;
+
+		const stratCards = stratsContainer.querySelectorAll('.strat-card');
+		let count = 0;
+
 		stratCards.forEach(card => {
 			// Only collapse visible cards
 			if (card.style.display !== 'none' && card.collapse) {
@@ -161,17 +245,17 @@ class RoomPropertiesEditor {
 				count++;
 			}
 		});
-		
+
 		console.log(`Collapsed ${count} visible strats`);
 	}
 
 	expandAllVisibleStrats() {
 		const stratsContainer = document.getElementById('stratsContainer');
 		if (!stratsContainer) return;
-		
+
 		const stratCards = stratsContainer.querySelectorAll('.strat-card');
 		let count = 0;
-		
+
 		stratCards.forEach(card => {
 			// Only expand visible cards
 			if (card.style.display !== 'none' && card.expand) {
@@ -179,11 +263,9 @@ class RoomPropertiesEditor {
 				count++;
 			}
 		});
-		
+
 		console.log(`Expanded ${count} visible strats`);
 	}
-
-
 
 	setupWindowCloseHandler() {
 		// Handle window close event (X button)
@@ -394,15 +476,17 @@ class RoomPropertiesEditor {
 	setupStratFilter() {
 		const stratsContainer = document.getElementById('stratsContainer');
 		if (!stratsContainer) return;
-		
-		// Find the strats section
-		const stratsSection = Array.from(document.querySelectorAll('section'))
-			.find(s => s.querySelector('h3')?.textContent?.includes('📘 Strats'));
-		
-		if (!stratsSection) return;
-		
+
+		// Find the strats section header
+		const stratsSectionHeader = Array.from(document.querySelectorAll('section h3'))
+			.find(h3 => h3.textContent?.includes('📘 Strats'));
+
+		if (!stratsSectionHeader) return;
+
+		const stratsSection = stratsSectionHeader.parentElement;
+
 		// Create filter UI and insert before the container
-		this.stratFilter = new StratFilter(stratsSection);
+		this.stratFilter = new StratFilter(stratsSection, stratsSectionHeader);
 	}
 
 	populateEditors() {
@@ -433,7 +517,7 @@ class RoomPropertiesEditor {
 
 		// Setup strat filter after strats are created
 		this.setupStratFilter();
-		
+
 		// Setup mapTileMask editor
 		this.setupMapTileMaskEditor();
 
@@ -531,7 +615,7 @@ class RoomPropertiesEditor {
 
 		// Create new editor with paint color support
 		this.mapTileMaskEditor = new TileMapEditor({
-			initialData: initialMask, // FIXED: was calling getValue() on non-existent object
+			initialData: initialMask,
 			onChange: (newMask) => {
 				// Mark as changed when tilemap is modified
 				this.hasUnsavedChanges = true;
@@ -697,7 +781,9 @@ class RoomPropertiesEditor {
 					const stratsData = rawData
 						.map(item => {
 							if (item && typeof item === 'object') {
-								const validatedItem = { ...item };
+								const validatedItem = {
+									...item
+								};
 
 								// Remove editor-specific fields
 								delete validatedItem.id;
@@ -725,15 +811,15 @@ class RoomPropertiesEditor {
 								// Don't use validateConditionOutput for these - just use cleanObject
 								if (item.entranceCondition) {
 									const cleaned = cleanObject(item.entranceCondition);
-									// PRESERVE empty objects - they're valid for entrance conditions
+									// Preserve empty objects - they're valid for entrance conditions
 									if (cleaned && Object.keys(cleaned).length > 0) {
 										validatedItem.entranceCondition = cleaned;
 									}
 								}
-								
+
 								if (item.exitCondition) {
 									const cleaned = cleanObject(item.exitCondition);
-									// PRESERVE empty objects - they're valid for exit conditions
+									// Preserve empty objects - they're valid for exit conditions
 									if (cleaned && Object.keys(cleaned).length > 0) {
 										validatedItem.exitCondition = cleaned;
 									}
@@ -787,7 +873,7 @@ class RoomPropertiesEditor {
 									...item
 								};
 
-								// Validate requires field - REQUIRED for strats, must always be present
+								// Validate requires field - Required for strats, must always be present
 								if (type === 'strats') {
 									delete validatedItem.id;
 									delete validatedItem.comesThroughToilet;
@@ -1047,35 +1133,39 @@ class RoomPropertiesEditor {
 		}
 
 		// Special handling for entrance/exit conditions
-		// These can have empty objects as valid values (e.g., comeInShinecharged: {})
+		// These MUST preserve their structure, including empty objects
 		const isEntranceOrExitCondition = path.includes('entranceCondition') || path.includes('exitCondition');
-		
+
 		if (isEntranceOrExitCondition) {
-			// For entrance/exit conditions, preserve empty objects - they're meaningful
-			// Examples: { comeInShinecharged: {} }, { leaveWithRunway: {} }
-			console.debug('[validateConditionOutput] entrance/exit condition:', path, condition);
-			return condition;
+			// Use cleanConditionObject which preserves empty objects
+			const cleaned = cleanConditionObject(condition);
+			console.debug('[validateConditionOutput] entrance/exit condition:', path, cleaned);
+			return cleaned;
 		}
 
 		// Logical operators - recursively validate and preserve structure
 		if ('and' in condition) {
 			const v = this.validateConditionOutput(condition.and, `${path}.and`);
 			console.debug('[validateConditionOutput] and:', path, v);
-			// Return null if 'and' array is empty after validation
-			return v && (Array.isArray(v) ? v.length > 0 : true) ? { and: v } : null;
+			return v && (Array.isArray(v) ? v.length > 0 : true) ? {
+				and: v
+			} : null;
 		}
 
 		if ('or' in condition) {
 			const v = this.validateConditionOutput(condition.or, `${path}.or`);
 			console.debug('[validateConditionOutput] or:', path, v);
-			// Return null if 'or' array is empty after validation
-			return v && (Array.isArray(v) ? v.length > 0 : true) ? { or: v } : null;
+			return v && (Array.isArray(v) ? v.length > 0 : true) ? {
+				or: v
+			} : null;
 		}
 
 		if ('not' in condition) {
 			const v = this.validateConditionOutput(condition.not, `${path}.not`);
 			console.debug('[validateConditionOutput] not:', path, v);
-			return v ? { not: v } : null;
+			return v ? {
+				not: v
+			} : null;
 		}
 
 		// Plain requirement object - clean and validate

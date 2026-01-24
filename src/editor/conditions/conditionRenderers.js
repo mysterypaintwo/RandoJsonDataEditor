@@ -27,7 +27,7 @@ class ConditionRenderers {
 // =============================================================================
 
 class LogicalRenderer {
-static render(editor, type, initialCondition) {
+	static render(editor, type, initialCondition) {
 		if (type === 'not') {
 			// "not" only accepts a string, not nested conditions
 			const container = editor.createInputContainer();
@@ -108,11 +108,11 @@ static render(editor, type, initialCondition) {
 			container.appendChild(select);
 			editor.childrenContainer.appendChild(container);
 			editor.inputs.notSelect = select;
-        	console.log(`[LogicalRenderer.render] Rendered NOT condition`);
+			console.log(`[LogicalRenderer.render] Rendered NOT condition`);
 			return;
 		}
 
-		 // For 'and' and 'or', create the add button FIRST
+		// For 'and' and 'or', create the add button FIRST
 		if (!editor.addButton) {
 			console.log(`[LogicalRenderer.render] Creating add button for ${type}`);
 			editor.addButton = document.createElement('button');
@@ -133,7 +133,7 @@ static render(editor, type, initialCondition) {
 		if (initialCondition) {
 			console.log(`[LogicalRenderer.render] Extracting children from initialCondition, type: ${type}`);
 			console.log(`[LogicalRenderer.render] initialCondition[${type}]:`, initialCondition[type]);
-			
+
 			if (initialCondition[type] && Array.isArray(initialCondition[type])) {
 				// Normal case: { "or": [...] } or { "and": [...] }
 				initialChildren = initialCondition[type];
@@ -157,37 +157,37 @@ static render(editor, type, initialCondition) {
 			const childEditor = editor.addChildCondition(childData, true);
 			console.log(`[LogicalRenderer.render] Child ${index} created:`, childEditor ? 'success' : 'FAILED');
 		});
-		
+
 		console.log(`[LogicalRenderer.render] END - Created ${editor.childEditors.length} child editors total`);
 	}
 
 	static getValue(editor, type) {
-    if (type === 'not') {
-        const notValue = editor.inputs.notSelect?.value?.trim();
-        return notValue ? {
-            not: notValue
-        } : null;
-    } else {
-        const childValues = editor.childEditors
-            .map(child => child.getValue())
-            .filter(value => value !== null && value !== undefined && value !== '');
+		if (type === 'not') {
+			const notValue = editor.inputs.notSelect?.value?.trim();
+			return notValue ? {
+				not: notValue
+			} : null;
+		} else {
+			const childValues = editor.childEditors
+				.map(child => child.getValue())
+				.filter(value => value !== null && value !== undefined && value !== '');
 
-        // Filter out empty conditions - if a child has selectedType === '' (no condition), getValue returns null
-        const validChildValues = childValues.filter(value => {
-            // Make sure we have actual data, not just empty objects
-            if (typeof value === 'object' && !Array.isArray(value)) {
-                return Object.keys(value).length > 0;
-            }
-            return true;
-        });
+			// Filter out empty conditions - if a child has selectedType === '' (no condition), getValue returns null
+			const validChildValues = childValues.filter(value => {
+				// Make sure we have actual data, not just empty objects
+				if (typeof value === 'object' && !Array.isArray(value)) {
+					return Object.keys(value).length > 0;
+				}
+				return true;
+			});
 
-        // For 'and' and 'or', always return array format
-        // But return null if there are no valid children
-        return validChildValues.length > 0 ? {
-            [type]: validChildValues
-        } : null;
-    }
-}
+			// For 'and' and 'or', always return array format
+			// But return null if there are no valid children
+			return validChildValues.length > 0 ? {
+				[type]: validChildValues
+			} : null;
+		}
+	}
 }
 
 // =============================================================================
@@ -218,6 +218,9 @@ class SelectRenderer {
 		const options = this.getOptionsForType(type);
 
 		if (type === 'event') {
+			// Create searchable flag selector
+			return this.renderSearchableFlags(editor, container, initialCondition);
+
 			const collator = new Intl.Collator(undefined, {
 				numeric: true,
 				sensitivity: 'base'
@@ -259,6 +262,149 @@ class SelectRenderer {
 		}
 
 		container.appendChild(select);
+		editor.childrenContainer.appendChild(container);
+		editor.inputs.select = select;
+	}
+
+	static renderSearchableFlags(editor, container, initialCondition) {
+		const wrapper = document.createElement('div');
+		wrapper.style.cssText = `
+			border: 1px solid #dee2e6;
+			border-radius: 4px;
+			background: #fff;
+		`;
+
+		// Collapse button
+		const collapseBtn = document.createElement('button');
+		collapseBtn.type = 'button';
+		collapseBtn.textContent = '▼ Hide Flag List';
+		collapseBtn.style.cssText = `
+			width: 100%;
+			padding: 8px 12px;
+			background: #f8f9fa;
+			border: none;
+			border-bottom: 1px solid #dee2e6;
+			cursor: pointer;
+			text-align: left;
+			font-weight: 600;
+			font-size: 13px;
+		`;
+
+		// Search input
+		const searchInput = document.createElement('input');
+		searchInput.type = 'text';
+		searchInput.placeholder = 'Search flags...';
+		searchInput.style.cssText = `
+			width: 100%;
+			padding: 8px 12px;
+			border: none;
+			border-bottom: 1px solid #dee2e6;
+			font-size: 13px;
+			box-sizing: border-box;
+		`;
+
+		// Select dropdown
+		const select = document.createElement('select');
+		select.style.cssText = `
+			width: 100%;
+			padding: 8px 12px;
+			border: none;
+			font-size: 13px;
+			max-height: 300px;
+		`;
+		select.size = 10; // Show multiple options
+
+		const emptyOption = document.createElement('option');
+		emptyOption.value = '';
+		emptyOption.textContent = '(select flag)';
+		select.appendChild(emptyOption);
+
+		const options = this.getOptionsForType('event');
+		const collator = new Intl.Collator(undefined, {
+			numeric: true,
+			sensitivity: 'base'
+		});
+
+		// Build all options
+		const allOptions = [];
+		Object.entries(options).forEach(([category, flags]) => {
+			flags.forEach(flag => {
+				allOptions.push({
+					category,
+					value: flag.name,
+					displayText: this.stripFlagPrefix(flag.name),
+					searchText: `${category} ${this.stripFlagPrefix(flag.name)}`.toLowerCase()
+				});
+			});
+		});
+
+		// Sort all options
+		allOptions.sort((a, b) => collator.compare(a.displayText, b.displayText));
+
+		// Render options grouped by category
+		let currentCategory = null;
+		let currentGroup = null;
+
+		allOptions.forEach(option => {
+			if (option.category !== currentCategory) {
+				currentGroup = document.createElement('optgroup');
+				currentGroup.label = option.category;
+				select.appendChild(currentGroup);
+				currentCategory = option.category;
+			}
+
+			const opt = document.createElement('option');
+			opt.value = option.value;
+			opt.textContent = option.displayText;
+			opt.dataset.searchText = option.searchText;
+			currentGroup.appendChild(opt);
+		});
+
+		// Set initial value
+		if (initialCondition && initialCondition['event']) {
+			select.value = initialCondition['event'];
+		}
+
+		// Search functionality
+		searchInput.addEventListener('input', () => {
+			const filter = searchInput.value.toLowerCase();
+			let visibleCount = 0;
+
+			select.querySelectorAll('option').forEach(opt => {
+				if (opt.value === '') {
+					opt.style.display = ''; // Always show empty option
+					return;
+				}
+
+				const searchText = opt.dataset.searchText || '';
+				const matches = !filter || searchText.includes(filter);
+				opt.style.display = matches ? '' : 'none';
+				if (matches && opt.value) visibleCount++;
+			});
+
+			// Hide empty optgroups
+			select.querySelectorAll('optgroup').forEach(group => {
+				const visibleOptions = Array.from(group.querySelectorAll('option'))
+					.filter(opt => opt.style.display !== 'none');
+				group.style.display = visibleOptions.length ? '' : 'none';
+			});
+		});
+
+		// Collapse functionality
+		let isCollapsed = false;
+		const contentArea = document.createElement('div');
+		contentArea.appendChild(searchInput);
+		contentArea.appendChild(select);
+
+		collapseBtn.addEventListener('click', () => {
+			isCollapsed = !isCollapsed;
+			contentArea.style.display = isCollapsed ? 'none' : 'block';
+			collapseBtn.textContent = isCollapsed ? '▶ Show Flag List' : '▼ Hide Flag List';
+		});
+
+		wrapper.appendChild(collapseBtn);
+		wrapper.appendChild(contentArea);
+		container.appendChild(wrapper);
 		editor.childrenContainer.appendChild(container);
 		editor.inputs.select = select;
 	}
@@ -313,12 +459,12 @@ class MultiSelectRenderer {
 				if (typeof initialCondition === 'string') {
 					selectedTech = [initialCondition];
 				} else if (initialCondition.tech) {
-					selectedTech = Array.isArray(initialCondition.tech) 
-						? initialCondition.tech 
-						: [initialCondition.tech];
+					selectedTech = Array.isArray(initialCondition.tech) ?
+						initialCondition.tech :
+						[initialCondition.tech];
 				}
 			}
-			
+
 			editor.inputs.techCheckboxContainer = createMapCheckboxList(
 				window.EditorGlobals.techMap,
 				'Tech',
@@ -332,12 +478,12 @@ class MultiSelectRenderer {
 				if (typeof initialCondition === 'string') {
 					selectedHelper = [initialCondition];
 				} else if (initialCondition.helper) {
-					selectedHelper = Array.isArray(initialCondition.helper)
-						? initialCondition.helper
-						: [initialCondition.helper];
+					selectedHelper = Array.isArray(initialCondition.helper) ?
+						initialCondition.helper :
+						[initialCondition.helper];
 				}
 			}
-			
+
 			editor.inputs.helperCheckboxContainer = createMapCheckboxList(
 				window.EditorGlobals.helperMap,
 				'Helper',
@@ -1683,15 +1829,15 @@ class DefaultRenderer {
 			container.innerHTML = ``;
 		editor.childrenContainer.appendChild(container);
 	}
-	
-static getValue(editor, type) {
-    // Empty type means "no condition" - return null
-    if (!type || type === '') {
-        return null;
-    }
-    console.warn(`getValue not implemented for condition type: ${type}`);
-    return null;
-}
+
+	static getValue(editor, type) {
+		// Empty type means "no condition" - return null
+		if (!type || type === '') {
+			return null;
+		}
+		console.warn(`getValue not implemented for condition type: ${type}`);
+		return null;
+	}
 }
 
 // =============================================================================
