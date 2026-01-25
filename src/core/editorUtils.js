@@ -243,8 +243,8 @@ function normalizeStringField(data, field, defaultValue = '') {
 	return data?.[field] || defaultValue;
 }
 
-function normalizeBooleanField(data, field, defaultValue = false) {
-	return !!data?.[field] || defaultValue;
+function normalizeBooleanField(data, field, defaultValue = null) {
+	return data?.[field] ? true : null;//!!data?.[field] || defaultValue;
 }
 
 function normalizeNumberField(data, field, defaultValue = 1) {

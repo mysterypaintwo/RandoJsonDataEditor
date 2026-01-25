@@ -23,6 +23,7 @@ class EntranceConditionEditor {
 		const emptyOption = document.createElement('option');
 		emptyOption.value = '';
 		emptyOption.textContent = '(no entrance condition)';
+        emptyOption.title = 'Standard door entry with no special requirements';
 		this.typeSelect.appendChild(emptyOption);
 
 		const entranceTypes = [{
@@ -255,8 +256,30 @@ class EntranceConditionEditor {
 		if (type && type !== 'comeInNormally') {
 			this.renderComesThroughToilet();
 		}
-	}
 
+        this.suggestDefaults();
+	}
+    
+    suggestDefaults() {
+        // If no condition selected, highlight common ones
+        if (!this.typeSelect.value) {
+            const suggestions = document.createElement('div');
+            suggestions.style.cssText = `
+                background: #e3f2fd;
+                padding: 8px;
+                margin: 8px 0;
+                border-radius: 4px;
+                font-size: 12px;
+            `;
+            suggestions.innerHTML = `
+                <strong>💡 Common entrance types:</strong><br>
+                • <em>Come In Normally</em> - Standard door entry<br>
+                • <em>Come In Running</em> - With momentum from previous room<br>
+                • <em>Come In Shinecharged</em> - Already charged shinespark
+            `;
+            this.contentArea.appendChild(suggestions);
+        }
+    }
 	renderEmpty() {
 		const note = document.createElement('div');
 		note.className = 'empty-condition-note';
@@ -283,89 +306,103 @@ class EntranceConditionEditor {
 		return wrapper;
 	}
 
-	createSelect(label, options, value, tooltip = null) {
-		const select = document.createElement('select');
-		select.className = 'field-input';
-		options.forEach(opt => {
-			const option = document.createElement('option');
-			option.value = opt.value;
-			option.textContent = opt.label;
-			if (opt.value === value) option.selected = true;
-			select.appendChild(option);
-		});
-		return this.createField(label, select, tooltip);
-	}
+    createField(label, input, tooltip = null, required = false) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'field-wrapper';
 
-	createNumber(label, value, min, max, step, tooltip = null) {
-		const input = document.createElement('input');
-		input.type = 'number';
-		input.className = 'field-input';
-		input.min = min;
-		input.max = max;
-		input.step = step;
-		if (value !== undefined && value !== null) input.value = value;
-		input.placeholder = tooltip || `${min}-${max}`;
+        const labelEl = document.createElement('label');
+        labelEl.className = 'field-label';
+        
+        // Add required/optional indicator
+        const labelText = required ? `${label} (required)` : `${label} (optional)`;
+        labelEl.textContent = labelText;
+        
+        if (tooltip) {
+            labelEl.title = tooltip;
+            labelEl.style.cursor = 'help';
+            labelEl.innerHTML += ' <span class="tooltip-icon">?</span>';
+        }
 
-		input.addEventListener('blur', () => {
-			const validation = ValidationUtils.validateNumber(input.value, min, max, label);
-			if (!validation.valid) {
-				ValidationUtils.showFieldError(input, validation.message);
-			} else {
-				ValidationUtils.clearFieldError(input);
-			}
-		});
+        wrapper.appendChild(labelEl);
+        wrapper.appendChild(input);
+        return wrapper;
+    }
 
-		return this.createField(label, input, tooltip);
-	}
+    createSelect(label, options, value, tooltip = null, required = false) {
+        const select = document.createElement('select');
+        select.className = 'field-input';
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.label;
+            if (opt.value === value) option.selected = true;
+            select.appendChild(option);
+        });
+        return this.createField(label, select, tooltip, required);
+    }
 
-	createText(label, value, placeholder = '', tooltip = null, validator = null) {
-		const input = document.createElement('input');
-		input.type = 'text';
-		input.className = 'field-input';
-		input.placeholder = placeholder;
-		if (value) input.value = value;
+    createNumber(label, value, min, max, step, tooltip = null, required = false) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'field-input';
+        input.min = min;
+        input.max = max;
+        input.step = step;
+        if (value !== undefined && value !== null) input.value = value;
+        input.placeholder = tooltip || `${min}-${max}`;
 
-		if (validator) {
-			input.addEventListener('blur', () => {
-				const validation = validator(input.value);
-				if (!validation.valid) {
-					ValidationUtils.showFieldError(input, validation.message);
-				} else {
-					ValidationUtils.clearFieldError(input);
-				}
-			});
-		}
+        input.addEventListener('blur', () => {
+            const validation = ValidationUtils.validateNumber(input.value, min, max, label);
+            if (!validation.valid) {
+                ValidationUtils.showFieldError(input, validation.message);
+            } else {
+                ValidationUtils.clearFieldError(input);
+            }
+        });
 
-		return this.createField(label, input, tooltip);
-	}
+        return this.createField(label, input, tooltip, required);
+    }
 
-	renderSpeedBoosterMinMaxTiles(data) {
-		const speedBooster = this.createSelect('Speed Booster', [{
-				value: 'true',
-				label: 'Required'
-			},
-			{
-				value: 'false',
-				label: 'Not Equipped'
-			},
-			{
-				value: 'any',
-				label: 'Any'
-			}
-		], data.speedBooster !== undefined ? String(data.speedBooster) : 'any', 'Whether Speed Booster must be equipped');
+    createText(label, value, placeholder = '', tooltip = null, validator = null, required = false) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'field-input';
+        input.placeholder = placeholder;
+        if (value) input.value = value;
 
-		const minTiles = this.createNumber('Min Tiles', data.minTiles, 0, 45, 0.5, 'Minimum runway length in tiles');
-		const maxTiles = this.createNumber('Max Tiles (optional)', data.maxTiles, 0, 45, 0.5, 'Maximum runway length (leave empty for no limit)');
+        if (validator) {
+            input.addEventListener('blur', () => {
+                const validation = validator(input.value);
+                if (!validation.valid) {
+                    ValidationUtils.showFieldError(input, validation.message);
+                } else {
+                    ValidationUtils.clearFieldError(input);
+                }
+            });
+        }
 
-		this.contentArea.appendChild(speedBooster);
-		this.contentArea.appendChild(minTiles);
-		this.contentArea.appendChild(maxTiles);
+        return this.createField(label, input, tooltip, required);
+    }
 
-		this.speedBoosterSelect = speedBooster.querySelector('select');
-		this.minTilesInput = minTiles.querySelector('input');
-		this.maxTilesInput = maxTiles.querySelector('input');
-	}
+    renderSpeedBoosterMinMaxTiles(data) {
+        const speedBooster = this.createSelect('Speed Booster', [
+            { value: 'true', label: 'Required' },
+            { value: 'false', label: 'Not Equipped' },
+            { value: 'any', label: 'Any' }
+        ], data.speedBooster !== undefined ? String(data.speedBooster) : 'any', 'Whether Speed Booster must be equipped', true); // REQUIRED
 
+        const minTiles = this.createNumber('Min Tiles', data.minTiles, 0, 45, 0.5, 'Minimum runway length in tiles', true); // REQUIRED
+        const maxTiles = this.createNumber('Max Tiles', data.maxTiles, 0, 45, 0.5, 'Maximum runway length (leave empty for no limit)', false); // OPTIONAL
+
+        this.contentArea.appendChild(speedBooster);
+        this.contentArea.appendChild(minTiles);
+        this.contentArea.appendChild(maxTiles);
+
+        this.speedBoosterSelect = speedBooster.querySelector('select');
+        this.minTilesInput = minTiles.querySelector('input');
+        this.maxTilesInput = maxTiles.querySelector('input');
+    }
+    
 	renderExtraRunSpeed(data) {
 		const minSpeed = this.createText('Min Extra Run Speed', data.minExtraRunSpeed, '$4.0',
 			'Minimum extra run speed in hex format (e.g., $4.0)', ValidationUtils.validateHexSpeed);
@@ -379,36 +416,36 @@ class EntranceConditionEditor {
 		this.maxExtraRunSpeedInput = maxSpeed.querySelector('input');
 	}
 
-	renderRunway(data, includeSpeed = false) {
-		const fields = [
-			this.createNumber('Runway Length', data.length, 0, 45, 0.5, 'Available runway in tiles'),
-			this.createNumber('Open Ends', data.openEnd, 0, 1, 1, '0 = both walls, 1 = one open end'),
-			this.createNumber('Gentle Up Tiles (optional)', data.gentleUpTiles, 0, 45, 1, 'Tiles that slope up gently (½ tile)'),
-			this.createNumber('Gentle Down Tiles (optional)', data.gentleDownTiles, 0, 45, 1, 'Tiles that slope down gently (½ tile)'),
-			this.createNumber('Steep Up Tiles (optional)', data.steepUpTiles, 0, 45, 1, 'Tiles that slope up steeply (1 tile)'),
-			this.createNumber('Steep Down Tiles (optional)', data.steepDownTiles, 0, 45, 1, 'Tiles that slope down steeply (1 tile)')
-		];
+    renderRunway(data, includeSpeed = false) {
+        const fields = [
+            this.createNumber('Runway Length', data.length, 0, 45, 0.5, 'Available runway in tiles', true), // REQUIRED
+            this.createNumber('Open Ends', data.openEnd, 0, 1, 1, '0 = both walls, 1 = one open end', true), // REQUIRED
+            this.createNumber('Gentle Up Tiles', data.gentleUpTiles, 0, 45, 1, 'Tiles that slope up gently (½ tile)', false), // OPTIONAL
+            this.createNumber('Gentle Down Tiles', data.gentleDownTiles, 0, 45, 1, 'Tiles that slope down gently (½ tile)', false), // OPTIONAL
+            this.createNumber('Steep Up Tiles', data.steepUpTiles, 0, 45, 1, 'Tiles that slope up steeply (1 tile)', false), // OPTIONAL
+            this.createNumber('Steep Down Tiles', data.steepDownTiles, 0, 45, 1, 'Tiles that slope down steeply (1 tile)', false) // OPTIONAL
+        ];
 
-		fields.forEach(f => this.contentArea.appendChild(f));
+        fields.forEach(f => this.contentArea.appendChild(f));
 
-		this.lengthInput = fields[0].querySelector('input');
-		this.openEndInput = fields[1].querySelector('input');
-		this.gentleUpTilesInput = fields[2].querySelector('input');
-		this.gentleDownTilesInput = fields[3].querySelector('input');
-		this.steepUpTilesInput = fields[4].querySelector('input');
-		this.steepDownTilesInput = fields[5].querySelector('input');
+        this.lengthInput = fields[0].querySelector('input');
+        this.openEndInput = fields[1].querySelector('input');
+        this.gentleUpTilesInput = fields[2].querySelector('input');
+        this.gentleDownTilesInput = fields[3].querySelector('input');
+        this.steepUpTilesInput = fields[4].querySelector('input');
+        this.steepDownTilesInput = fields[5].querySelector('input');
 
-		if (includeSpeed) {
-			const minSpeed = this.createText('Min Extra Run Speed (optional)', data.minExtraRunSpeed, '$4.0',
-				'Minimum speed in hex', ValidationUtils.validateHexSpeed);
-			const maxSpeed = this.createText('Max Extra Run Speed (optional)', data.maxExtraRunSpeed, '$F.8',
-				'Maximum speed in hex', ValidationUtils.validateHexSpeed);
-			this.contentArea.appendChild(minSpeed);
-			this.contentArea.appendChild(maxSpeed);
-			this.minExtraRunSpeedInput = minSpeed.querySelector('input');
-			this.maxExtraRunSpeedInput = maxSpeed.querySelector('input');
-		}
-	}
+        if (includeSpeed) {
+            const minSpeed = this.createText('Min Extra Run Speed', data.minExtraRunSpeed, '$4.0',
+                'Minimum speed in hex', ValidationUtils.validateHexSpeed, false); // OPTIONAL
+            const maxSpeed = this.createText('Max Extra Run Speed', data.maxExtraRunSpeed, '$F.8',
+                'Maximum speed in hex', ValidationUtils.validateHexSpeed, false); // OPTIONAL
+            this.contentArea.appendChild(minSpeed);
+            this.contentArea.appendChild(maxSpeed);
+            this.minExtraRunSpeedInput = minSpeed.querySelector('input');
+            this.maxExtraRunSpeedInput = maxSpeed.querySelector('input');
+        }
+    }
 
 	renderSparkPosition(data) {
 		const position = this.createSelect('Position (optional)', [{

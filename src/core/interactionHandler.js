@@ -639,20 +639,28 @@ export class InteractionHandler {
 		);
 
 		// If one or more strat connections are hovered, list all of them in the tooltip
-		if (stratConns.length > 0) {
-			const stratList = stratConns
-				.flatMap(conn => conn.connections)
-				.map(c => `• [${c.index}] ${c.name}`)
-				.join('\n');
+        if (stratConns.length > 0) {
+            const stratList = stratConns
+                .flatMap(conn => conn.connections)
+                .sort((a, b) => {
+                    if (!a.link || !Array.isArray(a.link)) return 1;
+                    if (!b.link || !Array.isArray(b.link)) return -1;
+                    if (a.link[0] !== b.link[0]) {
+                        return a.link[0] - b.link[0];
+                    }
+                    return a.link[1] - b.link[1];
+                })
+                .map(c => `• [${c.from}, ${c.to}] (id: ${c.index}) ${c.name}`)
+                .join('\n');
 
-			this.uiManager.updateTooltip({
-					name: `Strats:\n${stratList}`
-				},
-				e.clientX,
-				e.clientY
-			);
-			return;
-		}
+            this.uiManager.updateTooltip(
+                { name: `Strats:\n${stratList}` },
+                e.clientX,
+                e.clientY
+            );
+            return;
+        }
+
 
 		// Clear tooltip if nothing is currently hovered
 		this.uiManager.updateTooltip(null, e.clientX, e.clientY);

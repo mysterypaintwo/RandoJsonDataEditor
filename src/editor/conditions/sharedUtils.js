@@ -520,18 +520,46 @@ function createObstacleCheckboxList(selectedObstacles, title) {
 
 /**
  * Utility function to clean objects by removing empty/null/undefined fields
+ * while preserving intentionally-empty condition leaves
  */
-function cleanObject(obj) {
+function cleanObject(obj, parentKey = null) {
 	if (!obj || typeof obj !== 'object') return obj;
 
+	const PRESERVE_EMPTY_FOR = new Set([
+		'entranceCondition',
+		'exitCondition'
+	]);
+
 	const cleaned = {};
+
 	Object.entries(obj).forEach(([key, value]) => {
 		if (value === null || value === undefined || value === '') return;
+
+		// Preserve empty objects under entrance/exit conditions
+		if (
+			typeof value === 'object' &&
+			!Array.isArray(value) &&
+			Object.keys(value).length === 0 &&
+			PRESERVE_EMPTY_FOR.has(parentKey)
+		) {
+			cleaned[key] = {};
+			return;
+		}
+
 		if (Array.isArray(value) && value.length === 0) return;
-		if (typeof value === 'object' && Object.keys(value).length === 0) return;
 
 		if (typeof value === 'object' && !Array.isArray(value)) {
-			const cleanedNested = cleanObject(value);
+			const cleanedNested = cleanObject(value, key);
+
+			// Keep empty condition containers themselves
+			if (
+				Object.keys(cleanedNested).length === 0 &&
+				PRESERVE_EMPTY_FOR.has(key)
+			) {
+				cleaned[key] = {};
+				return;
+			}
+
 			if (Object.keys(cleanedNested).length > 0) {
 				cleaned[key] = cleanedNested;
 			}
@@ -542,6 +570,7 @@ function cleanObject(obj) {
 
 	return cleaned;
 }
+
 
 /**
  * Clean entrance/exit condition objects.

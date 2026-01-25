@@ -786,11 +786,19 @@ class RoomPropertiesEditor {
 								};
 
 								// Remove editor-specific fields
-								delete validatedItem.id;
-								delete validatedItem.comesThroughToilet;
-								delete validatedItem.bypassesDoorShell;
-								delete validatedItem.wallJumpAvoid;
-								delete validatedItem.flashSuitChecked;
+								delete validatedItem.id;	
+								[
+									'startsWithShineCharge',
+									'bypassesDoorShell',
+									'comesThroughToilet',
+									'endsWithShineCharge',
+									'wallJumpAvoid',
+									'flashSuitChecked'
+								].forEach(key => {
+									if (!validatedItem[key]) {
+										delete validatedItem[key];
+									}
+								});
 
 								// Requires is MANDATORY for strats
 								if (item.requires !== undefined) {
@@ -810,16 +818,17 @@ class RoomPropertiesEditor {
 								// Validate entrance/exit conditions SEPARATELY
 								// Don't use validateConditionOutput for these - just use cleanObject
 								if (item.entranceCondition) {
-									const cleaned = cleanObject(item.entranceCondition);
+									const cleaned = cleanConditionObject(item.entranceCondition);
 									// Preserve empty objects - they're valid for entrance conditions
 									if (cleaned && Object.keys(cleaned).length > 0) {
 										validatedItem.entranceCondition = cleaned;
 									}
 								}
-
+								
 								if (item.exitCondition) {
-									const cleaned = cleanObject(item.exitCondition);
-									// Preserve empty objects - they're valid for exit conditions
+									// For exit conditions, preserve the structure even if properties are empty
+									// Example: { "leaveShinecharged": {} } is valid
+									const cleaned = cleanConditionObject(item.exitCondition);
 									if (cleaned && Object.keys(cleaned).length > 0) {
 										validatedItem.exitCondition = cleaned;
 									}
@@ -876,10 +885,6 @@ class RoomPropertiesEditor {
 								// Validate requires field - Required for strats, must always be present
 								if (type === 'strats') {
 									delete validatedItem.id;
-									delete validatedItem.comesThroughToilet;
-									delete validatedItem.bypassesDoorShell;
-									delete validatedItem.wallJumpAvoid;
-									delete validatedItem.flashSuitChecked;
 
 									// Requires is MANDATORY for strats - always ensure it exists
 									if (item.requires !== undefined) {
