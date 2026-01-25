@@ -52,16 +52,22 @@ export class CanvasRenderer {
 	/**
 	 * Render a node with all its geometry shapes as a unified polygon
 	 */
-	renderNode(node, isSelected, scale) {
+	renderNode(node, isSelected, scale, strats, isDimmed) {
 		if (!node?.geometry || node.geometry.length === 0) return;
 
 		const color = node.color || '#0000FF';
-		const fillStyle = isSelected ? 'rgba(255,255,0,0.3)' : this.withAlpha(color, 0.3);
-		const strokeStyle = isSelected ? 'yellow' : color;
+		let fillStyle = isSelected ? 'rgba(255,255,0,0.3)' : this.withAlpha(color, 0.3);
+		let strokeStyle = isSelected ? 'yellow' : color;
+
+		// Apply dimming - default to dimmed unless explicitly not dimmed
+		if (isDimmed) {
+			fillStyle = this.withAlpha(color, 0.08);
+			strokeStyle = this.withAlpha(color, 0.2);
+		}
 
 		this.ctx.save();
 
-		// Fill each shape individually (allows for complex fills)
+		// Fill each shape individually
 		this.ctx.fillStyle = fillStyle;
 		for (const shape of node.geometry) {
 			this.ctx.beginPath();
@@ -81,32 +87,34 @@ export class CanvasRenderer {
 			this.ctx.fill();
 		}
 
-		// Create a composite path for stroking only the exterior
-		// This uses the destination-out blend mode trick
-		this.ctx.globalCompositeOperation = 'source-over';
+		// Apply tint overlay if node has entrance/exit conditions
+		const tintColor = this.getNodeTintColor(node.id, strats);
+		if (tintColor && !isDimmed) {
+			this.ctx.fillStyle = tintColor;
+			for (const shape of node.geometry) {
+				this.ctx.beginPath();
+				if (shape.shape === 'rect') {
+					this.ctx.rect(
+						shape.x * scale,
+						shape.y * scale,
+						shape.w * scale,
+						shape.h * scale
+					);
+				} else if (shape.shape === 'tri' && shape.points && shape.points.length === 3) {
+					this.ctx.moveTo(shape.points[0].x * scale, shape.points[0].y * scale);
+					this.ctx.lineTo(shape.points[1].x * scale, shape.points[1].y * scale);
+					this.ctx.lineTo(shape.points[2].x * scale, shape.points[2].y * scale);
+					this.ctx.closePath();
+				}
+				this.ctx.fill();
+			}
+		}
 
-		// Draw all shapes again for outline
+		// Stroke edges
 		this.ctx.strokeStyle = strokeStyle;
 		this.ctx.lineWidth = 2 / scale;
 
 		for (const shape of node.geometry) {
-			this.ctx.beginPath();
-			if (shape.shape === 'rect') {
-				this.ctx.rect(
-					shape.x * scale,
-					shape.y * scale,
-					shape.w * scale,
-					shape.h * scale
-				);
-			} else if (shape.shape === 'tri' && shape.points && shape.points.length === 3) {
-				this.ctx.moveTo(shape.points[0].x * scale, shape.points[0].y * scale);
-				this.ctx.lineTo(shape.points[1].x * scale, shape.points[1].y * scale);
-				this.ctx.lineTo(shape.points[2].x * scale, shape.points[2].y * scale);
-				this.ctx.closePath();
-			}
-
-			// Only stroke edges that aren't shared with another shape
-			// We'll do this by checking each edge
 			if (shape.shape === 'rect') {
 				this.strokeRectEdgesIfExterior(node.geometry, shape, scale, strokeStyle);
 			} else if (shape.shape === 'tri') {
@@ -115,7 +123,7 @@ export class CanvasRenderer {
 		}
 
 		this.ctx.restore();
-		this.renderNodeLabel(node, scale);
+		this.renderNodeLabel(node, scale, strats, isDimmed);
 	}
 
 	/**
@@ -296,27 +304,39 @@ export class CanvasRenderer {
 	/**
 	 * Render node ID label at center of bounding box with pixel-art font
 	 */
-	renderNodeLabel(node, scale) {
+	renderNodeLabel(node, scale, strats, isDimmed) {
 		const bounds = getNodeBounds(node);
 		const centerX = (bounds.x + bounds.w / 2) * scale;
 		const centerY = (bounds.y + bounds.h / 2) * scale;
 
-		// Calculate font size based on bounds and scale (slightly larger)
+		// Calculate font size based on bounds and scale
 		const fontSize = Math.max(12, Math.min(20, Math.min(bounds.w, bounds.h) * scale * 0.4));
 
-		// Get complementary text color based on node color
-		const textColor = this.getComplementaryTextColor(node.color || '#0000FF');
-
-		// Draw text background for better readability
-		this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+		const label = String(node.id);
 		this.ctx.font = `bold ${fontSize}px "Courier New", monospace`;
 		this.ctx.textAlign = 'center';
 		this.ctx.textBaseline = 'middle';
-
-		const label = String(node.id);
 		const metrics = this.ctx.measureText(label);
-		const padding = 2;
+		const padding = 4;
 
+		// Draw star as background if node has self-link strats
+		const hasSelfLink = this.hasSelfLinkStrats(node.id, strats);
+		if (hasSelfLink && !isDimmed) {
+			const starSizeMultiplier = 3.5; // Easy to tweak
+			const starSize = fontSize * starSizeMultiplier;
+
+			this.ctx.save();
+			this.ctx.fillStyle = 'rgba(255, 200, 50, 0.6)';
+			this.ctx.strokeStyle = 'rgba(255, 165, 0, 0.8)';
+			this.ctx.lineWidth = Math.max(2, starSize * 0.05);
+			this.ctx.font = `${starSize}px Arial`;
+			this.ctx.strokeText('★', centerX, centerY);
+			this.ctx.fillText('★', centerX, centerY);
+			this.ctx.restore();
+		}
+
+		// Draw semi-transparent background for text
+		this.ctx.fillStyle = isDimmed ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.8)';
 		this.ctx.fillRect(
 			centerX - metrics.width / 2 - padding,
 			centerY - fontSize / 2 - padding,
@@ -324,8 +344,16 @@ export class CanvasRenderer {
 			fontSize + padding * 2
 		);
 
-		// Draw the text
-		this.ctx.fillStyle = textColor;
+		// Draw black outline for contrast
+		if (!isDimmed) {
+			this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+			this.ctx.lineWidth = Math.max(4, fontSize * 0.3);
+			this.ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+			this.ctx.strokeText(label, centerX, centerY);
+		}
+
+		// Draw the text in a bright, readable color
+		this.ctx.fillStyle = isDimmed ? 'rgba(200, 200, 200, 0.4)' : '#FFD700'; // Gold color
 		this.ctx.fillText(label, centerX, centerY);
 	}
 	/**
@@ -520,7 +548,7 @@ export class CanvasRenderer {
 	 * Render strat connections between nodes
 	 * Handles layout offsets, hover detection, scaling, and arrowheads
 	 */
-	renderStratConnections(strats, nodes, scale, mouseX, mouseY) {
+	renderStratConnections(strats, nodes, scale, mouseX, mouseY, hideBaseStrats = false) {
 		if (!strats || !nodes) return;
 
 		const ctx = this.ctx;
@@ -539,139 +567,342 @@ export class CanvasRenderer {
 			});
 		});
 
-		// Collect all valid connections
+		// Collect all valid connections with full strat data
 		const allConnections = [];
 		strats.forEach((strat, index) => {
 			if (!strat.link || strat.link.length !== 2) return;
 
+			// Skip base strats if hidden
+			if (hideBaseStrats && strat.name === 'Base') return;
+
 			const [from, to] = strat.link;
-			if (from !== to) {
-				allConnections.push({
-					from,
-					to,
-					name: strat.name,
-					index: index + 1 // 1-based index
-				});
-			}
+			allConnections.push({
+				from,
+				to,
+				name: strat.name,
+				index: index + 1, // 1-based index
+				hasEntranceCondition: !!strat.entranceCondition,
+				hasExitCondition: !!strat.exitCondition,
+				isSelfLink: from === to,
+				strat: strat // Keep full strat for color detection
+			});
 		});
 
 		// Store rendered connections for external hover / selection logic
 		this.stratConnections = [];
 
+		// Determine what's being hovered
+		const worldMouseX = mouseX !== undefined ? mouseX / scale : undefined;
+		const worldMouseY = mouseY !== undefined ? mouseY / scale : undefined;
+
+		let hoveredNodeId = null;
+		const hoveredConnectionIndices = new Set();
+
+		// Check for hovered nodes first
+		if (worldMouseX !== undefined && worldMouseY !== undefined) {
+			for (const node of nodes) {
+				const bounds = getNodeBounds(node);
+				if (worldMouseX >= bounds.x && worldMouseX <= bounds.x + bounds.w &&
+					worldMouseY >= bounds.y && worldMouseY <= bounds.y + bounds.h) {
+					hoveredNodeId = node.id;
+					break;
+				}
+			}
+		}
+
+		// Pre-calculate all curve points and check for hover
+		const connectionData = [];
+
 		allConnections.forEach(conn => {
+			if (conn.isSelfLink) return; // Skip self-links for connection rendering
+
 			const fromPos = nodePositions.get(conn.from);
 			const toPos = nodePositions.get(conn.to);
 			if (!fromPos || !toPos) return;
 
-			// Offset parallel connections to avoid overlap
-			const offset = this.getConnectionOffset(
-				conn.from,
-				conn.to,
-				allConnections
+			// Group connections by direction pair
+			const sameDirectionConns = allConnections.filter(c =>
+				!c.isSelfLink && c.from === conn.from && c.to === conn.to
 			);
+
+			// Calculate curve offset for multiple connections in same direction
+			let curveOffset = 0;
+			if (sameDirectionConns.length > 1) {
+				const thisIndex = sameDirectionConns.findIndex(c => c.index === conn.index);
+				curveOffset = (thisIndex - (sameDirectionConns.length - 1) / 2) * 15;
+			}
 
 			// Direction vector
 			const dx = toPos.x - fromPos.x;
 			const dy = toPos.y - fromPos.y;
 			const length = Math.hypot(dx, dy);
 
-			// Perpendicular offset vector
-			const perpX = -dy / length * offset;
-			const perpY = dx / length * offset;
+			// Perpendicular offset vector for curve
+			const perpX = -dy / length * curveOffset;
+			const perpY = dx / length * curveOffset;
 
-			// Base connection line (before shortening)
-			const baseFromX = fromPos.x + perpX;
-			const baseFromY = fromPos.y + perpY;
-			const baseToX = toPos.x + perpX;
-			const baseToY = toPos.y + perpY;
+			// Calculate control point for quadratic curve
+			const midX = (fromPos.x + toPos.x) / 2 + perpX;
+			const midY = (fromPos.y + toPos.y) / 2 + perpY;
 
-			const nodePadding = 20; // spacing from node centers
-			const arrowHeadLength = 6; // must match drawArrowHead (WORLD SPACE)
+			const nodePadding = 20;
+			const arrowHeadLength = 6;
 
-			// Shorten both ends to avoid overlapping node visuals
-			const padded = this.getShortenedLineEndpoints(
-				baseFromX,
-				baseFromY,
-				baseToX,
-				baseToY,
-				nodePadding
-			);
+			// Calculate curve points for collision detection (in WORLD space)
+			// Use finer granularity for better hover detection on curved lines
+			const curvePoints = [];
+			for (let t = 0; t <= 1; t += 0.02) {
+				const x = (1 - t) * (1 - t) * fromPos.x + 2 * (1 - t) * t * midX + t * t * toPos.x;
+				const y = (1 - t) * (1 - t) * fromPos.y + 2 * (1 - t) * t * midY + t * t * toPos.y;
+				curvePoints.push({
+					x,
+					y
+				});
+			}
 
-			// Further shorten ONLY the arrow end to stop at arrow base
-			const arrowBase = this.getArrowBasePoint(
-				padded.fromX,
-				padded.fromY,
-				padded.toX,
-				padded.toY,
-				arrowHeadLength
-			);
+			// Check if mouse is near this curve (only if not hovering a node)
+			// Use expanded threshold for curved lines
+			let isHovered = false;
+			if (worldMouseX !== undefined && worldMouseY !== undefined && hoveredNodeId === null) {
+				const hoverThreshold = 12; // Increased threshold for curved lines
+				for (let i = 0; i < curvePoints.length - 1; i++) {
+					if (this.isPointNearLine(
+							worldMouseX, worldMouseY,
+							curvePoints[i].x, curvePoints[i].y,
+							curvePoints[i + 1].x, curvePoints[i + 1].y,
+							hoverThreshold
+						)) {
+						isHovered = true;
+						hoveredConnectionIndices.add(conn.index);
+						break;
+					}
+				}
+			}
 
-			// Final line endpoints (WORLD SPACE)
-			const fromX = padded.fromX;
-			const fromY = padded.fromY;
-			const toX = arrowBase.x; // line ends at arrow base
-			const toY = arrowBase.y;
-
-			// Check if this connection has a reverse counterpart
-			const isBidirectional = allConnections.some(c =>
-				c.from === conn.to && c.to === conn.from
-			);
-
-			// Store connection geometry for hover detection (In canvas space for mouse collision testing)
-			this.stratConnections.push({
-				fromX: fromX * scale,
-				fromY: fromY * scale,
-				toX: toX * scale,
-				toY: toY * scale,
-				connections: [conn],
-				isBidirectional
+			// Store all data for rendering
+			connectionData.push({
+				conn,
+				fromPos,
+				toPos,
+				midX,
+				midY,
+				length,
+				curvePoints,
+				isHovered,
+				nodePadding,
+				arrowHeadLength,
+				curveOffset
 			});
 
-			// Convert mouse position to world space for hit testing
-			const worldMouseX = mouseX / scale;
-			const worldMouseY = mouseY / scale;
+			// Store connection geometry for external access (in CANVAS space for mouse collision)
+			this.stratConnections.push({
+				fromX: fromPos.x * scale,
+				fromY: fromPos.y * scale,
+				toX: toPos.x * scale,
+				toY: toPos.y * scale,
+				connections: [conn],
+				curvePoints: curvePoints.map(p => ({
+					x: p.x * scale,
+					y: p.y * scale
+				})),
+				stratIndex: conn.index
+			});
+		});
 
-			const isHovered =
-				mouseX !== undefined &&
-				mouseY !== undefined &&
-				this.isPointNearLine(
-					worldMouseX,
-					worldMouseY,
-					fromX,
-					fromY,
-					toX,
-					toY,
-					8
-				);
+		// Store hovered indices for external access
+		this.hoveredConnectionIndices = hoveredConnectionIndices;
 
-			// Draw connection line
-			ctx.strokeStyle = isHovered ?
-				'rgba(255, 200, 0, 0.9)' :
-				'rgba(255, 165, 0, 0.6)';
+		// Now render all connections
+		connectionData.forEach(data => {
+			const {
+				conn,
+				fromPos,
+				toPos,
+				midX,
+				midY,
+				length,
+				curvePoints,
+				isHovered,
+				nodePadding,
+				arrowHeadLength,
+				curveOffset
+			} = data;
 
+			// Get color based on strat type
+			const colors = this.getStratColor(conn.strat);
+
+			// Determine if this connection should be dimmed
+			const shouldDim = hoveredNodeId !== null ||
+				(hoveredConnectionIndices.size > 0 && !hoveredConnectionIndices.has(conn.index));
+
+			let strokeColor = isHovered ? colors.hover : (shouldDim ? colors.dim : colors.base);
+			let fillColor = isHovered ? colors.hover : (shouldDim ? colors.dim : colors.base);
+
+			// Calculate start point (after node padding)
+			const tStart = nodePadding / length;
+			const startX = (1 - tStart) * (1 - tStart) * fromPos.x + 2 * (1 - tStart) * tStart * midX + tStart * tStart * toPos.x;
+			const startY = (1 - tStart) * (1 - tStart) * fromPos.y + 2 * (1 - tStart) * tStart * midY + tStart * tStart * toPos.y;
+
+			// Calculate arrow tip position
+			const tTip = 1 - nodePadding / length;
+			const tipX = (1 - tTip) * (1 - tTip) * fromPos.x + 2 * (1 - tTip) * tTip * midX + tTip * tTip * toPos.x;
+			const tipY = (1 - tTip) * (1 - tTip) * fromPos.y + 2 * (1 - tTip) * tTip * midY + tTip * tTip * toPos.y;
+
+			// Calculate end point accounting for arrow head length along the curve
+			// We need to find the point that's exactly arrowHeadLength away from tip along the curve
+			const tEndApprox = 1 - (nodePadding + arrowHeadLength * 1.2) / length; // Adjust multiplier to account for curve
+			const endX = (1 - tEndApprox) * (1 - tEndApprox) * fromPos.x + 2 * (1 - tEndApprox) * tEndApprox * midX + tEndApprox * tEndApprox * toPos.x;
+			const endY = (1 - tEndApprox) * (1 - tEndApprox) * fromPos.y + 2 * (1 - tEndApprox) * tEndApprox * midY + tEndApprox * tEndApprox * toPos.y;
+
+			// Draw curved connection line
+			ctx.strokeStyle = strokeColor;
 			ctx.lineWidth = isHovered ? 3 : 2;
 
 			ctx.beginPath();
-			ctx.moveTo(fromX, fromY);
-			ctx.lineTo(toX, toY);
+			ctx.moveTo(startX, startY);
+
+			// Draw curve to end point (not tip)
+			const steps = 20;
+			for (let i = 1; i <= steps; i++) {
+				const t = tStart + (tEndApprox - tStart) * (i / steps);
+				const x = (1 - t) * (1 - t) * fromPos.x + 2 * (1 - t) * t * midX + t * t * toPos.x;
+				const y = (1 - t) * (1 - t) * fromPos.y + 2 * (1 - t) * t * midY + t * t * toPos.y;
+				ctx.lineTo(x, y);
+			}
 			ctx.stroke();
 
-			// Draw arrowhead(s) at the true padded endpoint
-			ctx.fillStyle = isHovered ?
-				'rgba(255, 180, 0, 1)' :
-				'rgba(255, 140, 0, 0.8)';
-
-			const lineThickness = 3;
-
-			if (isBidirectional) {
-				this.drawArrowHead(ctx, fromX, fromY, padded.toX, padded.toY, 1, lineThickness);
-				this.drawArrowHead(ctx, padded.toX, padded.toY, fromX, fromY, 1, lineThickness);
-			} else {
-				this.drawArrowHead(ctx, fromX, fromY, padded.toX, padded.toY, 1, lineThickness);
-			}
+			// Draw arrowhead
+			ctx.fillStyle = fillColor;
+			this.drawArrowHead(ctx, endX, endY, tipX, tipY, 1, 3);
 		});
 
 		ctx.restore();
+	}
+	/**
+	 * Get node tint color based on entrance/exit conditions
+	 */
+	getNodeTintColor(nodeId, strats) {
+		if (!strats) return null;
+
+		let hasEntrance = false;
+		let hasExit = false;
+
+		for (const strat of strats) {
+			if (!strat.link || strat.link.length !== 2) continue;
+
+			// Entrance condition applies to first node in link
+			if (strat.entranceCondition && strat.link[0] === nodeId) {
+				hasEntrance = true;
+			}
+
+			// Exit condition applies to second node in link
+			if (strat.exitCondition && strat.link[1] === nodeId) {
+				hasExit = true;
+			}
+		}
+
+		if (hasEntrance && hasExit) return 'rgba(200, 100, 255, 0.4)'; // Purple
+		if (hasEntrance) return 'rgba(100, 255, 100, 0.4)'; // Green
+		if (hasExit) return 'rgba(255, 200, 100, 0.4)'; // Orange
+
+		return null;
+	}
+
+	/**
+	 * Check if node has self-link strats
+	 */
+	hasSelfLinkStrats(nodeId, strats) {
+		if (!strats) return false;
+
+		return strats.some(strat =>
+			strat.link &&
+			strat.link.length === 2 &&
+			strat.link[0] === nodeId &&
+			strat.link[1] === nodeId
+		);
+	}
+
+	/**
+	 * Check if strat contains specific frame type
+	 */
+	stratContainsFrameType(strat, frameType) {
+		const checkObject = (obj) => {
+			if (!obj || typeof obj !== 'object') return false;
+
+			if (obj.hasOwnProperty(frameType)) return true;
+
+			for (const value of Object.values(obj)) {
+				if (Array.isArray(value)) {
+					for (const item of value) {
+						if (checkObject(item)) return true;
+					}
+				} else if (typeof value === 'object') {
+					if (checkObject(value)) return true;
+				}
+			}
+
+			return false;
+		};
+
+		return checkObject(strat);
+	}
+
+	/**
+	 * Get strat color based on frame requirements
+	 */
+	getStratColor(strat) {
+		// Base strats get their own color
+		if (strat.name === 'Base') {
+			return {
+				base: 'rgba(180, 180, 180, 0.5)',
+				hover: 'rgba(200, 200, 200, 1)',
+				dim: 'rgba(180, 180, 180, 0.1)'
+			};
+		}
+
+		// Priority order: lava > acid > electricity > heat > cold > default
+		if (this.stratContainsFrameType(strat, 'lavaFrames')) {
+			return {
+				base: 'rgba(160, 0, 200, 0.7)',
+				hover: 'rgba(180, 20, 220, 1)',
+				dim: 'rgba(160, 0, 200, 0.15)'
+			};
+		}
+		if (this.stratContainsFrameType(strat, 'acidFrames')) {
+			return {
+				base: 'rgba(220, 20, 20, 0.7)',
+				hover: 'rgba(255, 40, 40, 1)',
+				dim: 'rgba(220, 20, 20, 0.15)'
+			};
+		}
+		if (this.stratContainsFrameType(strat, 'electricityFrames')) {
+			return {
+				base: 'rgba(255, 220, 0, 0.7)',
+				hover: 'rgba(255, 240, 40, 1)',
+				dim: 'rgba(255, 220, 0, 0.15)'
+			};
+		}
+		if (this.stratContainsFrameType(strat, 'heatFrames')) {
+			return {
+				base: 'rgba(255, 100, 150, 0.7)',
+				hover: 'rgba(255, 130, 180, 1)',
+				dim: 'rgba(255, 100, 150, 0.15)'
+			};
+		}
+		if (this.stratContainsFrameType(strat, 'coldFrames')) {
+			return {
+				base: 'rgba(80, 160, 255, 0.7)',
+				hover: 'rgba(100, 180, 255, 1)',
+				dim: 'rgba(80, 160, 255, 0.15)'
+			};
+		}
+
+		// Default orange
+		return {
+			base: 'rgba(255, 150, 40, 0.7)',
+			hover: 'rgba(255, 180, 80, 1)',
+			dim: 'rgba(255, 150, 40, 0.15)'
+		};
 	}
 
 	/**
@@ -813,7 +1044,7 @@ export class CanvasRenderer {
 	/**
 	 * Complete redraw of the entire canvas
 	 */
-	redraw(roomImage, nodes, selectedNodes, currentRect, scale, strats, mouseX, mouseY) {
+	redraw(roomImage, nodes, selectedNodes, currentRect, scale, strats, mouseX, mouseY, hideBaseStrats = false) {
 		if (!roomImage) return;
 
 		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -826,16 +1057,45 @@ export class CanvasRenderer {
 			roomImage.height * scale
 		);
 
+		// Determine what's being hovered
+		const worldMouseX = mouseX !== undefined ? mouseX / scale : undefined;
+		const worldMouseY = mouseY !== undefined ? mouseY / scale : undefined;
+
+		let hoveredNodeId = null;
+		let isHoveringConnection = false;
+
+		// Check for hovered nodes
+		if (worldMouseX !== undefined && worldMouseY !== undefined) {
+			for (const node of nodes) {
+				const bounds = getNodeBounds(node);
+				if (worldMouseX >= bounds.x && worldMouseX <= bounds.x + bounds.w &&
+					worldMouseY >= bounds.y && worldMouseY <= bounds.y + bounds.h) {
+					hoveredNodeId = node.id;
+					break;
+				}
+			}
+
+			// If not hovering a node, check for connection hover
+			if (hoveredNodeId === null) {
+				const hoveredConns = this.getHoveredStratConnections(worldMouseX, worldMouseY, scale);
+				isHoveringConnection = hoveredConns.length > 0;
+			}
+		}
+
+		// Everything is dimmed by default unless explicitly hovered
+		const shouldDimEverything = hoveredNodeId !== null || isHoveringConnection;
+
 		// Render all nodes
 		const selectedSet = new Set(selectedNodes || []);
 		for (const node of nodes) {
 			const isSelected = selectedSet.has(node);
-			this.renderNode(node, isSelected, scale);
+			const isDimmed = shouldDimEverything && hoveredNodeId !== node.id;
+			this.renderNode(node, isSelected, scale, strats, isDimmed);
 		}
 
 		// Render the strat connections
 		if (strats) {
-			this.renderStratConnections(strats, nodes, scale, mouseX, mouseY);
+			this.renderStratConnections(strats, nodes, scale, mouseX, mouseY, hideBaseStrats);
 		}
 
 		// Render the current (user-drawing) rect

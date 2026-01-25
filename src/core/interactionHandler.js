@@ -50,6 +50,10 @@ export class InteractionHandler {
 				undefined // mouseY
 			);
 		});
+
+		document.addEventListener('baseStratsToggled', () => {
+			this.redraw();
+		});
 	}
 
 	async handleDoubleClick(e) {
@@ -185,11 +189,18 @@ export class InteractionHandler {
 			y
 		} = getMousePos(e, this.canvas, this.mapContainer, this.state.scale);
 
+		// Track last mouse position in WORLD coordinates
+		this.lastMouseX = x * this.state.scale;
+		this.lastMouseY = y * this.state.scale;
+
 		if (!this.state.isDrawing && this.state.movingNodes.length === 0) {
 			this.updateCursor(x, y);
 		}
 
 		this.updateTooltip(x, y, e);
+
+		// Redraw to update hover effects
+		this.redraw();
 	}
 
 	handleGlobalMouseMove(e) {
@@ -197,6 +208,10 @@ export class InteractionHandler {
 			x,
 			y
 		} = getMousePos(e, this.canvas, this.mapContainer, this.state.scale);
+
+		// Track last mouse position in CANVAS coordinates
+		this.lastMouseX = x * this.state.scale;
+		this.lastMouseY = y * this.state.scale;
 
 		switch (this.state.mode) {
 			case "draw":
@@ -290,6 +305,19 @@ export class InteractionHandler {
 			e.preventDefault();
 			this.state.triangleDrawMode = !this.state.triangleDrawMode;
 			this.uiManager.updateDrawModeIndicator(this.state.triangleDrawMode);
+			return;
+		}
+
+		// Toggle base strats visibility (Ctrl+B)
+		if (e.ctrlKey && e.key.toLowerCase() === 'b') {
+			e.preventDefault();
+			this.state.hideBaseStrats = !this.state.hideBaseStrats;
+			const toggleBtn = document.getElementById('toggleBaseStratsBtn');
+			if (toggleBtn) {
+				toggleBtn.textContent = this.state.hideBaseStrats ? '👁️ Show Base Strats (CTRL+B)' : '👁️ Hide Base Strats (CTRL+B)';
+				toggleBtn.style.background = this.state.hideBaseStrats ? '#9E9E9E' : '#607D8B';
+			}
+			this.redraw();
 			return;
 		}
 
@@ -627,7 +655,30 @@ export class InteractionHandler {
 
 		// Nodes take priority over strat connections
 		if (hoverNode) {
-			this.uiManager.updateTooltip(hoverNode, e.clientX, e.clientY);
+			// Check for self-link strats
+			const selfLinkStrats = this.state.currentRoomData?.strats?.filter((strat, index) =>
+				strat.link &&
+				strat.link.length === 2 &&
+				strat.link[0] === hoverNode.id &&
+				strat.link[1] === hoverNode.id
+			) || [];
+
+			let tooltipText = `[Node ${hoverNode.id}] ${hoverNode.name}`;
+			if (selfLinkStrats.length > 0) {
+				tooltipText += '\n\nSelf-Link Strats:';
+				this.state.currentRoomData.strats.forEach((strat, index) => {
+					if (strat.link &&
+						strat.link.length === 2 &&
+						strat.link[0] === hoverNode.id &&
+						strat.link[1] === hoverNode.id) {
+						tooltipText += `\n• (id: ${index + 1}) ${strat.name}`;
+					}
+				});
+			}
+
+			this.uiManager.updateTooltip({
+				name: tooltipText
+			}, e.clientX, e.clientY);
 			return;
 		}
 
@@ -639,28 +690,37 @@ export class InteractionHandler {
 		);
 
 		// If one or more strat connections are hovered, list all of them in the tooltip
-        if (stratConns.length > 0) {
-            const stratList = stratConns
-                .flatMap(conn => conn.connections)
-                .sort((a, b) => {
-                    if (!a.link || !Array.isArray(a.link)) return 1;
-                    if (!b.link || !Array.isArray(b.link)) return -1;
-                    if (a.link[0] !== b.link[0]) {
-                        return a.link[0] - b.link[0];
-                    }
-                    return a.link[1] - b.link[1];
-                })
-                .map(c => `• [${c.from}, ${c.to}] (id: ${c.index}) ${c.name}`)
-                .join('\n');
+		if (stratConns.length > 0) {
+			// Get the hovered indices from renderer
+			const hoveredIndices = this.renderer.hoveredConnectionIndices || new Set();
 
-            this.uiManager.updateTooltip(
-                { name: `Strats:\n${stratList}` },
-                e.clientX,
-                e.clientY
-            );
-            return;
-        }
+			// Filter connections to only show the ones that are actually hovered
+			const hoveredStrats = stratConns
+				.flatMap(conn => conn.connections)
+				.filter(c => hoveredIndices.has(c.index))
+				.sort((a, b) => {
+					if (!a.link || !Array.isArray(a.link)) return 1;
+					if (!b.link || !Array.isArray(b.link)) return -1;
+					if (a.link[0] !== b.link[0]) {
+						return a.link[0] - b.link[0];
+					}
+					return a.link[1] - b.link[1];
+				});
 
+			if (hoveredStrats.length > 0) {
+				const stratList = hoveredStrats
+					.map(c => `• [${c.from}, ${c.to}] (id: ${c.index}) ${c.name}`)
+					.join('\n');
+
+				this.uiManager.updateTooltip({
+						name: `Strats:\n${stratList}`
+					},
+					e.clientX,
+					e.clientY
+				);
+				return;
+			}
+		}
 
 		// Clear tooltip if nothing is currently hovered
 		this.uiManager.updateTooltip(null, e.clientX, e.clientY);
@@ -680,6 +740,10 @@ export class InteractionHandler {
 	}
 
 	redraw() {
+		// Get current mouse position
+		const mouseX = this.lastMouseX;
+		const mouseY = this.lastMouseY;
+
 		this.renderer.redraw(
 			this.state.currentRoomImage,
 			this.state.nodes,
@@ -687,8 +751,9 @@ export class InteractionHandler {
 			this.state.currentRect,
 			this.state.scale,
 			this.state.currentRoomData?.strats,
-			undefined, // mouseX - will be set by handleMouseMove
-			undefined // mouseY
+			mouseX,
+			mouseY,
+			this.state.hideBaseStrats
 		);
 	}
 }

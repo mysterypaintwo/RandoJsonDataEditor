@@ -34,31 +34,50 @@ export class UIManager {
 			toolbar.appendChild(mergeBtn);
 		}
 
+		/// Add toggle base strats button
+		const toggleBaseBtn = document.createElement('button');
+		toggleBaseBtn.id = 'toggleBaseStratsBtn';
+		toggleBaseBtn.className = 'tool-btn';
+		toggleBaseBtn.textContent = '👁️ Hide Base Strats (Ctrl+B)';
+		toggleBaseBtn.style.marginLeft = '10px';
+		toggleBaseBtn.style.background = '#607D8B';
+		toggleBaseBtn.style.color = 'white';
+
+		toggleBaseBtn.addEventListener('click', () => {
+			this.state.hideBaseStrats = !this.state.hideBaseStrats;
+			toggleBaseBtn.textContent = this.state.hideBaseStrats ? '👁️ Show Base Strats (Ctrl+B)' : '👁️ Hide Base Strats (Ctrl+B)';
+			toggleBaseBtn.style.background = this.state.hideBaseStrats ? '#9E9E9E' : '#607D8B';
+			// Trigger redraw
+			document.dispatchEvent(new Event('baseStratsToggled'));
+		});
+
+		toolbar.appendChild(toggleBaseBtn);
+
 		const modeIndicator = document.createElement('span');
 		modeIndicator.id = 'drawModeIndicator';
 		modeIndicator.style.cssText = `
-			margin-left: 20px;
-			padding: 5px 10px;
-			display: none;
-			background: #2196F3;
-			color: white;
-			border-radius: 4px;
-			font-size: 12px;
-			font-weight: bold;
-		`;
+		margin-left: 20px;
+		padding: 5px 10px;
+		display: none;
+		background: #2196F3;
+		color: white;
+		border-radius: 4px;
+		font-size: 12px;
+		font-weight: bold;
+	`;
 		toolbar.appendChild(modeIndicator);
 
 		const selectHint = document.createElement('span');
 		selectHint.id = 'selectHint';
 		selectHint.style.cssText = `
-			margin-left: 20px;
-			padding: 5px 10px;
-			display: none;
-			background: #4CAF50;
-			color: white;
-			border-radius: 4px;
-			font-size: 11px;
-		`;
+		margin-left: 20px;
+		padding: 5px 10px;
+		display: none;
+		background: #4CAF50;
+		color: white;
+		border-radius: 4px;
+		font-size: 11px;
+	`;
 		selectHint.textContent = 'Ctrl+Click for multi-select';
 		toolbar.appendChild(selectHint);
 	}
