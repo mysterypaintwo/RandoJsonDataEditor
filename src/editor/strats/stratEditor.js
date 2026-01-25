@@ -53,6 +53,7 @@ class StratEditor extends BaseEditor {
         // Name field
         this.nameInput = createInput('text', 'Strat Name', this.initialData.name);
         this.nameInput.style.width = '100%';
+        this.nameInput.value = 'Base';
 
         // Note field
         this.noteInput = document.createElement('textarea');
@@ -1425,7 +1426,7 @@ class StratEditor extends BaseEditor {
                     delete result.exitCondition;
             }
         }
-        
+
         // Obstacle arrays
         const clearsObstacles = this.clearsObstaclesList.getSelectedIds().filter(id => id);
         if (clearsObstacles.length > 0) result.clearsObstacles = clearsObstacles;
