@@ -223,7 +223,7 @@ class EnemyEditor extends BaseEditor {
 
 		const result = {
 			groupName: this.groupInput.value.trim(),
-			enemyName: window.EditorGlobals.enemyList[this.enemySelect.value - 1].name,
+			enemyName: window.EditorGlobals.enemyList[this.enemySelect.value].name,
 			quantity: parseInt(this.quantityInput.value) || 1,
 		};
 

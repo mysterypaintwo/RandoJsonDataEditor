@@ -1443,7 +1443,7 @@ class EnemyDamageRenderer {
 		const options = (window.EditorGlobals.enemyList || []).sort();
 		options.forEach(enemy => {
 			const opt = document.createElement('option');
-			opt.value = enemy.id;
+			opt.value = enemy.name;
 			opt.textContent = enemy.name;
 			enemyInput.appendChild(opt);
 		});
