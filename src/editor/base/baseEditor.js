@@ -95,6 +95,123 @@ class BaseEditor {
 		this.root.appendChild(this.contentArea);
 	}
 
+    /**
+     * Check if strat contains a specific frame type in requires
+     */
+    stratContainsFrameType(strat, frameType) {
+        if (!strat.requires || !Array.isArray(strat.requires)) return false;
+        
+        const checkCondition = (condition) => {
+            if (!condition) return false;
+            
+            // Check if this condition has the frame type
+            if (condition[frameType]) return true;
+            
+            // Check logical operators
+            if (condition.and && Array.isArray(condition.and)) {
+                return condition.and.some(c => checkCondition(c));
+            }
+            if (condition.or && Array.isArray(condition.or)) {
+                return condition.or.some(c => checkCondition(c));
+            }
+            if (condition.not) {
+                return checkCondition(condition.not);
+            }
+            
+            return false;
+        };
+        
+        return strat.requires.some(req => checkCondition(req));
+    }
+
+    /**
+     * Get strat color based on frame requirements
+     */
+    getStratColor(strat) {
+        // Base strats get their own color
+        if (strat.name === 'Base') {
+            return {
+                base: 'rgba(180, 180, 180, 0.5)',
+                hover: 'rgba(200, 200, 200, 1)',
+                dim: 'rgba(180, 180, 180, 0.1)'
+            };
+        }
+        // Priority order: lava > acid > electricity > heat > cold > default
+        if (this.stratContainsFrameType(strat, 'lavaFrames') || 
+            this.stratContainsFrameType(strat, 'gravitylessLavaFrames') ||
+            this.stratContainsFrameType(strat, 'lavaFramesWithEnergyDrops')) {
+            return {
+                base: 'rgba(160, 0, 200, 0.7)',
+                hover: 'rgba(180, 20, 220, 1)',
+                dim: 'rgba(160, 0, 200, 0.15)'
+            };
+        }
+        if (this.stratContainsFrameType(strat, 'acidFrames') || 
+            this.stratContainsFrameType(strat, 'gravitylessAcidFrames')) {
+            return {
+                base: 'rgba(220, 20, 20, 0.7)',
+                hover: 'rgba(255, 40, 40, 1)',
+                dim: 'rgba(220, 20, 20, 0.15)'
+            };
+        }
+        if (this.stratContainsFrameType(strat, 'electricityFrames') ||
+            this.stratContainsFrameType(strat, 'electricityHits')) {
+            return {
+                base: 'rgba(255, 220, 0, 0.7)',
+                hover: 'rgba(255, 240, 40, 1)',
+                dim: 'rgba(255, 220, 0, 0.15)'
+            };
+        }
+        if (this.stratContainsFrameType(strat, 'heatFrames') || 
+            this.stratContainsFrameType(strat, 'gravitylessHeatFrames') ||
+            this.stratContainsFrameType(strat, 'simpleHeatFrames') ||
+            this.stratContainsFrameType(strat, 'heatFramesWithEnergyDrops')) {
+            return {
+                base: 'rgba(255, 100, 150, 0.7)',
+                hover: 'rgba(255, 130, 180, 1)',
+                dim: 'rgba(255, 100, 150, 0.15)'
+            };
+        }
+        if (this.stratContainsFrameType(strat, 'coldFrames') ||
+            this.stratContainsFrameType(strat, 'simpleColdFrames') ||
+            this.stratContainsFrameType(strat, 'coldFramesWithEnergyDrops')) {
+            return {
+                base: 'rgba(80, 160, 255, 0.7)',
+                hover: 'rgba(100, 180, 255, 1)',
+                dim: 'rgba(80, 160, 255, 0.15)'
+            };
+        }
+        // Default orange
+        return {
+            base: 'rgba(255, 150, 40, 0.7)',
+            hover: 'rgba(255, 180, 80, 1)',
+            dim: 'rgba(255, 150, 40, 0.15)'
+        };
+    }
+
+    /**
+     * Apply color to card based on strat data
+     */
+    applyStratColors() {
+        if (this.config.type !== 'strats') return;
+        
+        const stratData = this.getValue();
+        if (!stratData) return;
+        
+        const colors = this.getStratColor(stratData);
+        this.root.style.background = `linear-gradient(135deg, ${colors.base} 0%, ${colors.dim} 100%)`;
+        this.root.style.borderColor = colors.hover;
+        
+        // Update hover effect
+        this.root.addEventListener('mouseenter', () => {
+            this.root.style.background = `linear-gradient(135deg, ${colors.hover} 0%, ${colors.base} 100%)`;
+        });
+        
+        this.root.addEventListener('mouseleave', () => {
+            this.root.style.background = `linear-gradient(135deg, ${colors.base} 0%, ${colors.dim} 100%)`;
+        });
+    }
+
 	setupEventHandlers() {
 		this.toggleButton.addEventListener('click', (e) => {
 			e.stopPropagation();

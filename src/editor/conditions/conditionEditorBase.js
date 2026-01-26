@@ -13,7 +13,7 @@ class ConditionEditor {
 
 		// Handle plain string conditions (item/tech/helper/flag names, AND "free"/"never")
 		if (typeof initialCondition === 'string') {
-			// Special handling for "free" and "never" - keep as-is
+			// Special handling for "free" and "never"
 			if (initialCondition === 'free' || initialCondition === 'never') {
 				this.initialCondition = initialCondition;
 			} else {

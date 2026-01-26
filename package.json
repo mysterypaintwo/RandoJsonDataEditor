@@ -26,6 +26,12 @@
     "files": [
       "src/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "strat-presets",
+        "to": "strat-presets"
+      }
+    ],
     "directories": {
       "buildResources": "assets",
       "output": "dist"

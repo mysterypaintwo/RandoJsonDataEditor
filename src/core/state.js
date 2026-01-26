@@ -8,6 +8,7 @@ import {
 
 class State {
 	constructor() {
+        this.appPath = null;
 		this.workingDir = null;
 		this.currentRoomData = null;
 		this.currentRoomPath = null;
@@ -19,6 +20,7 @@ class State {
 		this.weaponData = [];
 		this.techMap = new Map();
 		this.helperMap = new Map();
+		this.stratPresets = [];
 
 		this.currentArea = null;
 		this.currentSubarea = null;
@@ -58,6 +60,10 @@ class State {
 			"DMX": "DMX/Opening Segment/DMX Entrance"
 		};
 	}
+    
+    async initStratPresetsPath() {
+        this.stratPresetsPath = await window.api.getStratPresetsPath();
+    }
 
 	async loadAllRoomsMetadata() {
 		if (!this.workingDir) return;
@@ -127,6 +133,8 @@ class State {
 		await this.initWeaponDatabase();
 		await this.initTech();
 		await this.initHelpers();
+        await this.initStratPresetsPath();
+        await this.initStratPresets(this.stratPresetsPath);
 	}
 
 	ensureGeometry(entity) {
@@ -421,7 +429,11 @@ class State {
 			console.error("Failed to initialize helpers data:", err);
 		}
 	}
-
+    
+    async initStratPresets(dir) {
+        this.stratPresets = await window.api.loadStratPresets(dir);
+    }
+    
 	getEnemyList() {
 		return this.enemies
 			.filter(e => e.name && e.name.trim())
@@ -465,6 +477,10 @@ class State {
 	getHelperMap() {
 		return this.helperMap;
 	}
+
+    getStratPresets() {
+        return this.stratPresets;
+    }
 
 	// Connection management methods (keeping existing implementation)
 	async loadConnections(area, subarea) {

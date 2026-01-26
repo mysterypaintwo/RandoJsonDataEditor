@@ -35,6 +35,7 @@ class RoomPropertiesEditor {
 		this.weaponList = [];
 		this.techMap = {};
 		this.helperMap = {};
+		this.stratPresets = [];
 		this.editorInstances = {
 			obstacles: new Map(),
 			enemies: new Map(),
@@ -79,7 +80,7 @@ class RoomPropertiesEditor {
 				idStyle: 'numeric',
 				idPrefix: '',
 				editorClass: StratEditor,
-				useVirtualScroll: true // Enable virtual scrolling for strats
+				useVirtualScroll: true
 			},
 			notables: {
 				type: 'notables',
@@ -311,8 +312,8 @@ class RoomPropertiesEditor {
 
 	setupIPCListeners() {
 		console.log('Setting up IPC listeners');
-		ipcRenderer.on('init-room-properties-data', (event, data, enemyList, itemList, eventList, weaponList, techMap, helperMap) => {
-			this.handleRoomDataReceived(data, enemyList, itemList, eventList, weaponList, techMap, helperMap);
+		ipcRenderer.on('init-room-properties-data', (event, data, enemyList, itemList, eventList, weaponList, techMap, helperMap, stratPresets) => {
+			this.handleRoomDataReceived(data, enemyList, itemList, eventList, weaponList, techMap, helperMap, stratPresets);
 		});
 		// Tell main process we're ready to receive data
 		console.log('Sending room-properties-editor-ready signal');
@@ -333,13 +334,18 @@ class RoomPropertiesEditor {
 
 		// Add buttons for each editor type
 		Object.keys(this.editorConfigs).forEach(type => {
-			// Skip roomEnvironments - it has a custom add button
-			if (type === 'roomEnvironments') return;
-
-			const addBtnId = `add${type.charAt(0).toUpperCase() + type.slice(1)}Btn`;
-			const addBtn = document.getElementById(addBtnId);
-			if (addBtn) {
-				addBtn.addEventListener('click', () => this.addNewEditor(type));
+			switch(type) {
+				default:
+					const addBtnId = `add${type.charAt(0).toUpperCase() + type.slice(1)}Btn`;
+					const addBtn = document.getElementById(addBtnId);
+					if (addBtn) {
+						addBtn.addEventListener('click', () => this.addNewEditor(type));
+					}
+					return;
+				case 'strats':
+				case 'roomEnvironments':
+					// Skip roomEnvironments and strats - they have custom add buttons (handled in populateEditors())
+					return;
 			}
 		});
 
@@ -363,8 +369,8 @@ class RoomPropertiesEditor {
 		window.close();
 	}
 
-	handleRoomDataReceived(data, enemyList, itemList, eventList, weaponList, techMap, helperMap) {
-		console.log('Room Properties Editor received data:', data, enemyList, itemList, eventList, weaponList, techMap, helperMap);
+	handleRoomDataReceived(data, enemyList, itemList, eventList, weaponList, techMap, helperMap, stratPresets = []) {
+		console.log('Room Properties Editor received data:', data, enemyList, itemList, eventList, weaponList, techMap, helperMap, stratPresets);
 		this.currentRoomData = data || {};
 		this.enemyList = enemyList || {};
 		this.itemList = itemList || [];
@@ -372,6 +378,8 @@ class RoomPropertiesEditor {
 		this.weaponList = weaponList || [];
 		this.techMap = techMap || {};
 		this.helperMap = helperMap || {};
+		this.stratPresets = stratPresets || [];
+    	console.log('this.stratPresets after assignment:', this.stratPresets);
 
 		// Prepare node list for dropdowns - ALL nodes share same ID space
 		// Sort nodes: items first (by ID), then doors (by ID), then junctions (by ID)
@@ -396,10 +404,11 @@ class RoomPropertiesEditor {
 			this.weaponList,
 			this.convertToMap(this.techMap),
 			this.convertToMap(this.helperMap),
+			this.stratPresets,
 			this.enemyList,
 			this.validRoomNodes
 		);
-
+		
 		this.updateHeaderInfo();
 		this.updateMetadataDisplay();
 		this.populateEditors();
@@ -489,6 +498,96 @@ class RoomPropertiesEditor {
 		this.stratFilter = new StratFilter(stratsSection, stratsSectionHeader);
 	}
 
+	setupStratPresetButtons() {
+		const stratsSection = Array.from(document.querySelectorAll('section'))
+			.find(section => {
+				const h3 = section.querySelector('h3');
+				return h3 && h3.textContent.includes('📘 Strats');
+			});
+		
+		if (!stratsSection) {
+			console.error('Could not find strats section');
+			return;
+		}
+		
+		// Find and remove the default add button
+		const addStratsBtn = document.getElementById('addStratsBtn');
+		if (addStratsBtn) {
+			addStratsBtn.remove();
+		}
+		
+		// Create button group
+		const buttonGroup = document.createElement('div');
+		buttonGroup.id = 'stratsButtonGroup';
+		buttonGroup.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;';
+		
+		// Always add blank strat button
+		const addBlankBtn = document.createElement('button');
+		addBlankBtn.className = 'add-btn';
+		addBlankBtn.textContent = '+ Add Blank Strat';
+		addBlankBtn.addEventListener('click', () => this.addNewEditor('strats'));
+		buttonGroup.appendChild(addBlankBtn);
+		
+		// Add preset buttons if available
+		console.log('Setting up preset buttons, count:', this.stratPresets.length);
+		if (this.stratPresets && this.stratPresets.length > 0) {
+			this.stratPresets.forEach(preset => {
+				console.log('Creating button for preset:', preset.name);
+				const presetBtn = document.createElement('button');
+				presetBtn.className = 'add-btn';
+				presetBtn.style.background = 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+				presetBtn.style.color = 'white';
+				presetBtn.textContent = `+ ${preset.name}`;
+				presetBtn.title = `Add preset: ${preset.name}`;
+				presetBtn.addEventListener('click', () => {
+					console.log('Preset button clicked:', preset.name);
+					console.log('Preset data:', preset.data);
+
+					// Make a deep copy so we don't mutate the preset itself
+					const presetDataCopy = JSON.parse(JSON.stringify(preset.data));
+
+					// Ensure all fields (including 0) are kept
+					const editor = this.createEditor('strats', presetDataCopy);
+
+					if (editor && editor.expand) {
+						editor.expand();
+
+						// Scroll into view
+						setTimeout(() => {
+							editor.root.scrollIntoView({ behavior: 'smooth', block: 'center' });
+						}, 100);
+					}
+				});
+				
+				buttonGroup.appendChild(presetBtn);
+			});
+		}
+		
+		// Add "Jump to Top" button
+		const jumpToTopBtn = document.createElement('button');
+		jumpToTopBtn.className = 'secondary-btn';
+		jumpToTopBtn.textContent = '⬆️ Jump to Top';
+		jumpToTopBtn.style.marginLeft = 'auto';
+		jumpToTopBtn.addEventListener('click', () => {
+			const stratsHeader = Array.from(document.querySelectorAll('section h3'))
+				.find(h3 => h3.textContent?.includes('📘 Strats'));
+			if (stratsHeader) {
+				stratsHeader.scrollIntoView({ behavior: 'instant', block: 'start' });
+			}
+		});
+		buttonGroup.appendChild(jumpToTopBtn);
+		
+		// Insert button group AFTER the strats container (at bottom of section)
+		const stratsContainer = document.getElementById('stratsContainer');
+		if (stratsContainer && stratsContainer.nextSibling) {
+			stratsContainer.parentNode.insertBefore(buttonGroup, stratsContainer.nextSibling);
+		} else if (stratsContainer) {
+			stratsContainer.parentNode.appendChild(buttonGroup);
+		} else {
+			console.error('Could not find strats container');
+		}
+	}
+
 	populateEditors() {
 		// Clear existing content and instances
 		Object.values(this.containers).forEach(container => {
@@ -517,6 +616,9 @@ class RoomPropertiesEditor {
 
 		// Setup strat filter after strats are created
 		this.setupStratFilter();
+
+		// Setup preset buttons after strats are populated
+		this.setupStratPresetButtons();
 
 		// Setup mapTileMask editor
 		this.setupMapTileMaskEditor();
@@ -647,7 +749,8 @@ class RoomPropertiesEditor {
 					this.eventList,
 					this.weaponList,
 					this.techMap,
-					this.helperMap
+					this.helperMap,
+					this.stratPresets
 				);
 				break;
 			case 'strats':
@@ -659,7 +762,8 @@ class RoomPropertiesEditor {
 					this.eventList,
 					this.weaponList,
 					this.techMap,
-					this.helperMap
+					this.helperMap,
+					this.stratPresets
 				);
 				break;
 			case 'nodes':
@@ -815,23 +919,13 @@ class RoomPropertiesEditor {
 									validatedItem.requires = [];
 								}
 
-								// Validate entrance/exit conditions SEPARATELY
-								// Don't use validateConditionOutput for these - just use cleanObject
+								// Don't validate entrance/exit conditions - preserve them exactly
 								if (item.entranceCondition) {
-									const cleaned = cleanConditionObject(item.entranceCondition);
-									// Preserve empty objects - they're valid for entrance conditions
-									if (cleaned && Object.keys(cleaned).length > 0) {
-										validatedItem.entranceCondition = cleaned;
-									}
+									validatedItem.entranceCondition = item.entranceCondition;
 								}
 								
 								if (item.exitCondition) {
-									// For exit conditions, preserve the structure even if properties are empty
-									// Example: { "leaveShinecharged": {} } is valid
-									const cleaned = cleanConditionObject(item.exitCondition);
-									if (cleaned && Object.keys(cleaned).length > 0) {
-										validatedItem.exitCondition = cleaned;
-									}
+									validatedItem.exitCondition = item.exitCondition;
 								}
 
 								// Validate spawn/stopSpawn normally
@@ -844,14 +938,19 @@ class RoomPropertiesEditor {
 									if (cleanedStopSpawn) validatedItem.stopSpawn = cleanedStopSpawn;
 								}
 
-								const cleaned = cleanObject(validatedItem);
+								// Don't use cleanObject - just remove undefined/null
+								Object.keys(validatedItem).forEach(key => {
+									if (validatedItem[key] === undefined || validatedItem[key] === null) {
+										delete validatedItem[key];
+									}
+								});
 
 								// Strats MUST always have requires
-								if (!Array.isArray(cleaned.requires)) {
-									cleaned.requires = [];
+								if (!Array.isArray(validatedItem.requires)) {
+									validatedItem.requires = [];
 								}
 
-								return cleaned;
+								return validatedItem;
 							}
 							return item;
 						})

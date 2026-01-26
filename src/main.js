@@ -2,6 +2,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { loadStratPresets } = require('./core/stratPresetLoader.js');
 
 let mainWindow;
 
@@ -71,6 +72,21 @@ ipcMain.handle('read-directory', async (event, dirPath) => {
         console.error(`Error reading directory ${dirPath}:`, err);
         return [];
     }
+});
+
+ipcMain.handle('load-strat-presets', async () => {
+    const presetsPath = app.isPackaged
+        ? path.join(process.resourcesPath, 'strat-presets')
+        : path.join(__dirname, '..', 'strat-presets');
+
+    console.log('Loading strat presets from:', presetsPath);
+    return loadStratPresets(presetsPath);
+});
+
+ipcMain.handle('get-strat-presets-path', () => {
+    return app.isPackaged
+        ? path.join(process.resourcesPath, 'strat-presets')
+        : path.join(__dirname, '..', 'strat-presets');
 });
 
 // Schema validation
@@ -181,7 +197,7 @@ function validateProperty(value, schema, propName) {
 }
 
 // Room Properties Editor IPCs
-ipcMain.on('open-room-properties-editor', (event, roomPropertiesData, enemyList, itemList, eventList, weaponList, techMap, helperMap) => {
+ipcMain.on('open-room-properties-editor', (event, roomPropertiesData, enemyList, itemList, eventList, weaponList, techMap, helperMap, stratPresets) => {
     console.log('Opening Room Properties Editor');
     
     const roomPropertiesWin = new BrowserWindow({
@@ -204,6 +220,7 @@ ipcMain.on('open-room-properties-editor', (event, roomPropertiesData, enemyList,
     roomPropertiesWin.weaponList = weaponList;
     roomPropertiesWin.techMap = techMap;
     roomPropertiesWin.helperMap = helperMap;
+    roomPropertiesWin.stratPresets = stratPresets;
 
     roomPropertiesWin.webContents.once('did-finish-load', () => {
         console.log('Room Properties window finished loading');
@@ -222,7 +239,8 @@ ipcMain.on('room-properties-editor-ready', (event) => {
             win.eventList, 
             win.weaponList, 
             win.techMap, 
-            win.helperMap
+            win.helperMap,
+            win.stratPresets
         );
         
         delete win.roomPropertiesData;
@@ -232,6 +250,7 @@ ipcMain.on('room-properties-editor-ready', (event) => {
         delete win.weaponList;
         delete win.techMap;
         delete win.helperMap;
+        delete win.stratPresets;
     }
 });
 

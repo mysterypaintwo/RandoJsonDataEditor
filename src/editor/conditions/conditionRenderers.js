@@ -449,64 +449,83 @@ class SelectRenderer {
 // =============================================================================
 
 class MultiSelectRenderer {
-	static render(editor, type, initialCondition) {
-		const container = editor.createInputContainer();
+	static normalizeInitialSelection(value, key) {
+    if (!value) return [];
 
-		if (type === 'tech') {
-			// Extract the tech value - it might be a string or in an object
-			let selectedTech = [];
-			if (initialCondition) {
-				if (typeof initialCondition === 'string') {
-					selectedTech = [initialCondition];
-				} else if (initialCondition.tech) {
-					selectedTech = Array.isArray(initialCondition.tech) ?
-						initialCondition.tech :
-						[initialCondition.tech];
-				}
-			}
+    if (typeof value === 'string') return [value];
 
-			editor.inputs.techCheckboxContainer = createMapCheckboxList(
-				window.EditorGlobals.techMap,
-				'Tech',
-				selectedTech
-			);
-			container.appendChild(editor.inputs.techCheckboxContainer);
-		} else if (type === 'helper') {
-			// Extract the helper value - it might be a string or in an object
-			let selectedHelper = [];
-			if (initialCondition) {
-				if (typeof initialCondition === 'string') {
-					selectedHelper = [initialCondition];
-				} else if (initialCondition.helper) {
-					selectedHelper = Array.isArray(initialCondition.helper) ?
-						initialCondition.helper :
-						[initialCondition.helper];
-				}
-			}
+    if (Array.isArray(value)) {
+        return value.map(v => typeof v === 'string' ? v : v?.[key]).filter(Boolean);
+    }
 
-			editor.inputs.helperCheckboxContainer = createMapCheckboxList(
-				window.EditorGlobals.helperMap,
-				'Helper',
-				selectedHelper
-			);
-			container.appendChild(editor.inputs.helperCheckboxContainer);
-		}
+    if (value.and && Array.isArray(value.and)) {
+        return value.and;
+    }
 
-		editor.childrenContainer.appendChild(container);
-	}
+    if (value[key]) {
+        return Array.isArray(value[key]) ? value[key] : [value[key]];
+    }
 
-	static getValue(editor, type) {
-		if (type === 'tech') {
-			const selectedTech = editor.inputs.techCheckboxContainer?.getSelectedValues();
-			// Return plain string (tech name), not wrapped in object
-			return (selectedTech && selectedTech.length > 0) ? selectedTech[0] : null;
-		} else if (type === 'helper') {
-			const selectedHelper = editor.inputs.helperCheckboxContainer?.getSelectedValues();
-			// Return plain string (helper name), not wrapped in object
-			return (selectedHelper && selectedHelper.length > 0) ? selectedHelper[0] : null;
-		}
-		return null;
-	}
+    return [];
+}
+
+static render(editor, type, initialCondition) {
+    const container = editor.createInputContainer();
+
+    if (type === 'tech') {
+        const selectedTech =
+            MultiSelectRenderer.normalizeInitialSelection(
+                initialCondition,
+                'tech'
+            );
+
+        editor.inputs.techCheckboxContainer = createMapCheckboxList(
+            window.EditorGlobals.techMap,
+            'Tech',
+            selectedTech,
+            Infinity
+        );
+
+        container.appendChild(editor.inputs.techCheckboxContainer);
+    }
+
+    else if (type === 'helper') {
+        const selectedHelper =
+            MultiSelectRenderer.normalizeInitialSelection(
+                initialCondition,
+                'helper'
+            );
+
+        editor.inputs.helperCheckboxContainer = createMapCheckboxList(
+            window.EditorGlobals.helperMap,
+            'Helper',
+            selectedHelper,
+            Infinity
+        );
+
+        container.appendChild(editor.inputs.helperCheckboxContainer);
+    }
+
+    editor.childrenContainer.appendChild(container);
+}
+
+
+    static getValue(editor, type) {
+        if (type === 'tech') {
+            const selectedTech = editor.inputs.techCheckboxContainer?.getSelectedValues() || [];
+            // Return array of tech names if multiple, single string if one
+            if (selectedTech.length === 0) return null;
+            if (selectedTech.length === 1) return selectedTech[0];
+            return { and: selectedTech };  // Wrap multiple in AND
+        } else if (type === 'helper') {
+            const selectedHelper = editor.inputs.helperCheckboxContainer?.getSelectedValues() || [];
+            // Return array of helper names if multiple, single string if one
+            if (selectedHelper.length === 0) return null;
+            if (selectedHelper.length === 1) return selectedHelper[0];
+            return { and: selectedHelper };  // Wrap multiple in AND
+        }
+        return null;
+    }
 }
 
 // =============================================================================
@@ -701,7 +720,8 @@ class SimpleNumberRenderer {
 
 		if (initialCondition && initialCondition[type] !== undefined) {
 			input.value = initialCondition[type];
-		}
+		} else
+			input.value = input.min;
 
 		container.appendChild(input);
 		editor.childrenContainer.appendChild(container);
@@ -735,6 +755,7 @@ class AmmoRenderer {
 		const countInput = document.createElement('input');
 		countInput.type = 'number';
 		countInput.min = '1';
+		countInput.value = countInput.min;
 		countInput.placeholder = 'Amount';
 		countInput.style.marginLeft = '8px';
 
@@ -1347,12 +1368,14 @@ class ShinesparkRenderer {
 		framesInput.type = 'number';
 		framesInput.min = '0';
 		framesInput.placeholder = 'Required frames';
+		framesInput.value = framesInput.min;
 		framesInput.style.flex = '1';
 
 		const excessInput = document.createElement('input');
 		excessInput.type = 'number';
 		excessInput.min = '0';
 		excessInput.placeholder = 'Excess frames (optional)';
+		excessInput.value = excessInput.min;
 		excessInput.style.flex = '1';
 
 		if (initialCondition && initialCondition.shinespark) {
@@ -1434,6 +1457,7 @@ class EnemyDamageRenderer {
 		hitsInput.type = 'number';
 		hitsInput.min = '1';
 		hitsInput.placeholder = 'Hits';
+		hitsInput.value = 1;
 		hitsInput.style.flex = '1';
 
 		if (initialCondition && initialCondition.enemyDamage) {
@@ -1584,10 +1608,13 @@ class RunwayRenderer {
 			slopeInputs[slope] = input;
 		});
 
+		// Set initial values from initialCondition
 		if (initialCondition && initialCondition[type]) {
 			const data = initialCondition[type];
-			tilesInput.value = data.usedTiles || data.length || '';
-			openEndInput.value = data.openEnd || '';
+			if (data.usedTiles !== undefined) tilesInput.value = data.usedTiles;
+			if (data.length !== undefined) tilesInput.value = data.length;
+			if (data.openEnd !== undefined) openEndInput.value = data.openEnd;
+			
 			Object.keys(slopeInputs).forEach(slope => {
 				if (data[slope] !== undefined) {
 					slopeInputs[slope].value = data[slope];
@@ -1606,30 +1633,24 @@ class RunwayRenderer {
 	static getValue(editor, type) {
 		const usedTiles = parseFloat(editor.inputs.runwayTilesInput?.value);
 		const openEnd = parseInt(editor.inputs.runwayOpenEndInput?.value);
-		if (usedTiles > 0 && openEnd >= 0) {
-			const result = {
-				[type]: {
-					usedTiles,
-					openEnd
-				}
-			};
-			// For speedBall, use 'length' instead of 'usedTiles'
-			if (type === 'speedBall') {
-				result[type] = {
-					length: usedTiles,
-					openEnd
-				};
+		
+		if (isNaN(usedTiles) || usedTiles <= 0) return null;
+		if (isNaN(openEnd) || openEnd < 0) return null;
+		
+		// For speedBall, use 'length' instead of 'usedTiles'
+		const result = {
+			[type]: type === 'speedBall' ? { length: usedTiles, openEnd } : { usedTiles, openEnd }
+		};
+		
+		// Add slope properties if they have values
+		Object.keys(editor.inputs.runwaySlopeInputs || {}).forEach(slope => {
+			const value = parseInt(editor.inputs.runwaySlopeInputs[slope].value);
+			if (!isNaN(value) && value > 0) {
+				result[type][slope] = value;
 			}
-			// Add slope properties if they have values
-			Object.keys(editor.inputs.runwaySlopeInputs || {}).forEach(slope => {
-				const value = parseInt(editor.inputs.runwaySlopeInputs[slope].value);
-				if (value > 0) {
-					result[type][slope] = value;
-				}
-			});
-			return result;
-		}
-		return null;
+		});
+		
+		return result;
 	}
 }
 
@@ -1671,6 +1692,7 @@ class FramesWithDropsRenderer {
 		const framesInput = document.createElement('input');
 		framesInput.type = 'number';
 		framesInput.min = '1';
+		framesInput.value = framesInput.min;
 		framesInput.placeholder = 'Frames';
 
 		const dropsContainer = createDynamicList(

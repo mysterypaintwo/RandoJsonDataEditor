@@ -100,12 +100,13 @@ window.EditorGlobals = {
 	enemyList: [],
 	validRoomNodes: [],
 
-	updateAll(itemList, eventList, weaponList, techMap, helperMap, enemyList, validRoomNodes) {
+	updateAll(itemList, eventList, weaponList, techMap, helperMap, stratPresets, enemyList, validRoomNodes) {
 		this.itemList = itemList || [];
 		this.eventList = eventList || [];
 		this.weaponList = weaponList || [];
 		this.techMap = techMap || new Map();
 		this.helperMap = helperMap || new Map();
+		this.stratPresets = stratPresets || [];
 		this.enemyList = enemyList || [];
 		this.validRoomNodes = validRoomNodes || [];
 

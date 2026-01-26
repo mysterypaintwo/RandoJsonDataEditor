@@ -18,10 +18,10 @@ export class StratFilter {
 		this.createElement();
 	}
 
-	createElement() {
-		this.root = document.createElement('div');
-		this.root.className = 'strat-filter-panel';
-		this.root.style.cssText = `
+    createElement() {
+        this.root = document.createElement('div');
+        this.root.className = 'strat-filter-panel';
+        this.root.style.cssText = `
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border: 2px solid #dee2e6;
             border-radius: 8px;
@@ -30,9 +30,9 @@ export class StratFilter {
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         `;
 
-		// Header with toggle
-		const header = document.createElement('div');
-		header.style.cssText = `
+        // Header with toggle
+        const header = document.createElement('div');
+        header.style.cssText = `
             display: flex;
             align-items: center;
             gap: 8px;
@@ -41,87 +41,89 @@ export class StratFilter {
             margin-bottom: 12px;
         `;
 
-		this.toggleIcon = document.createElement('span');
-		this.toggleIcon.textContent = '▼';
-		this.toggleIcon.style.fontSize = '14px';
+        this.toggleIcon = document.createElement('span');
+        this.toggleIcon.textContent = '▼';
+        this.toggleIcon.style.fontSize = '14px';
 
-		const title = document.createElement('strong');
-		title.textContent = '🔍 Filter Strats';
-		title.style.fontSize = '16px';
+        const title = document.createElement('strong');
+        title.textContent = '🔍 Filter Strats';
+        title.style.fontSize = '16px';
 
-		const clearBtn = document.createElement('button');
-		clearBtn.textContent = 'Clear All Filters';
-		clearBtn.className = 'secondary-btn';
-		clearBtn.style.cssText = `
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = 'Clear All Filters';
+        clearBtn.className = 'secondary-btn';
+        clearBtn.style.cssText = `
             margin-left: auto;
             padding: 6px 12px;
             font-size: 12px;
         `;
-		clearBtn.onclick = () => this.clearAllFilters();
+        clearBtn.onclick = () => this.clearAllFilters();
 
-		header.appendChild(this.toggleIcon);
-		header.appendChild(title);
-		header.appendChild(clearBtn);
+        header.appendChild(this.toggleIcon);
+        header.appendChild(title);
+        header.appendChild(clearBtn);
 
-		const container = this.section.querySelector('#stratsContainer');
-		if (container) {
-			this.section.insertBefore(this.root, container);
-		}
+        this.content = document.createElement('div');
+        this.content.style.display = 'grid';
+        this.content.style.gridTemplateColumns = '1fr 1fr';
+        this.content.style.gap = '12px';
 
-		this.content = document.createElement('div');
-		this.content.style.display = 'grid';
-		this.content.style.gridTemplateColumns = '1fr 1fr';
-		this.content.style.gap = '12px';
+        // Name filters
+        this.content.appendChild(this.createFilterSection(
+            'Name Contains (show only)',
+            'nameWhitelist',
+            'Enter strat names to show...'
+        ));
 
-		// Name filters
-		this.content.appendChild(this.createFilterSection(
-			'Name Contains (show only)',
-			'nameWhitelist',
-			'Enter strat names to show...'
-		));
+        this.content.appendChild(this.createFilterSection(
+            'Name Contains (hide)',
+            'nameBlacklist',
+            'Enter strat names to hide...'
+        ));
 
-		this.content.appendChild(this.createFilterSection(
-			'Name Contains (hide)',
-			'nameBlacklist',
-			'Enter strat names to hide...'
-		));
+        // From node filters
+        this.content.appendChild(this.createFilterSection(
+            'From Node (show only)',
+            'fromNodeWhitelist',
+            'Enter node IDs (e.g., 1,2,3)...'
+        ));
 
-		// From node filters
-		this.content.appendChild(this.createFilterSection(
-			'From Node (show only)',
-			'fromNodeWhitelist',
-			'Enter node IDs (e.g., 1,2,3)...'
-		));
+        this.content.appendChild(this.createFilterSection(
+            'From Node (hide)',
+            'fromNodeBlacklist',
+            'Enter node IDs (e.g., 4,5,6)...'
+        ));
 
-		this.content.appendChild(this.createFilterSection(
-			'From Node (hide)',
-			'fromNodeBlacklist',
-			'Enter node IDs (e.g., 4,5,6)...'
-		));
+        // To node filters
+        this.content.appendChild(this.createFilterSection(
+            'To Node (show only)',
+            'toNodeWhitelist',
+            'Enter node IDs (e.g., 1,2,3)...'
+        ));
 
-		// To node filters
-		this.content.appendChild(this.createFilterSection(
-			'To Node (show only)',
-			'toNodeWhitelist',
-			'Enter node IDs (e.g., 1,2,3)...'
-		));
+        this.content.appendChild(this.createFilterSection(
+            'To Node (hide)',
+            'toNodeBlacklist',
+            'Enter node IDs (e.g., 4,5,6)...'
+        ));
 
-		this.content.appendChild(this.createFilterSection(
-			'To Node (hide)',
-			'toNodeBlacklist',
-			'Enter node IDs (e.g., 4,5,6)...'
-		));
+        header.onclick = () => this.toggle();
 
-		header.onclick = () => this.toggle();
+        this.root.appendChild(header);
+        this.root.appendChild(this.content);
+        
+        // Find the strats container and insert BEFORE it
+        const stratsContainer = document.getElementById('stratsContainer');
+        if (stratsContainer && stratsContainer.parentNode) {
+            stratsContainer.parentNode.insertBefore(this.root, stratsContainer);
+        } else {
+            console.error('Could not find strats container to insert filter');
+        }
 
-		this.root.appendChild(header);
-		this.root.appendChild(this.content);
-		this.container.insertBefore(this.root, this.container.firstChild);
-
-		// Start collapsed
-		this.isExpanded = true;
-		this.toggle();
-	}
+        // Start collapsed
+        this.isExpanded = true;
+        this.toggle();
+    }
 
 	createFilterSection(label, filterKey, placeholder) {
 		const section = document.createElement('div');

@@ -349,7 +349,8 @@ export class RoomManager {
 			this.state.getEventList(),
 			this.state.getWeaponList(),
 			this.state.getTechMap(),
-			this.state.getHelperMap()
+			this.state.getHelperMap(),
+			this.state.getStratPresets(),
 		);
 	}
 

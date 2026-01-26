@@ -1,0 +1,12 @@
+{
+  "name": "Sample Template",
+  "requires": [
+    {
+      "canShineCharge": {
+        "usedTiles": 16,
+        "openEnd": 0,
+        "gentleUpTiles": 8
+      }
+    }
+  ]
+}

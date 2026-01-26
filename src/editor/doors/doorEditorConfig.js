@@ -53,6 +53,11 @@ const PHYSICS_TYPES = [{
         description: 'Underwater physics'
     },
     {
+        value: 'lowGrav',
+        label: 'Low Gravity',
+        description: 'Low Gravity physics'
+    },
+    {
         value: 'lava',
         label: 'Lava',
         description: 'Lava physics and damage'

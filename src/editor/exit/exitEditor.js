@@ -442,17 +442,23 @@ class ExitConditionEditor {
 
     getRunway() {
         const obj = {
-            length: parseFloat(this.lengthInput.value),
-            openEnd: parseInt(this.openEndInput.value)
+            length: parseFloat(this.lengthInput.value) || 0,
+            openEnd: parseInt(this.openEndInput.value) || 0
         };
-        if (this.gentleUpTilesInput.value) obj.gentleUpTiles = parseInt(this.gentleUpTilesInput.value);
-        if (this.gentleDownTilesInput.value) obj.gentleDownTiles = parseInt(this.gentleDownTilesInput.value);
-        if (this.steepUpTilesInput.value) obj.steepUpTiles = parseInt(this.steepUpTilesInput.value);
-        if (this.steepDownTilesInput.value) obj.steepDownTiles = parseInt(this.steepDownTilesInput.value);
-        if (this.startingDownTilesInput.value) obj.startingDownTiles = parseInt(this.startingDownTilesInput.value);
-        if (this.minExtraRunSpeedInput.value) obj.minExtraRunSpeed = this.minExtraRunSpeedInput.value;
-        if (this.heatedCheckbox.checked) obj.heated = true;
-        if (this.coldCheckbox.checked) obj.cold = true;
+        const gentleUp = parseInt(this.gentleUpTilesInput.value);
+        const gentleDown = parseInt(this.gentleDownTilesInput.value);
+        const steepUp = parseInt(this.steepUpTilesInput.value);
+        const steepDown = parseInt(this.steepDownTilesInput.value);
+        const startingDown = parseInt(this.startingDownTilesInput.value);
+        
+        if (gentleUp > 0) obj.gentleUpTiles = gentleUp;
+        if (gentleDown > 0) obj.gentleDownTiles = gentleDown;
+        if (steepUp > 0) obj.steepUpTiles = steepUp;
+        if (steepDown > 0) obj.steepDownTiles = steepDown;
+        if (startingDown > 0) obj.startingDownTiles = startingDown;
+        if (this.minExtraRunSpeedInput?.value) obj.minExtraRunSpeed = this.minExtraRunSpeedInput.value;
+        if (this.heatedCheckbox?.checked) obj.heated = true;
+        if (this.coldCheckbox?.checked) obj.cold = true;
         return obj;
     }
 

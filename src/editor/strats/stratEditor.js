@@ -24,223 +24,227 @@ class StratEditor extends BaseEditor {
 		});
 	}
 
-    normalizeData(data) {
-        return {
-            name: normalizeStringField(data, 'name'),
-            note: normalizeStringField(data, 'note'),
-            devNote: normalizeStringField(data, 'devNote'),
-            link: data?.link || null,
-            startsWithShineCharge: normalizeBooleanField(data, 'startsWithShineCharge'),
-            entranceCondition: data?.entranceCondition || null,
-            requires: Array.isArray(data?.requires) ? data.requires : [],
-            exitCondition: data?.exitCondition || null,
-            bypassesDoorShell: normalizeBooleanField(data, 'bypassesDoorShell'),
-            unlocksDoors: normalizeArrayField(data, 'unlocksDoors'),
-            clearsObstacles: normalizeArrayField(data, 'clearsObstacles'),
-            resetsObstacles: normalizeArrayField(data, 'resetsObstacles'),
-            comesThroughToilet: normalizeBooleanField(data, 'comesThroughToilet'),
-            collectsItems: normalizeArrayField(data, 'collectsItems'),
-            setsFlags: normalizeArrayField(data, 'setsFlags'),
-            endsWithShineCharge: normalizeBooleanField(data, 'endsWithShineCharge'),
-            farmCycleDrops: normalizeArrayField(data, 'farmCycleDrops'),
-            wallJumpAvoid: normalizeBooleanField(data, 'wallJumpAvoid'),
-            flashSuitChecked: normalizeBooleanField(data, 'flashSuitChecked'),
-            failures: normalizeArrayField(data, 'failures')
-        };
-    }
+	normalizeData(data) {
+		return {
+			name: normalizeStringField(data, 'name'),
+			note: normalizeStringField(data, 'note'),
+			devNote: normalizeStringField(data, 'devNote'),
+			link: data?.link || null,
+			startsWithShineCharge: normalizeBooleanField(data, 'startsWithShineCharge'),
+			entranceCondition: data?.entranceCondition || null,
+			requires: data?.requires || [],
+			exitCondition: data?.exitCondition || null,
+			bypassesDoorShell: normalizeBooleanField(data, 'bypassesDoorShell'),
+			unlocksDoors: normalizeArrayField(data, 'unlocksDoors'),
+			clearsObstacles: normalizeArrayField(data, 'clearsObstacles'),
+			resetsObstacles: normalizeArrayField(data, 'resetsObstacles'),
+			comesThroughToilet: normalizeBooleanField(data, 'comesThroughToilet'),
+			collectsItems: normalizeArrayField(data, 'collectsItems'),
+			setsFlags: normalizeArrayField(data, 'setsFlags'),
+			endsWithShineCharge: normalizeBooleanField(data, 'endsWithShineCharge'),
+			farmCycleDrops: normalizeArrayField(data, 'farmCycleDrops'),
+			wallJumpAvoid: normalizeBooleanField(data, 'wallJumpAvoid'),
+			flashSuitChecked: normalizeBooleanField(data, 'flashSuitChecked'),
+			failures: normalizeArrayField(data, 'failures')
+		};
+	}
 
-    populateFields() {
-        // Name field
-        this.nameInput = createInput('text', 'Strat Name', this.initialData.name);
-        this.nameInput.style.width = '100%';
-        this.nameInput.value = 'Base';
+	populateFields() {
+		// Name field
+		this.nameInput = createInput('text', 'Strat Name', this.initialData.name);
+		this.nameInput.style.width = '100%';
+		if (this.initialData.name) {
+			this.nameInput.value = this.initialData.name;
+		} else {
+			this.nameInput.value = 'Base';
+		}
 
-        // Note field
-        this.noteInput = document.createElement('textarea');
-        this.noteInput.placeholder = 'Note (optional)';
-        this.noteInput.rows = 2;
-        this.noteInput.style.width = '100%';
-        this.noteInput.style.boxSizing = 'border-box';
-        this.noteInput.style.padding = '8px';
-        this.noteInput.style.border = '1px solid #ccc';
-        this.noteInput.style.borderRadius = '4px';
-        this.noteInput.style.fontFamily = 'inherit';
-        this.noteInput.style.fontSize = '14px';
-        this.noteInput.style.marginBottom = '12px';
-        if (this.initialData.note) {
-            const noteText = Array.isArray(this.initialData.note) ?
-                this.initialData.note.join('\n') :
-                this.initialData.note;
-            this.noteInput.value = noteText;
-        }
+		// Note field
+		this.noteInput = document.createElement('textarea');
+		this.noteInput.placeholder = 'Note (optional)';
+		this.noteInput.rows = 2;
+		this.noteInput.style.width = '100%';
+		this.noteInput.style.boxSizing = 'border-box';
+		this.noteInput.style.padding = '8px';
+		this.noteInput.style.border = '1px solid #ccc';
+		this.noteInput.style.borderRadius = '4px';
+		this.noteInput.style.fontFamily = 'inherit';
+		this.noteInput.style.fontSize = '14px';
+		this.noteInput.style.marginBottom = '12px';
+		if (this.initialData.note) {
+			const noteText = Array.isArray(this.initialData.note) ?
+				this.initialData.note.join('\n') :
+				this.initialData.note;
+			this.noteInput.value = noteText;
+		}
 
-        // Dev Note field - full width textarea
-        this.devNoteInput = document.createElement('textarea');
-        this.devNoteInput.placeholder = 'Dev Note (optional)';
-        this.devNoteInput.rows = 2;
-        this.devNoteInput.style.width = '100%';
-        this.devNoteInput.style.boxSizing = 'border-box';
-        this.devNoteInput.style.padding = '8px';
-        this.devNoteInput.style.border = '1px solid #ccc';
-        this.devNoteInput.style.borderRadius = '4px';
-        this.devNoteInput.style.fontFamily = 'inherit';
-        this.devNoteInput.style.fontSize = '14px';
-        this.devNoteInput.style.marginBottom = '12px';
-        if (this.initialData.devNote) {
-            const devNoteText = Array.isArray(this.initialData.devNote) ?
-                this.initialData.devNote.join('\n') :
-                this.initialData.devNote;
-            this.devNoteInput.value = devNoteText;
-        }
+		// Dev Note field - full width textarea
+		this.devNoteInput = document.createElement('textarea');
+		this.devNoteInput.placeholder = 'Dev Note (optional)';
+		this.devNoteInput.rows = 2;
+		this.devNoteInput.style.width = '100%';
+		this.devNoteInput.style.boxSizing = 'border-box';
+		this.devNoteInput.style.padding = '8px';
+		this.devNoteInput.style.border = '1px solid #ccc';
+		this.devNoteInput.style.borderRadius = '4px';
+		this.devNoteInput.style.fontFamily = 'inherit';
+		this.devNoteInput.style.fontSize = '14px';
+		this.devNoteInput.style.marginBottom = '12px';
+		if (this.initialData.devNote) {
+			const devNoteText = Array.isArray(this.initialData.devNote) ?
+				this.initialData.devNote.join('\n') :
+				this.initialData.devNote;
+			this.devNoteInput.value = devNoteText;
+		}
 
-        // Link (From/To) node selection
-        const linkContainer = document.createElement('div');
-        linkContainer.style.marginBottom = '12px';
+		// Link (From/To) node selection
+		const linkContainer = document.createElement('div');
+		linkContainer.style.marginBottom = '12px';
 
-        const linkLabel = document.createElement('label');
-        linkLabel.textContent = 'Link (From → To):';
-        linkLabel.style.fontWeight = '600';
-        linkLabel.style.display = 'block';
-        linkLabel.style.marginBottom = '6px';
-        linkContainer.appendChild(linkLabel);
+		const linkLabel = document.createElement('label');
+		linkLabel.textContent = 'Link (From → To):';
+		linkLabel.style.fontWeight = '600';
+		linkLabel.style.display = 'block';
+		linkLabel.style.marginBottom = '6px';
+		linkContainer.appendChild(linkLabel);
 
-        const linkInputs = document.createElement('div');
-        linkInputs.style.display = 'flex';
-        linkInputs.style.gap = '8px';
-        linkInputs.style.alignItems = 'center';
+		const linkInputs = document.createElement('div');
+		linkInputs.style.display = 'flex';
+		linkInputs.style.gap = '8px';
+		linkInputs.style.alignItems = 'center';
 
-        this.fromNodeSelect = document.createElement('select');
-        this.fromNodeSelect.style.flex = '1';
-        this.toNodeSelect = document.createElement('select');
-        this.toNodeSelect.style.flex = '1';
+		this.fromNodeSelect = document.createElement('select');
+		this.fromNodeSelect.style.flex = '1';
+		this.toNodeSelect = document.createElement('select');
+		this.toNodeSelect.style.flex = '1';
 
-        const arrow = document.createElement('span');
-        arrow.textContent = '→';
-        arrow.style.fontSize = '18px';
+		const arrow = document.createElement('span');
+		arrow.textContent = '→';
+		arrow.style.fontSize = '18px';
 
-        linkInputs.appendChild(this.fromNodeSelect);
-        linkInputs.appendChild(arrow);
-        linkInputs.appendChild(this.toNodeSelect);
-        linkContainer.appendChild(linkInputs);
+		linkInputs.appendChild(this.fromNodeSelect);
+		linkInputs.appendChild(arrow);
+		linkInputs.appendChild(this.toNodeSelect);
+		linkContainer.appendChild(linkInputs);
 
-        this.populateNodeSelects();
+		this.populateNodeSelects();
 
-        if (this.initialData.link && Array.isArray(this.initialData.link) && this.initialData.link.length === 2) {
-            this.fromNodeSelect.value = this.initialData.link[0];
-            this.toNodeSelect.value = this.initialData.link[1];
-        }
+		if (this.initialData.link && Array.isArray(this.initialData.link) && this.initialData.link.length === 2) {
+			this.fromNodeSelect.value = this.initialData.link[0];
+			this.toNodeSelect.value = this.initialData.link[1];
+		}
 
-        // Create collapsible sections
-        this.entranceConditionSection = this.createCollapsibleSection('Entrance Condition');
-        this.requiresConditionSection = this.createCollapsibleSection('Requirements');
-        this.exitConditionSection = this.createCollapsibleSection('Exit Condition');
-        this.obstaclesSection = this.createCollapsibleSection('Obstacles', true);
-        this.shinechargeSection = this.createCollapsibleSection('Shinecharge Properties', true);
-        this.doorUnlocksSection = this.createCollapsibleSection('Door Unlocks', true);
-        this.farmingSection = this.createCollapsibleSection('Enemy Farming', true);
-        this.failuresSection = this.createCollapsibleSection('Failure Conditions', true);
-        this.boolFieldsSection = this.createCollapsibleSection('Advanced Properties', true);
-        this.collectionsSection = this.createCollapsibleSection('Items & Flags', true);
+		// Create collapsible sections
+		this.entranceConditionSection = this.createCollapsibleSection('Entrance Condition');
+		this.requiresConditionSection = this.createCollapsibleSection('Requirements');
+		this.exitConditionSection = this.createCollapsibleSection('Exit Condition');
+		this.obstaclesSection = this.createCollapsibleSection('Obstacles', true);
+		this.shinechargeSection = this.createCollapsibleSection('Shinecharge Properties', true);
+		this.doorUnlocksSection = this.createCollapsibleSection('Door Unlocks', true);
+		this.farmingSection = this.createCollapsibleSection('Enemy Farming', true);
+		this.failuresSection = this.createCollapsibleSection('Failure Conditions', true);
+		this.boolFieldsSection = this.createCollapsibleSection('Advanced Properties', true);
+		this.collectionsSection = this.createCollapsibleSection('Items & Flags', true);
 
-        // Placeholder divs for conditions
-        this.entranceConditionDiv = createDiv([]);
-        this.requiresConditionDiv = createDiv([]);
-        this.exitConditionDiv = createDiv([]);
+		// Placeholder divs for conditions
+		this.entranceConditionDiv = createDiv([]);
+		this.requiresConditionDiv = createDiv([]);
+		this.exitConditionDiv = createDiv([]);
 
-        // Obstacle tables
-        this.clearsObstaclesList = createObstacleCheckboxList(this.initialData.clearsObstacles, 'Clears Obstacles');
-        this.resetsObstaclesList = createObstacleCheckboxList(this.initialData.resetsObstacles, 'Resets Obstacles');
+		// Obstacle tables
+		this.clearsObstaclesList = createObstacleCheckboxList(this.initialData.clearsObstacles, 'Clears Obstacles');
+		this.resetsObstaclesList = createObstacleCheckboxList(this.initialData.resetsObstacles, 'Resets Obstacles');
 
-        // Shinecharge checkboxes
-        this.startsWithShineCharge = this.createClickableCheckbox(
-            'Starts with shinecharge (requires shinecharge frames from previous strat)',
-            this.initialData.startsWithShineCharge
-        );
-        this.endsWithShineCharge = this.createClickableCheckbox(
-            'Ends with shinecharge (retains shinecharge frames for next strat)',
-            this.initialData.endsWithShineCharge
-        );
+		// Shinecharge checkboxes
+		this.startsWithShineCharge = this.createClickableCheckbox(
+			'Starts with shinecharge (requires shinecharge frames from previous strat)',
+			this.initialData.startsWithShineCharge
+		);
+		this.endsWithShineCharge = this.createClickableCheckbox(
+			'Ends with shinecharge (retains shinecharge frames for next strat)',
+			this.initialData.endsWithShineCharge
+		);
 
-        const shinechargeContainer = document.createElement('div');
-        shinechargeContainer.style.display = 'flex';
-        shinechargeContainer.style.flexDirection = 'column';
-        shinechargeContainer.style.gap = '0px';
-        shinechargeContainer.appendChild(this.startsWithShineCharge);
-        shinechargeContainer.appendChild(this.endsWithShineCharge);
+		const shinechargeContainer = document.createElement('div');
+		shinechargeContainer.style.display = 'flex';
+		shinechargeContainer.style.flexDirection = 'column';
+		shinechargeContainer.style.gap = '0px';
+		shinechargeContainer.appendChild(this.startsWithShineCharge);
+		shinechargeContainer.appendChild(this.endsWithShineCharge);
 
-        // Door unlocks editor
-        this.unlocksDoors = this.createUnlocksDoors(this.initialData.unlocksDoors);
+		// Door unlocks editor
+		this.unlocksDoors = this.createUnlocksDoors(this.initialData.unlocksDoors);
 
-        // Farm cycle drops editor
-        this.farmCycleDrops = this.createFarmCycleDrops(this.initialData.farmCycleDrops);
+		// Farm cycle drops editor
+		this.farmCycleDrops = this.createFarmCycleDrops(this.initialData.farmCycleDrops);
 
-        // Failures editor
-        this.failures = this.createFailures(this.initialData.failures);
+		// Failures editor
+		this.failures = this.createFailures(this.initialData.failures);
 
-        // Boolean checkboxes
-        this.comesThroughToilet = this.createClickableCheckbox('Toilet comes between this room and the other room (If this strat involves a door)', this.initialData.comesThroughToilet);
-        this.bypassesDoorShell = this.createClickableCheckbox('Allows exiting without opening the door', this.initialData.bypassesDoorShell);
-        this.wallJumpAvoid = this.createClickableCheckbox('Wall jump avoid (technical flag)', this.initialData.wallJumpAvoid);
-        this.flashSuitChecked = this.createClickableCheckbox('Flash suit compatibility has been verified', this.initialData.flashSuitChecked);
+		// Boolean checkboxes
+		this.comesThroughToilet = this.createClickableCheckbox('Toilet comes between this room and the other room (If this strat involves a door)', this.initialData.comesThroughToilet);
+		this.bypassesDoorShell = this.createClickableCheckbox('Allows exiting without opening the door', this.initialData.bypassesDoorShell);
+		this.wallJumpAvoid = this.createClickableCheckbox('Wall jump avoid (technical flag)', this.initialData.wallJumpAvoid);
+		this.flashSuitChecked = this.createClickableCheckbox('Flash suit compatibility has been verified', this.initialData.flashSuitChecked);
 
-        const boolContainer = document.createElement('div');
-        boolContainer.style.display = 'flex';
-        boolContainer.style.flexDirection = 'column';
-        boolContainer.style.gap = '0px';
-        [this.comesThroughToilet, this.bypassesDoorShell, this.wallJumpAvoid, this.flashSuitChecked].forEach(cb => {
-            boolContainer.appendChild(cb);
-        });
+		const boolContainer = document.createElement('div');
+		boolContainer.style.display = 'flex';
+		boolContainer.style.flexDirection = 'column';
+		boolContainer.style.gap = '0px';
+		[this.comesThroughToilet, this.bypassesDoorShell, this.wallJumpAvoid, this.flashSuitChecked].forEach(cb => {
+			boolContainer.appendChild(cb);
+		});
 
-        // Items/Flags collection
-        this.collectsItemsEditor = this.createCollectsItemsEditor(this.initialData.collectsItems);
-        this.setsFlagsEditor = this.createSetsFlagsEditor(this.initialData.setsFlags);
+		// Items/Flags collection
+		this.collectsItemsEditor = this.createCollectsItemsEditor(this.initialData.collectsItems);
+		this.setsFlagsEditor = this.createSetsFlagsEditor(this.initialData.setsFlags);
 
-        // Populate collapsible sections
-        this.entranceConditionSection.contentArea.appendChild(this.entranceConditionDiv);
-        this.requiresConditionSection.contentArea.appendChild(this.requiresConditionDiv);
-        this.exitConditionSection.contentArea.appendChild(this.exitConditionDiv);
+		// Populate collapsible sections
+		this.entranceConditionSection.contentArea.appendChild(this.entranceConditionDiv);
+		this.requiresConditionSection.contentArea.appendChild(this.requiresConditionDiv);
+		this.exitConditionSection.contentArea.appendChild(this.exitConditionDiv);
 
-        this.obstaclesSection.contentArea.appendChild(createLabel('Clears Obstacles:', this.clearsObstaclesList));
-        this.obstaclesSection.contentArea.appendChild(createLabel('Resets Obstacles:', this.resetsObstaclesList));
+		this.obstaclesSection.contentArea.appendChild(createLabel('Clears Obstacles:', this.clearsObstaclesList));
+		this.obstaclesSection.contentArea.appendChild(createLabel('Resets Obstacles:', this.resetsObstaclesList));
 
-        this.shinechargeSection.contentArea.appendChild(shinechargeContainer);
-        this.doorUnlocksSection.contentArea.appendChild(this.unlocksDoors);
-        this.farmingSection.contentArea.appendChild(this.farmCycleDrops);
-        this.failuresSection.contentArea.appendChild(this.failures);
+		this.shinechargeSection.contentArea.appendChild(shinechargeContainer);
+		this.doorUnlocksSection.contentArea.appendChild(this.unlocksDoors);
+		this.farmingSection.contentArea.appendChild(this.farmCycleDrops);
+		this.failuresSection.contentArea.appendChild(this.failures);
 
-        this.boolFieldsSection.contentArea.appendChild(boolContainer);
+		this.boolFieldsSection.contentArea.appendChild(boolContainer);
 
-        this.collectionsSection.contentArea.appendChild(this.collectsItemsEditor);
-        this.collectionsSection.contentArea.appendChild(this.setsFlagsEditor);
+		this.collectionsSection.contentArea.appendChild(this.collectsItemsEditor);
+		this.collectionsSection.contentArea.appendChild(this.setsFlagsEditor);
 
-        const content = createDiv([
-            this.nameInput,
-            this.noteInput,
-            this.devNoteInput,
-            linkContainer,
-            this.entranceConditionSection.root,
-            this.requiresConditionSection.root,
-            this.exitConditionSection.root,
-            this.shinechargeSection.root,
-            this.obstaclesSection.root,
-            this.doorUnlocksSection.root,
-            this.farmingSection.root,
-            this.failuresSection.root,
-            this.boolFieldsSection.root,
-            this.collectionsSection.root,
-            this.createRemoveButton('Remove Strat')
-        ]);
-        this.contentArea.appendChild(content);
+		const content = createDiv([
+			this.nameInput,
+			this.noteInput,
+			this.devNoteInput,
+			linkContainer,
+			this.entranceConditionSection.root,
+			this.requiresConditionSection.root,
+			this.exitConditionSection.root,
+			this.shinechargeSection.root,
+			this.obstaclesSection.root,
+			this.doorUnlocksSection.root,
+			this.farmingSection.root,
+			this.failuresSection.root,
+			this.boolFieldsSection.root,
+			this.collectionsSection.root,
+			this.createRemoveButton('Remove Strat')
+		]);
+		this.contentArea.appendChild(content);
 
-        // Create condition editors after DOM is ready
-        setTimeout(() => {
-            if (typeof makeConditionEditor !== 'undefined') {
-                this.createConditionEditors();
-            } else {
-                console.error('makeConditionEditor not available - condition editors will not work!');
-            }
-        }, 0);
-    }
+		// Create condition editors after DOM is ready
+		setTimeout(() => {
+			if (typeof makeConditionEditor !== 'undefined') {
+				this.createConditionEditors();
+			} else {
+				console.error('makeConditionEditor not available - condition editors will not work!');
+			}
+		}, 0);
+	}
 
 	createCollapsibleSection(title, startCollapsed = false) {
 		const section = {
@@ -315,7 +319,6 @@ class StratEditor extends BaseEditor {
 		if (!name) return null;
 
 		const result = {
-			...this.initialData, // preserve unknown fields
 			name
 		};
 
@@ -326,15 +329,6 @@ class StratEditor extends BaseEditor {
 			result.link = [fromNode, toNode];
 		}
 
-		// 'requires' field must always be present (minimum [])
-		if (this._conditionEditorsReady && this.requiresEditor) {
-			const requiresValue = this.requiresEditor.getValue();
-			result.requires = this.flattenRequires(requiresValue);
-		} else {
-			result.requires = Array.isArray(this.initialData.requires) ?
-				this.initialData.requires : [];
-		}
-
 		// Optional note field
 		const note = this.noteInput.value.trim();
 		if (note) result.note = note;
@@ -343,7 +337,7 @@ class StratEditor extends BaseEditor {
 		const devNote = this.devNoteInput.value.trim();
 		if (devNote) result.devNote = devNote;
 
-		// Entrance/Exit conditions - only add if not null
+		// Get conditions - DON'T wrap in array
 		if (this._conditionEditorsReady) {
 			if (this.entranceConditionEditor) {
 				const entranceCondition = this.entranceConditionEditor.getValue();
@@ -352,12 +346,26 @@ class StratEditor extends BaseEditor {
 				}
 			}
 
+			if (this.requiresEditor) {
+				const requiresValue = this.requiresEditor.getValue();
+				// If requiresValue is already wrapped, use it; otherwise wrap it
+				if (requiresValue !== null && requiresValue !== undefined) {
+					result.requires = Array.isArray(requiresValue) ? requiresValue : [requiresValue];
+				} else {
+					result.requires = [];
+				}
+			} else {
+				result.requires = [];
+			}
+
 			if (this.exitConditionEditor) {
 				const exitCondition = this.exitConditionEditor.getValue();
 				if (exitCondition && Object.keys(exitCondition).length > 0) {
 					result.exitCondition = exitCondition;
 				}
 			}
+		} else {
+			result.requires = [];
 		}
 
 		// Obstacle arrays
@@ -367,18 +375,26 @@ class StratEditor extends BaseEditor {
 		const resetsObstacles = this.resetsObstaclesList.getSelectedIds().filter(id => id);
 		if (resetsObstacles.length > 0) result.resetsObstacles = resetsObstacles;
 
-		// Boolean fields - only include if true OR if explicitly set in original data
-		if (this.comesThroughToilet.getValue() || this.initialData.comesThroughToilet === true) {
-			result.comesThroughToilet = this.comesThroughToilet.getValue();
+		// Shinecharge properties
+		if (this.startsWithShineCharge.getValue()) {
+			result.startsWithShineCharge = true;
 		}
-		if (this.bypassesDoorShell.getValue() || this.initialData.bypassesDoorShell === true || this.initialData.bypassesDoorShell === 'free') {
-			result.bypassesDoorShell = this.bypassesDoorShell.getValue();
+		if (this.endsWithShineCharge.getValue()) {
+			result.endsWithShineCharge = true;
 		}
-		if (this.wallJumpAvoid.getValue() || this.initialData.wallJumpAvoid === true) {
-			result.wallJumpAvoid = this.wallJumpAvoid.getValue();
+
+		// Boolean fields
+		if (this.comesThroughToilet.getValue()) {
+			result.comesThroughToilet = true;
 		}
-		if (this.flashSuitChecked.getValue() || this.initialData.flashSuitChecked === true) {
-			result.flashSuitChecked = this.flashSuitChecked.getValue();
+		if (this.bypassesDoorShell.getValue()) {
+			result.bypassesDoorShell = true;
+		}
+		if (this.wallJumpAvoid.getValue()) {
+			result.wallJumpAvoid = true;
+		}
+		if (this.flashSuitChecked.getValue()) {
+			result.flashSuitChecked = true;
 		}
 
 		// Item/flag collections
@@ -388,20 +404,19 @@ class StratEditor extends BaseEditor {
 		const setsFlags = this.setsFlagsEditor.getValue().filter(flag => flag && flag.trim());
 		if (setsFlags.length > 0) result.setsFlags = setsFlags;
 
-		const cleaned = cleanObject(result);
+		// Door unlocks
+		const unlocksDoors = this.unlocksDoors.getValue().filter(unlock => unlock !== null);
+		if (unlocksDoors.length > 0) result.unlocksDoors = unlocksDoors;
 
-		// Requires, entranceCondition, and exitCondition must be retained
-		if (!Array.isArray(cleaned.requires)) {
-			cleaned.requires = [];
-		}
-		if (result.entranceCondition != null) {
-			cleaned.entranceCondition = result.entranceCondition;
-		}
-		if (result.exitCondition != null) {
-			cleaned.exitCondition = result.exitCondition;
-		}
+		// Farm cycle drops
+		const farmCycleDrops = this.farmCycleDrops.getValue().filter(drop => drop !== null);
+		if (farmCycleDrops.length > 0) result.farmCycleDrops = farmCycleDrops;
 
-		return cleaned;
+		// Failures
+		const failures = this.failures.getValue().filter(failure => failure !== null);
+		if (failures.length > 0) result.failures = failures;
+
+		return result;
 	}
 
 	populateNodeSelects() {
@@ -501,6 +516,11 @@ class StratEditor extends BaseEditor {
 
 		// Mark as rendered
 		this._conditionEditorsReady = true;
+
+		// Update colors when conditions change
+		setTimeout(() => {
+			this.applyStratColors();
+		}, 100);
 	}
 
 	setupTitleUpdates() {
@@ -543,14 +563,41 @@ class StratEditor extends BaseEditor {
 	createCollectsItemsEditor(initialItems) {
 		const card = document.createElement('div');
 		card.className = 'editor-card unlocks-doors-card';
+		card.style.marginBottom = '8px';
 
 		const header = document.createElement('div');
-		header.className = 'editor-card-header';
-		header.textContent = '📦 Items collected by this Strat';
-		card.appendChild(header);
+		header.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+        `;
+
+		const headerLeft = document.createElement('div');
+		headerLeft.style.display = 'flex';
+		headerLeft.style.alignItems = 'center';
+		headerLeft.style.gap = '8px';
+
+		const toggleIcon = document.createElement('span');
+		toggleIcon.textContent = '▶';
+		toggleIcon.style.fontSize = '12px';
+
+		const headerText = document.createElement('span');
+		headerText.textContent = '📦 Items collected by this Strat';
+
+		headerLeft.appendChild(toggleIcon);
+		headerLeft.appendChild(headerText);
+		header.appendChild(headerLeft);
 
 		const itemsListContainer = document.createElement('div');
-		itemsListContainer.style.marginBottom = '8px';
+		itemsListContainer.style.display = 'none';
+		itemsListContainer.style.padding = '12px';
 
 		const initialNodeIds = (initialItems || []).map(String);
 		this.collectsItemsCheckboxList = createNodeCheckboxList(
@@ -562,8 +609,21 @@ class StratEditor extends BaseEditor {
 
 		itemsListContainer.appendChild(this.collectsItemsCheckboxList);
 
-		const content = createDiv([itemsListContainer]);
-		card.appendChild(content);
+		// Toggle functionality
+		let isExpanded = initialItems && initialItems.length > 0;
+		if (isExpanded) {
+			toggleIcon.textContent = '▼';
+			itemsListContainer.style.display = 'block';
+		}
+
+		header.addEventListener('click', () => {
+			isExpanded = !isExpanded;
+			toggleIcon.textContent = isExpanded ? '▼' : '▶';
+			itemsListContainer.style.display = isExpanded ? 'block' : 'none';
+		});
+
+		card.appendChild(header);
+		card.appendChild(itemsListContainer);
 
 		card.getValue = () => {
 			const selectedNodes = this.collectsItemsCheckboxList?.getSelectedValues() || [];
@@ -576,26 +636,276 @@ class StratEditor extends BaseEditor {
 	createSetsFlagsEditor(initialFlags) {
 		const card = document.createElement('div');
 		card.className = 'editor-card unlocks-doors-card';
+		card.style.marginBottom = '8px';
 
+		// --- Header ---
 		const header = document.createElement('div');
-		header.className = 'editor-card-header';
-		header.textContent = '🚩 Flags set by this Strat';
-		card.appendChild(header);
+		header.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        cursor: pointer;
+        user-select: none;
+        font-weight: 600;
+    `;
 
+		const headerLeft = document.createElement('div');
+		headerLeft.style.display = 'flex';
+		headerLeft.style.alignItems = 'center';
+		headerLeft.style.gap = '8px';
+
+		const toggleIcon = document.createElement('span');
+		toggleIcon.textContent = '▶';
+		toggleIcon.style.fontSize = '12px';
+
+		const headerText = document.createElement('span');
+		headerText.textContent = '🚩 Flags set by this Strat';
+
+		headerLeft.appendChild(toggleIcon);
+		headerLeft.appendChild(headerText);
+		header.appendChild(headerLeft);
+
+		// --- Flags container ---
 		const flagsListContainer = document.createElement('div');
-		flagsListContainer.style.marginBottom = '8px';
+		flagsListContainer.style.padding = '12px';
+		flagsListContainer.style.display = 'none'; // start collapsed
 
-		this.setsFlagsCheckboxList = this.createStyledFlagCheckboxList(initialFlags || []);
+		// --- Build compact checkbox list offscreen first ---
+		const offscreenWrapper = document.createElement('div');
+		offscreenWrapper.style.position = 'absolute';
+		offscreenWrapper.style.visibility = 'hidden';
+		offscreenWrapper.style.pointerEvents = 'none';
+		offscreenWrapper.style.height = 'auto';
+		offscreenWrapper.style.width = '100%';
+
+		// Create the compact checkbox list
+		this.setsFlagsCheckboxList = this.createCompactFlagCheckboxList(initialFlags || []);
+		offscreenWrapper.appendChild(this.setsFlagsCheckboxList);
+		document.body.appendChild(offscreenWrapper);
+
+		// Force layout so the checkbox list can calculate sizes
+		this.setsFlagsCheckboxList.offsetHeight;
+
+		// Move the list to the actual container
+		offscreenWrapper.removeChild(this.setsFlagsCheckboxList);
 		flagsListContainer.appendChild(this.setsFlagsCheckboxList);
+		document.body.removeChild(offscreenWrapper);
 
-		const content = createDiv([flagsListContainer]);
-		card.appendChild(content);
+		// --- Initial expanded state ---
+		let isExpanded = initialFlags && initialFlags.length > 0;
+		if (isExpanded) {
+			toggleIcon.textContent = '▼';
+			flagsListContainer.style.display = 'block';
+		}
 
+		// --- Toggle on header click ---
+		header.addEventListener('click', () => {
+			isExpanded = !isExpanded;
+			toggleIcon.textContent = isExpanded ? '▼' : '▶';
+			flagsListContainer.style.display = isExpanded ? 'block' : 'none';
+		});
+
+		card.appendChild(header);
+		card.appendChild(flagsListContainer);
+
+		// --- Getter ---
 		card.getValue = () => {
 			return this.setsFlagsCheckboxList?.getSelectedValues() || [];
 		};
 
 		return card;
+	}
+
+	createCompactFlagCheckboxList(selectedFlags) {
+		const container = document.createElement('div');
+		container.className = 'flag-checkbox-container';
+
+		const toggleBtn = document.createElement('button');
+		toggleBtn.className = 'node-toggle-btn';
+		toggleBtn.textContent = '▼ Hide Unchecked';
+		toggleBtn.dataset.hidden = 'false';
+		toggleBtn.type = 'button';
+		container.appendChild(toggleBtn);
+
+		const listWrapper = document.createElement('div');
+		listWrapper.className = 'node-list-wrapper';
+		container.appendChild(listWrapper);
+
+		const searchInput = document.createElement('input');
+		searchInput.type = 'text';
+		searchInput.placeholder = 'Filter flags...';
+		searchInput.className = 'node-search-input';
+		listWrapper.appendChild(searchInput);
+
+		const checkboxContainer = document.createElement('div');
+		checkboxContainer.className = 'improved-checkbox-container';
+		checkboxContainer.style.maxHeight = '300px';
+		listWrapper.appendChild(checkboxContainer);
+
+		let checkboxes = [];
+		let eventListenersAdded = false;
+
+		function buildTable() {
+			checkboxContainer.innerHTML = '';
+			checkboxes = [];
+
+			const eventMap = window.EditorGlobals.eventList || {};
+			const categories = Object.entries(eventMap);
+
+			if (!categories.length) {
+				const emptyDiv = document.createElement('div');
+				emptyDiv.textContent = '(no flags available)';
+				emptyDiv.style.cssText = 'font-style: italic; text-align: center; padding: 12px; color: #666;';
+				checkboxContainer.appendChild(emptyDiv);
+				container.getSelectedValues = () => [];
+				return;
+			}
+
+			const selectedSet = new Set(selectedFlags.map(String));
+			const collator = new Intl.Collator(undefined, {
+				numeric: true,
+				sensitivity: 'base'
+			});
+
+			categories.forEach(([category, flags]) => {
+				if (!Array.isArray(flags) || !flags.length) return;
+
+				const categoryDiv = document.createElement('div');
+				categoryDiv.className = 'flag-category';
+				categoryDiv.dataset.category = category;
+
+				const header = document.createElement('div');
+				header.className = 'flag-category-header';
+				header.style.cssText = `
+                    padding: 4px 8px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    color: #7f8c8d;
+                    background: #ecf0f1;
+                    border-left: 3px solid #95a5a6;
+                    margin-top: 8px;
+                `;
+				header.textContent = SelectRenderer.formatCategoryLabel(category);
+				categoryDiv.appendChild(header);
+
+				const flagsWrapper = document.createElement('div');
+				flagsWrapper.style.display = 'none'; // Start collapsed
+				categoryDiv.appendChild(flagsWrapper);
+
+				flags.slice().sort((a, b) => collator.compare(a.name, b.name)).forEach(flag => {
+					const row = document.createElement('div');
+					row.className = 'improved-checkbox-row';
+					row.style.padding = '4px 8px';
+
+					const checkboxCell = document.createElement('div');
+					checkboxCell.className = 'improved-checkbox-cell';
+
+					const checkbox = document.createElement('input');
+					checkbox.type = 'checkbox';
+					checkbox.className = 'improved-checkbox-input';
+					checkbox.checked = selectedSet.has(flag.name);
+					checkbox.dataset.flagValue = flag.name;
+					checkboxCell.appendChild(checkbox);
+
+					const labelCell = document.createElement('div');
+					labelCell.className = 'improved-checkbox-label';
+					labelCell.style.fontSize = '13px';
+					labelCell.textContent = SelectRenderer.stripFlagPrefix(flag.name);
+
+					row.addEventListener('click', (e) => {
+						if (e.target !== checkbox) {
+							checkbox.checked = !checkbox.checked;
+							checkbox.dispatchEvent(new Event('change'));
+						}
+					});
+
+					row.appendChild(checkboxCell);
+					row.appendChild(labelCell);
+
+					// Force initial visible rendering
+					flagsWrapper.style.display = 'block';
+					flagsWrapper.appendChild(row);
+					flagsWrapper.style.display = 'none'; // collapse back if needed
+
+					checkboxes.push(checkbox);
+					checkbox.addEventListener('change', updateVisibility);
+				});
+
+				// Make category header clickable to expand/collapse
+				header.style.cursor = 'pointer';
+				let categoryExpanded = false;
+				header.addEventListener('click', () => {
+					categoryExpanded = !categoryExpanded;
+					flagsWrapper.style.display = categoryExpanded ? 'block' : 'none';
+				});
+
+				checkboxContainer.appendChild(categoryDiv);
+			});
+
+			function updateVisibility() {
+				const hideUnchecked = toggleBtn.dataset.hidden === 'true';
+				const filter = searchInput.value.toLowerCase();
+
+				checkboxContainer.querySelectorAll('.flag-category').forEach(categoryDiv => {
+					const flagsWrapper = categoryDiv.querySelector('div:last-child');
+					const rows = flagsWrapper.querySelectorAll('.improved-checkbox-row');
+					let visibleCount = 0;
+
+					rows.forEach(row => {
+						const checkbox = row.querySelector('input[type="checkbox"]');
+						const text = row.querySelector('.improved-checkbox-label').textContent.toLowerCase();
+
+						const matchesFilter = !filter || text.includes(filter);
+						const matchesChecked = !hideUnchecked || checkbox.checked;
+
+						if (matchesFilter && matchesChecked) {
+							row.style.display = '';
+							visibleCount++;
+						} else {
+							row.style.display = 'none';
+						}
+					});
+
+					// Show the wrapper if any rows are visible
+					flagsWrapper.style.display = visibleCount > 0 ? 'block' : 'none';
+
+					// Optionally hide the category entirely if no visible rows
+					categoryDiv.style.display = visibleCount > 0 ? '' : 'none';
+				});
+			}
+
+			if (!eventListenersAdded) {
+				searchInput.addEventListener('input', updateVisibility);
+
+				toggleBtn.addEventListener('click', (e) => {
+					e.preventDefault();
+					const hidden = toggleBtn.dataset.hidden === 'true';
+					toggleBtn.dataset.hidden = hidden ? 'false' : 'true';
+					toggleBtn.textContent = hidden ? '▼ Hide Unchecked' : '▶ Show All';
+					updateVisibility();
+				});
+
+				eventListenersAdded = true;
+			}
+
+			updateVisibility();
+
+			container.getSelectedValues = () => {
+				return checkboxes.filter(cb => cb.checked).map(cb => cb.dataset.flagValue);
+			};
+		}
+
+		buildTable();
+
+		const unsubscribe = window.EditorGlobals.addListener(() => buildTable());
+		container._destroy = unsubscribe;
+
+		return container;
 	}
 
 	createStyledFlagCheckboxList(selectedFlags) {
@@ -756,596 +1066,602 @@ class StratEditor extends BaseEditor {
 
 		return container;
 	}
-    
-    createUnlocksDoors(initialUnlocks) {
-        const card = document.createElement('div');
-        card.className = 'editor-card';
-        card.style.border = '2px solid #f39c12';
-        card.style.borderRadius = '8px';
-        card.style.padding = '12px';
-        card.style.backgroundColor = '#fef5e7';
 
-        const header = document.createElement('div');
-        header.className = 'editor-card-header';
-        header.textContent = '🔓 Door Unlocks';
-        header.style.fontWeight = '600';
-        header.style.marginBottom = '12px';
-        card.appendChild(header);
+	createUnlocksDoors(initialUnlocks) {
+		const card = document.createElement('div');
+		card.className = 'editor-card';
+		card.style.border = '2px solid #f39c12';
+		card.style.borderRadius = '8px';
+		card.style.padding = '12px';
+		card.style.backgroundColor = '#fef5e7';
 
-        const helpText = document.createElement('div');
-        helpText.style.fontSize = '11px';
-        helpText.style.color = '#666';
-        helpText.style.fontStyle = 'italic';
-        helpText.style.marginBottom = '12px';
-        helpText.textContent = 'Define which doors this strat can unlock and the requirements to do so.';
-        card.appendChild(helpText);
+		const header = document.createElement('div');
+		header.className = 'editor-card-header';
+		header.textContent = '🔓 Door Unlocks';
+		header.style.fontWeight = '600';
+		header.style.marginBottom = '12px';
+		card.appendChild(header);
 
-        const unlocksContainer = document.createElement('div');
-        card.appendChild(unlocksContainer);
+		const helpText = document.createElement('div');
+		helpText.style.fontSize = '11px';
+		helpText.style.color = '#666';
+		helpText.style.fontStyle = 'italic';
+		helpText.style.marginBottom = '12px';
+		helpText.textContent = 'Define which doors this strat can unlock and the requirements to do so.';
+		card.appendChild(helpText);
 
-        const unlockEditors = [];
+		const unlocksContainer = document.createElement('div');
+		card.appendChild(unlocksContainer);
 
-        (initialUnlocks || []).forEach(unlock => {
-            const unlockEditor = this.createUnlockDoorEntry(unlock);
-            unlocksContainer.appendChild(unlockEditor);
-            unlockEditors.push(unlockEditor);
-        });
+		const unlockEditors = [];
 
-        const addBtn = document.createElement('button');
-        addBtn.textContent = '+ Add Door Unlock';
-        addBtn.className = 'add-btn';
-        addBtn.style.fontSize = '12px';
-        addBtn.style.marginTop = '8px';
-        addBtn.onclick = () => {
-            const unlockEditor = this.createUnlockDoorEntry({});
-            unlocksContainer.insertBefore(unlockEditor, addBtn);
-            unlockEditors.push(unlockEditor);
-        };
-        card.appendChild(addBtn);
+		const addUnlockEntry = (unlock = {}) => {
+			const unlockEditor = this.createUnlockDoorEntry(unlock);
+			unlocksContainer.appendChild(unlockEditor);
+			unlockEditors.push(unlockEditor);
+		};
 
-        card.getValue = () => {
-            return unlockEditors
-                .map(editor => editor.getValue ? editor.getValue() : null)
-                .filter(unlock => unlock !== null);
-        };
+		// Add initial unlocks
+		(initialUnlocks || []).forEach(unlock => addUnlockEntry(unlock));
 
-        return card;
-    }
+		const addBtn = document.createElement('button');
+		addBtn.textContent = '+ Add Door Unlock';
+		addBtn.className = 'add-btn';
+		addBtn.style.fontSize = '12px';
+		addBtn.style.marginTop = '8px';
+		addBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			addUnlockEntry({});
+		});
+		card.appendChild(addBtn);
 
-    createUnlockDoorEntry(initialData) {
-        const entry = document.createElement('div');
-        entry.className = 'unlock-door-entry';
-        entry.style.border = '1px solid #e0e0e0';
-        entry.style.borderRadius = '6px';
-        entry.style.padding = '10px';
-        entry.style.marginBottom = '8px';
-        entry.style.backgroundColor = 'white';
+		card.getValue = () => {
+			return unlockEditors
+				.map(editor => editor.getValue ? editor.getValue() : null)
+				.filter(unlock => unlock !== null);
+		};
 
-        // Header with remove button
-        const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.marginBottom = '8px';
+		return card;
+	}
 
-        const title = document.createElement('strong');
-        title.textContent = 'Door Unlock Entry';
-        title.style.fontSize = '13px';
+	createUnlockDoorEntry(initialData) {
+		const entry = document.createElement('div');
+		entry.className = 'unlock-door-entry';
+		entry.style.border = '1px solid #e0e0e0';
+		entry.style.borderRadius = '6px';
+		entry.style.padding = '10px';
+		entry.style.marginBottom = '8px';
+		entry.style.backgroundColor = 'white';
 
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = '×';
-        removeBtn.className = 'remove-btn';
-        removeBtn.style.fontSize = '12px';
-        removeBtn.onclick = () => entry.remove();
+		// Header with remove button
+		const header = document.createElement('div');
+		header.style.display = 'flex';
+		header.style.justifyContent = 'space-between';
+		header.style.alignItems = 'center';
+		header.style.marginBottom = '8px';
 
-        header.appendChild(title);
-        header.appendChild(removeBtn);
-        entry.appendChild(header);
+		const title = document.createElement('strong');
+		title.textContent = 'Door Unlock Entry';
+		title.style.fontSize = '13px';
 
-        // Node ID (optional - defaults to destination node)
-        const nodeIdLabel = document.createElement('label');
-        nodeIdLabel.textContent = 'Door Node ID (optional):';
-        nodeIdLabel.style.display = 'block';
-        nodeIdLabel.style.marginBottom = '4px';
-        nodeIdLabel.style.fontWeight = '600';
-        nodeIdLabel.style.fontSize = '12px';
+		const removeBtn = document.createElement('button');
+		removeBtn.textContent = '×';
+		removeBtn.className = 'remove-btn';
+		removeBtn.style.fontSize = '12px';
+		removeBtn.onclick = () => entry.remove();
 
-        const nodeIdInput = document.createElement('input');
-        nodeIdInput.type = 'number';
-        nodeIdInput.placeholder = '(defaults to destination node)';
-        nodeIdInput.style.width = '100%';
-        nodeIdInput.style.marginBottom = '8px';
-        if (initialData.nodeId !== undefined) {
-            nodeIdInput.value = initialData.nodeId;
-        }
+		header.appendChild(title);
+		header.appendChild(removeBtn);
+		entry.appendChild(header);
 
-        entry.appendChild(nodeIdLabel);
-        entry.appendChild(nodeIdInput);
+		// Node ID (optional - defaults to destination node)
+		const nodeIdLabel = document.createElement('label');
+		nodeIdLabel.textContent = 'Door Node ID (optional):';
+		nodeIdLabel.style.display = 'block';
+		nodeIdLabel.style.marginBottom = '4px';
+		nodeIdLabel.style.fontWeight = '600';
+		nodeIdLabel.style.fontSize = '12px';
 
-        // Door types (multi-select checkboxes)
-        const typesLabel = document.createElement('label');
-        typesLabel.textContent = 'Door Types:';
-        typesLabel.style.display = 'block';
-        typesLabel.style.marginBottom = '4px';
-        typesLabel.style.fontWeight = '600';
-        typesLabel.style.fontSize = '12px';
+		const nodeIdInput = document.createElement('input');
+		nodeIdInput.type = 'number';
+		nodeIdInput.placeholder = '(defaults to destination node)';
+		nodeIdInput.style.width = '100%';
+		nodeIdInput.style.marginBottom = '8px';
+		if (initialData.nodeId !== undefined) {
+			nodeIdInput.value = initialData.nodeId;
+		}
 
-        const typesContainer = document.createElement('div');
-        typesContainer.style.display = 'flex';
-        typesContainer.style.flexWrap = 'wrap';
-        typesContainer.style.gap = '8px';
-        typesContainer.style.marginBottom = '8px';
+		entry.appendChild(nodeIdLabel);
+		entry.appendChild(nodeIdInput);
 
-        const doorTypes = ['missiles', 'super', 'powerbomb', 'gray', 'ammo'];
-        const typeCheckboxes = [];
+		// Door types (multi-select checkboxes)
+		const typesLabel = document.createElement('label');
+		typesLabel.textContent = 'Door Types:';
+		typesLabel.style.display = 'block';
+		typesLabel.style.marginBottom = '4px';
+		typesLabel.style.fontWeight = '600';
+		typesLabel.style.fontSize = '12px';
 
-        doorTypes.forEach(type => {
-            const label = document.createElement('label');
-            label.style.display = 'flex';
-            label.style.alignItems = 'center';
-            label.style.gap = '4px';
-            label.style.cursor = 'pointer';
+		const typesContainer = document.createElement('div');
+		typesContainer.style.display = 'flex';
+		typesContainer.style.flexWrap = 'wrap';
+		typesContainer.style.gap = '8px';
+		typesContainer.style.marginBottom = '8px';
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = type;
-            checkbox.checked = (initialData.types || []).includes(type);
+		const doorTypes = ['missiles', 'super', 'powerbomb', 'gray', 'ammo'];
+		const typeCheckboxes = [];
 
-            typeCheckboxes.push(checkbox);
+		doorTypes.forEach(type => {
+			const label = document.createElement('label');
+			label.style.display = 'flex';
+			label.style.alignItems = 'center';
+			label.style.gap = '4px';
+			label.style.cursor = 'pointer';
 
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(type));
-            typesContainer.appendChild(label);
-        });
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			checkbox.value = type;
+			checkbox.checked = (initialData.types || []).includes(type);
 
-        entry.appendChild(typesLabel);
-        entry.appendChild(typesContainer);
+			typeCheckboxes.push(checkbox);
 
-        // Requirements
-        const requiresLabel = document.createElement('label');
-        requiresLabel.textContent = 'Requirements:';
-        requiresLabel.style.display = 'block';
-        requiresLabel.style.marginBottom = '4px';
-        requiresLabel.style.fontWeight = '600';
-        requiresLabel.style.fontSize = '12px';
+			label.appendChild(checkbox);
+			label.appendChild(document.createTextNode(type));
+			typesContainer.appendChild(label);
+		});
 
-        const requiresContainer = document.createElement('div');
-        requiresContainer.style.marginBottom = '8px';
+		entry.appendChild(typesLabel);
+		entry.appendChild(typesContainer);
 
-        let rootCondition = null;
-        if (Array.isArray(initialData.requires) && initialData.requires.length > 0) {
-            const firstElement = initialData.requires[0];
-            if (firstElement && typeof firstElement === 'object' &&
-                (firstElement.and || firstElement.or || firstElement.not)) {
-                rootCondition = firstElement;
-            } else {
-                rootCondition = firstElement;
-            }
-        }
+		// Requirements
+		const requiresLabel = document.createElement('label');
+		requiresLabel.textContent = 'Requirements:';
+		requiresLabel.style.display = 'block';
+		requiresLabel.style.marginBottom = '4px';
+		requiresLabel.style.fontWeight = '600';
+		requiresLabel.style.fontSize = '12px';
 
-        const requiresEditor = makeConditionEditor(requiresContainer, rootCondition, 0, true);
+		const requiresContainer = document.createElement('div');
+		requiresContainer.style.marginBottom = '8px';
 
-        entry.appendChild(requiresLabel);
-        entry.appendChild(requiresContainer);
+		let rootCondition = null;
+		if (Array.isArray(initialData.requires) && initialData.requires.length > 0) {
+			const firstElement = initialData.requires[0];
+			if (firstElement && typeof firstElement === 'object' &&
+				(firstElement.and || firstElement.or || firstElement.not)) {
+				rootCondition = firstElement;
+			} else {
+				rootCondition = firstElement;
+			}
+		}
 
-        // Use implicit requires checkbox
-        const useImplicitLabel = document.createElement('label');
-        useImplicitLabel.style.display = 'flex';
-        useImplicitLabel.style.alignItems = 'center';
-        useImplicitLabel.style.gap = '8px';
-        useImplicitLabel.style.cursor = 'pointer';
-        useImplicitLabel.style.fontSize = '12px';
+		const requiresEditor = makeConditionEditor(requiresContainer, rootCondition, 0, true);
 
-        const useImplicitCheckbox = document.createElement('input');
-        useImplicitCheckbox.type = 'checkbox';
-        useImplicitCheckbox.checked = initialData.useImplicitRequires !== false; // default true
+		entry.appendChild(requiresLabel);
+		entry.appendChild(requiresContainer);
 
-        useImplicitLabel.appendChild(useImplicitCheckbox);
-        useImplicitLabel.appendChild(document.createTextNode('Use implicit requirements (standard ammo costs)'));
-        entry.appendChild(useImplicitLabel);
+		// Use implicit requires checkbox
+		const useImplicitLabel = document.createElement('label');
+		useImplicitLabel.style.display = 'flex';
+		useImplicitLabel.style.alignItems = 'center';
+		useImplicitLabel.style.gap = '8px';
+		useImplicitLabel.style.cursor = 'pointer';
+		useImplicitLabel.style.fontSize = '12px';
 
-        // Note
-        const noteLabel = document.createElement('label');
-        noteLabel.textContent = 'Note (optional):';
-        noteLabel.style.display = 'block';
-        noteLabel.style.marginTop = '8px';
-        noteLabel.style.marginBottom = '4px';
-        noteLabel.style.fontWeight = '600';
-        noteLabel.style.fontSize = '12px';
+		const useImplicitCheckbox = document.createElement('input');
+		useImplicitCheckbox.type = 'checkbox';
+		useImplicitCheckbox.checked = initialData.useImplicitRequires !== false; // default true
 
-        const noteInput = document.createElement('textarea');
-        noteInput.placeholder = 'Additional notes...';
-        noteInput.value = initialData.note || '';
-        noteInput.style.width = '100%';
-        noteInput.style.minHeight = '40px';
-        noteInput.style.resize = 'vertical';
+		useImplicitLabel.appendChild(useImplicitCheckbox);
+		useImplicitLabel.appendChild(document.createTextNode('Use implicit requirements (standard ammo costs)'));
+		entry.appendChild(useImplicitLabel);
 
-        entry.appendChild(noteLabel);
-        entry.appendChild(noteInput);
+		// Note
+		const noteLabel = document.createElement('label');
+		noteLabel.textContent = 'Note (optional):';
+		noteLabel.style.display = 'block';
+		noteLabel.style.marginTop = '8px';
+		noteLabel.style.marginBottom = '4px';
+		noteLabel.style.fontWeight = '600';
+		noteLabel.style.fontSize = '12px';
 
-        entry.getValue = () => {
-            const types = typeCheckboxes
-                .filter(cb => cb.checked)
-                .map(cb => cb.value);
+		const noteInput = document.createElement('textarea');
+		noteInput.placeholder = 'Additional notes...';
+		noteInput.value = initialData.note || '';
+		noteInput.style.width = '100%';
+		noteInput.style.minHeight = '40px';
+		noteInput.style.resize = 'vertical';
 
-            if (types.length === 0) return null;
+		entry.appendChild(noteLabel);
+		entry.appendChild(noteInput);
 
-            const result = {
-                types: types
-            };
+		entry.getValue = () => {
+			const types = typeCheckboxes
+				.filter(cb => cb.checked)
+				.map(cb => cb.value);
 
-            const nodeId = parseInt(nodeIdInput.value);
-            if (!isNaN(nodeId)) {
-                result.nodeId = nodeId;
-            }
+			if (types.length === 0) return null;
 
-            const requiresValue = requiresEditor.getValue();
-            if (requiresValue !== null) {
-                result.requires = Array.isArray(requiresValue) ? requiresValue : [requiresValue];
-            }
+			const result = {
+				types: types
+			};
 
-            if (!useImplicitCheckbox.checked) {
-                result.useImplicitRequires = false;
-            }
+			const nodeId = parseInt(nodeIdInput.value);
+			if (!isNaN(nodeId)) {
+				result.nodeId = nodeId;
+			}
 
-            const note = noteInput.value.trim();
-            if (note) result.note = note;
+			const requiresValue = requiresEditor.getValue();
+			if (requiresValue !== null) {
+				result.requires = Array.isArray(requiresValue) ? requiresValue : [requiresValue];
+			}
 
-            return result;
-        };
+			if (!useImplicitCheckbox.checked) {
+				result.useImplicitRequires = false;
+			}
 
-        return entry;
-    }
+			const note = noteInput.value.trim();
+			if (note) result.note = note;
 
-    createFarmCycleDrops(initialDrops) {
-        const card = document.createElement('div');
-        card.className = 'editor-card';
-        card.style.border = '1px solid #dee2e6';
-        card.style.borderRadius = '8px';
-        card.style.padding = '12px';
-        card.style.backgroundColor = '#f8f9fa';
+			return result;
+		};
 
-        const header = document.createElement('div');
-        header.className = 'editor-card-header';
-        header.textContent = '🎯 Enemy Farming Drops';
-        header.style.fontWeight = '600';
-        header.style.marginBottom = '12px';
-        card.appendChild(header);
+		return entry;
+	}
 
-        const helpText = document.createElement('div');
-        helpText.style.fontSize = '11px';
-        helpText.style.color = '#666';
-        helpText.style.fontStyle = 'italic';
-        helpText.style.marginBottom = '12px';
-        helpText.textContent = 'Define enemy drops that can be collected by executing this strat (for farming routes).';
-        card.appendChild(helpText);
+	createFarmCycleDrops(initialDrops) {
+		const card = document.createElement('div');
+		card.className = 'editor-card';
+		card.style.border = '1px solid #dee2e6';
+		card.style.borderRadius = '8px';
+		card.style.padding = '12px';
+		card.style.backgroundColor = '#f8f9fa';
 
-        const dropsContainer = document.createElement('div');
-        card.appendChild(dropsContainer);
+		const header = document.createElement('div');
+		header.className = 'editor-card-header';
+		header.textContent = '🎯 Enemy Farming Drops';
+		header.style.fontWeight = '600';
+		header.style.marginBottom = '12px';
+		card.appendChild(header);
 
-        const dropEditors = [];
+		const helpText = document.createElement('div');
+		helpText.style.fontSize = '11px';
+		helpText.style.color = '#666';
+		helpText.style.fontStyle = 'italic';
+		helpText.style.marginBottom = '12px';
+		helpText.textContent = 'Define enemy drops that can be collected by executing this strat (for farming routes).';
+		card.appendChild(helpText);
 
-        (initialDrops || []).forEach(drop => {
-            const dropEditor = this.createFarmDropEntry(drop);
-            dropsContainer.appendChild(dropEditor);
-            dropEditors.push(dropEditor);
-        });
+		const dropsContainer = document.createElement('div');
+		card.appendChild(dropsContainer);
 
-        const addBtn = document.createElement('button');
-        addBtn.textContent = '+ Add Farm Drop';
-        addBtn.className = 'add-btn';
-        addBtn.style.fontSize = '12px';
-        addBtn.style.marginTop = '8px';
-        addBtn.onclick = () => {
-            const dropEditor = this.createFarmDropEntry({});
-            dropsContainer.insertBefore(dropEditor, addBtn);
-            dropEditors.push(dropEditor);
-        };
-        card.appendChild(addBtn);
+		const dropEditors = [];
 
-        card.getValue = () => {
-            return dropEditors
-                .map(editor => editor.getValue ? editor.getValue() : null)
-                .filter(drop => drop !== null);
-        };
+		const addDropEntry = (drop = {}) => {
+			const dropEditor = this.createFarmDropEntry(drop);
+			dropsContainer.appendChild(dropEditor);
+			dropEditors.push(dropEditor);
+		};
 
-        return card;
-    }
+		// Add initial drops
+		(initialDrops || []).forEach(drop => addDropEntry(drop));
 
-    createFarmDropEntry(initialData) {
-        const entry = document.createElement('div');
-        entry.style.display = 'flex';
-        entry.style.gap = '8px';
-        entry.style.marginBottom = '8px';
-        entry.style.alignItems = 'center';
+		const addBtn = document.createElement('button');
+		addBtn.textContent = '+ Add Farm Drop';
+		addBtn.className = 'add-btn';
+		addBtn.style.fontSize = '12px';
+		addBtn.style.marginTop = '8px';
+		addBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			addDropEntry({});
+		});
+		card.appendChild(addBtn);
 
-        // Enemy selector
-        const enemySelect = document.createElement('select');
-        enemySelect.style.flex = '2';
+		card.getValue = () => {
+			return dropEditors
+				.map(editor => editor.getValue ? editor.getValue() : null)
+				.filter(drop => drop !== null);
+		};
 
-        const emptyOption = document.createElement('option');
-        emptyOption.value = '';
-        emptyOption.textContent = '(select enemy)';
-        enemySelect.appendChild(emptyOption);
+		return card;
+	}
 
-        // Populate with enemies from global data
-        const enemyList = window.EditorGlobals.enemyList || {};
-        Object.entries(enemyList).forEach(([enemyName, enemyData]) => {
+	createFarmDropEntry(initialData) {
+		const entry = document.createElement('div');
+		entry.style.display = 'flex';
+		entry.style.gap = '8px';
+		entry.style.marginBottom = '8px';
+		entry.style.alignItems = 'center';
+
+		// Enemy selector
+		const enemySelect = document.createElement('select');
+		enemySelect.style.flex = '2';
+
+		const emptyOption = document.createElement('option');
+		emptyOption.value = '';
+		emptyOption.textContent = '(select enemy)';
+		enemySelect.appendChild(emptyOption);
+
+		// Populate with enemies from global data
+		const enemyList = window.EditorGlobals.enemyList || [];
+        enemyList.forEach(enemy => {
             const option = document.createElement('option');
-            option.value = enemyName;
-            option.textContent = enemyName;
+            option.value = enemy.name;
+            option.textContent = enemy.name;
             enemySelect.appendChild(option);
         });
 
-        if (initialData.enemy) {
-            enemySelect.value = initialData.enemy;
-        }
+		if (initialData.enemy) {
+			enemySelect.value = initialData.enemy;
+		}
 
-        // Count input
-        const countInput = document.createElement('input');
-        countInput.type = 'number';
-        countInput.placeholder = 'Count';
-        countInput.min = '1';
-        countInput.style.flex = '1';
-        countInput.style.maxWidth = '100px';
-        if (initialData.count !== undefined) {
-            countInput.value = initialData.count;
-        }
+		// Count input
+		const countInput = document.createElement('input');
+		countInput.type = 'number';
+		countInput.placeholder = 'Count';
+		countInput.min = '1';
+		countInput.style.flex = '1';
+		countInput.style.maxWidth = '100px';
+		if (initialData.count !== undefined) {
+			countInput.value = initialData.count;
+		}
 
-        // Remove button
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = '×';
-        removeBtn.className = 'remove-btn';
-        removeBtn.style.fontSize = '12px';
-        removeBtn.onclick = () => entry.remove();
+		// Remove button
+		const removeBtn = document.createElement('button');
+		removeBtn.textContent = '×';
+		removeBtn.className = 'remove-btn';
+		removeBtn.style.fontSize = '12px';
+		removeBtn.onclick = () => entry.remove();
 
-        entry.appendChild(enemySelect);
-        entry.appendChild(countInput);
-        entry.appendChild(removeBtn);
+		entry.appendChild(enemySelect);
+		entry.appendChild(countInput);
+		entry.appendChild(removeBtn);
 
-        entry.getValue = () => {
-            const enemy = enemySelect.value.trim();
-            const count = parseInt(countInput.value);
+		entry.getValue = () => {
+			const enemy = enemySelect.value.trim();
+			const count = parseInt(countInput.value);
 
-            if (!enemy || isNaN(count) || count < 1) return null;
+			if (!enemy || isNaN(count) || count < 1) return null;
 
-            return {
-                enemy: enemy,
-                count: count
-            };
-        };
+			return {
+				enemy: enemy,
+				count: count
+			};
+		};
 
-        return entry;
-    }
+		return entry;
+	}
 
-    createFailures(initialFailures) {
-        const card = document.createElement('div');
-        card.className = 'editor-card';
-        card.style.border = '2px solid #e74c3c';
-        card.style.borderRadius = '8px';
-        card.style.padding = '12px';
-        card.style.backgroundColor = '#fadbd8';
+	createFailures(initialFailures) {
+		const card = document.createElement('div');
+		card.className = 'editor-card';
+		card.style.border = '2px solid #e74c3c';
+		card.style.borderRadius = '8px';
+		card.style.padding = '12px';
+		card.style.backgroundColor = '#fadbd8';
 
-        const header = document.createElement('div');
-        header.className = 'editor-card-header';
-        header.textContent = '⚠️ Failure Conditions';
-        header.style.fontWeight = '600';
-        header.style.marginBottom = '12px';
-        card.appendChild(header);
+		const header = document.createElement('div');
+		header.className = 'editor-card-header';
+		header.textContent = '⚠️ Failure Conditions';
+		header.style.fontWeight = '600';
+		header.style.marginBottom = '12px';
+		card.appendChild(header);
 
-        const helpText = document.createElement('div');
-        helpText.style.fontSize = '11px';
-        helpText.style.color = '#666';
-        helpText.style.fontStyle = 'italic';
-        helpText.style.marginBottom = '12px';
-        helpText.textContent = 'Define ways this strat can fail and the consequences.';
-        card.appendChild(helpText);
+		const helpText = document.createElement('div');
+		helpText.style.fontSize = '11px';
+		helpText.style.color = '#666';
+		helpText.style.fontStyle = 'italic';
+		helpText.style.marginBottom = '12px';
+		helpText.textContent = 'Define ways this strat can fail and the consequences.';
+		card.appendChild(helpText);
 
-        const failuresContainer = document.createElement('div');
-        card.appendChild(failuresContainer);
+		const failuresContainer = document.createElement('div');
+		card.appendChild(failuresContainer);
 
-        const failureEditors = [];
+		const failureEditors = [];
 
-        (initialFailures || []).forEach(failure => {
-            const failureEditor = this.createFailureEntry(failure);
-            failuresContainer.appendChild(failureEditor);
-            failureEditors.push(failureEditor);
-        });
+		const addFailureEntry = (failure = {}) => {
+			const failureEditor = this.createFailureEntry(failure);
+			failuresContainer.appendChild(failureEditor);
+			failureEditors.push(failureEditor);
+		};
 
-        const addBtn = document.createElement('button');
-        addBtn.textContent = '+ Add Failure Condition';
-        addBtn.className = 'add-btn';
-        addBtn.style.fontSize = '12px';
-        addBtn.style.marginTop = '8px';
-        addBtn.onclick = () => {
-            const failureEditor = this.createFailureEntry({});
-            failuresContainer.insertBefore(failureEditor, addBtn);
-            failureEditors.push(failureEditor);
-        };
-        card.appendChild(addBtn);
+		// Add initial failures
+		(initialFailures || []).forEach(failure => addFailureEntry(failure));
 
-        card.getValue = () => {
-            return failureEditors
-                .map(editor => editor.getValue ? editor.getValue() : null)
-                .filter(failure => failure !== null);
-        };
+		const addBtn = document.createElement('button');
+		addBtn.textContent = '+ Add Failure Condition';
+		addBtn.className = 'add-btn';
+		addBtn.style.fontSize = '12px';
+		addBtn.style.marginTop = '8px';
+		addBtn.addEventListener('click', (e) => {
+			e.preventDefault();
+			addFailureEntry({});
+		});
+		card.appendChild(addBtn);
 
-        return card;
-    }
+		card.getValue = () => {
+			return failureEditors
+				.map(editor => editor.getValue ? editor.getValue() : null)
+				.filter(failure => failure !== null);
+		};
 
-    createFailureEntry(initialData) {
-        const entry = document.createElement('div');
-        entry.className = 'failure-entry';
-        entry.style.border = '1px solid #e0e0e0';
-        entry.style.borderRadius = '6px';
-        entry.style.padding = '10px';
-        entry.style.marginBottom = '8px';
-        entry.style.backgroundColor = 'white';
+		return card;
+	}
 
-        // Header with remove button
-        const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.marginBottom = '8px';
+	createFailureEntry(initialData) {
+		const entry = document.createElement('div');
+		entry.className = 'failure-entry';
+		entry.style.border = '1px solid #e0e0e0';
+		entry.style.borderRadius = '6px';
+		entry.style.padding = '10px';
+		entry.style.marginBottom = '8px';
+		entry.style.backgroundColor = 'white';
 
-        const title = document.createElement('strong');
-        title.textContent = 'Failure';
-        title.style.fontSize = '13px';
+		// Header with remove button
+		const header = document.createElement('div');
+		header.style.display = 'flex';
+		header.style.justifyContent = 'space-between';
+		header.style.alignItems = 'center';
+		header.style.marginBottom = '8px';
 
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = '×';
-        removeBtn.className = 'remove-btn';
-        removeBtn.style.fontSize = '12px';
-        removeBtn.onclick = () => entry.remove();
+		const title = document.createElement('strong');
+		title.textContent = 'Failure';
+		title.style.fontSize = '13px';
 
-        header.appendChild(title);
-        header.appendChild(removeBtn);
-        entry.appendChild(header);
+		const removeBtn = document.createElement('button');
+		removeBtn.textContent = '×';
+		removeBtn.className = 'remove-btn';
+		removeBtn.style.fontSize = '12px';
+		removeBtn.onclick = () => entry.remove();
 
-        // Failure name
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.placeholder = 'Failure name (e.g., "Fall into pit", "Miss jump")';
-        nameInput.value = initialData.name || '';
-        nameInput.style.width = '100%';
-        nameInput.style.marginBottom = '8px';
-        entry.appendChild(nameInput);
+		header.appendChild(title);
+		header.appendChild(removeBtn);
+		entry.appendChild(header);
 
-        // Outcome type selector
-        const outcomeType = document.createElement('div');
-        outcomeType.style.marginBottom = '8px';
+		// Failure name
+		const nameInput = document.createElement('input');
+		nameInput.type = 'text';
+		nameInput.placeholder = 'Failure name (e.g., "Fall into pit", "Miss jump")';
+		nameInput.value = initialData.name || '';
+		nameInput.style.width = '100%';
+		nameInput.style.marginBottom = '8px';
+		entry.appendChild(nameInput);
 
-        const softlockLabel = document.createElement('label');
-        softlockLabel.style.display = 'flex';
-        softlockLabel.style.alignItems = 'center';
-        softlockLabel.style.gap = '8px';
-        softlockLabel.style.marginBottom = '8px';
-        softlockLabel.style.cursor = 'pointer';
+		// Outcome type selector
+		const outcomeType = document.createElement('div');
+		outcomeType.style.marginBottom = '8px';
 
-        const softlockCheckbox = document.createElement('input');
-        softlockCheckbox.type = 'checkbox';
-        softlockCheckbox.checked = initialData.softlock || false;
+		const softlockLabel = document.createElement('label');
+		softlockLabel.style.display = 'flex';
+		softlockLabel.style.alignItems = 'center';
+		softlockLabel.style.gap = '8px';
+		softlockLabel.style.marginBottom = '8px';
+		softlockLabel.style.cursor = 'pointer';
 
-        softlockLabel.appendChild(softlockCheckbox);
-        softlockLabel.appendChild(document.createTextNode('Results in softlock (cannot continue)'));
-        outcomeType.appendChild(softlockLabel);
+		const softlockCheckbox = document.createElement('input');
+		softlockCheckbox.type = 'checkbox';
+		softlockCheckbox.checked = initialData.softlock || false;
 
-        // Leads to node (only if not softlock)
-        const leadsLabel = document.createElement('label');
-        leadsLabel.textContent = 'Leads to Node (if not softlock):';
-        leadsLabel.style.display = 'block';
-        leadsLabel.style.marginBottom = '4px';
-        leadsLabel.style.fontWeight = '600';
-        leadsLabel.style.fontSize = '12px';
+		softlockLabel.appendChild(softlockCheckbox);
+		softlockLabel.appendChild(document.createTextNode('Results in softlock (cannot continue)'));
+		outcomeType.appendChild(softlockLabel);
 
-        const leadsSelect = document.createElement('select');
-        leadsSelect.style.width = '100%';
-        leadsSelect.style.marginBottom = '8px';
-        leadsSelect.disabled = softlockCheckbox.checked;
+		// Leads to node (only if not softlock)
+		const leadsLabel = document.createElement('label');
+		leadsLabel.textContent = 'Leads to Node (if not softlock):';
+		leadsLabel.style.display = 'block';
+		leadsLabel.style.marginBottom = '4px';
+		leadsLabel.style.fontWeight = '600';
+		leadsLabel.style.fontSize = '12px';
 
-        const emptyOption = document.createElement('option');
-        emptyOption.value = '';
-        emptyOption.textContent = '(select node or leave empty for softlock)';
-        leadsSelect.appendChild(emptyOption);
+		const leadsSelect = document.createElement('select');
+		leadsSelect.style.width = '100%';
+		leadsSelect.style.marginBottom = '8px';
+		leadsSelect.disabled = softlockCheckbox.checked;
 
-        window.EditorGlobals.validRoomNodes.forEach(node => {
-            const option = document.createElement('option');
-            option.value = node.id;
-            option.textContent = `${node.id}: ${node.name}`;
-            leadsSelect.appendChild(option);
-        });
+		const emptyOption = document.createElement('option');
+		emptyOption.value = '';
+		emptyOption.textContent = '(select node or leave empty for softlock)';
+		leadsSelect.appendChild(emptyOption);
 
-        if (initialData.leadsToNode !== undefined) {
-            leadsSelect.value = initialData.leadsToNode;
-        }
+		window.EditorGlobals.validRoomNodes.forEach(node => {
+			const option = document.createElement('option');
+			option.value = node.id;
+			option.textContent = `${node.id}: ${node.name}`;
+			leadsSelect.appendChild(option);
+		});
 
-        softlockCheckbox.addEventListener('change', () => {
-            leadsSelect.disabled = softlockCheckbox.checked;
-            if (softlockCheckbox.checked) {
-                leadsSelect.value = '';
-            }
-        });
+		if (initialData.leadsToNode !== undefined) {
+			leadsSelect.value = initialData.leadsToNode;
+		}
 
-        outcomeType.appendChild(leadsLabel);
-        outcomeType.appendChild(leadsSelect);
-        entry.appendChild(outcomeType);
+		softlockCheckbox.addEventListener('change', () => {
+			leadsSelect.disabled = softlockCheckbox.checked;
+			if (softlockCheckbox.checked) {
+				leadsSelect.value = '';
+			}
+		});
 
-        // Cost (resource requirements)
-        const costLabel = document.createElement('label');
-        costLabel.textContent = 'Failure Cost (resource damage):';
-        costLabel.style.display = 'block';
-        costLabel.style.marginBottom = '4px';
-        costLabel.style.fontWeight = '600';
-        costLabel.style.fontSize = '12px';
+		outcomeType.appendChild(leadsLabel);
+		outcomeType.appendChild(leadsSelect);
+		entry.appendChild(outcomeType);
 
-        const costContainer = document.createElement('div');
-        costContainer.style.marginBottom = '8px';
+		// Cost (resource requirements)
+		const costLabel = document.createElement('label');
+		costLabel.textContent = 'Failure Cost (resource damage):';
+		costLabel.style.display = 'block';
+		costLabel.style.marginBottom = '4px';
+		costLabel.style.fontWeight = '600';
+		costLabel.style.fontSize = '12px';
 
-        let rootCondition = null;
-        if (Array.isArray(initialData.cost) && initialData.cost.length > 0) {
-            const firstElement = initialData.cost[0];
-            if (firstElement && typeof firstElement === 'object' &&
-                (firstElement.and || firstElement.or || firstElement.not)) {
-                rootCondition = firstElement;
-            } else {
-                rootCondition = firstElement;
-            }
-        }
+		const costContainer = document.createElement('div');
+		costContainer.style.marginBottom = '8px';
 
-        const costEditor = makeConditionEditor(costContainer, rootCondition, 0, true);
+		let rootCondition = null;
+		if (Array.isArray(initialData.cost) && initialData.cost.length > 0) {
+			const firstElement = initialData.cost[0];
+			if (firstElement && typeof firstElement === 'object' &&
+				(firstElement.and || firstElement.or || firstElement.not)) {
+				rootCondition = firstElement;
+			} else {
+				rootCondition = firstElement;
+			}
+		}
 
-        entry.appendChild(costLabel);
-        entry.appendChild(costContainer);
+		const costEditor = makeConditionEditor(costContainer, rootCondition, 0, true);
 
-        // Note
-        const noteLabel = document.createElement('label');
-        noteLabel.textContent = 'Note (optional):';
-        noteLabel.style.display = 'block';
-        noteLabel.style.marginBottom = '4px';
-        noteLabel.style.fontWeight = '600';
-        noteLabel.style.fontSize = '12px';
+		entry.appendChild(costLabel);
+		entry.appendChild(costContainer);
 
-        const noteInput = document.createElement('textarea');
-        noteInput.placeholder = 'Additional notes about this failure...';
-        noteInput.value = initialData.note || '';
-        noteInput.style.width = '100%';
-        noteInput.style.minHeight = '40px';
-        noteInput.style.resize = 'vertical';
+		// Note
+		const noteLabel = document.createElement('label');
+		noteLabel.textContent = 'Note (optional):';
+		noteLabel.style.display = 'block';
+		noteLabel.style.marginBottom = '4px';
+		noteLabel.style.fontWeight = '600';
+		noteLabel.style.fontSize = '12px';
 
-        entry.appendChild(noteLabel);
-        entry.appendChild(noteInput);
+		const noteInput = document.createElement('textarea');
+		noteInput.placeholder = 'Additional notes about this failure...';
+		noteInput.value = initialData.note || '';
+		noteInput.style.width = '100%';
+		noteInput.style.minHeight = '40px';
+		noteInput.style.resize = 'vertical';
 
-        entry.getValue = () => {
-            const name = nameInput.value.trim();
-            if (!name) return null;
+		entry.appendChild(noteLabel);
+		entry.appendChild(noteInput);
 
-            const result = {
-                name: name
-            };
+		entry.getValue = () => {
+			const name = nameInput.value.trim();
+			if (!name) return null;
 
-            if (softlockCheckbox.checked) {
-                result.softlock = true;
-            } else {
-                const leadsTo = parseInt(leadsSelect.value);
-                if (!isNaN(leadsTo)) {
-                    result.leadsToNode = leadsTo;
-                }
-            }
+			const result = {
+				name: name
+			};
 
-            const costValue = costEditor.getValue();
-            if (costValue !== null) {
-                result.cost = Array.isArray(costValue) ? costValue : [costValue];
-            }
+			if (softlockCheckbox.checked) {
+				result.softlock = true;
+			} else {
+				const leadsTo = parseInt(leadsSelect.value);
+				if (!isNaN(leadsTo)) {
+					result.leadsToNode = leadsTo;
+				}
+			}
 
-            const note = noteInput.value.trim();
-            if (note) result.note = note;
+			const costValue = costEditor.getValue();
+			if (costValue !== null) {
+				result.cost = Array.isArray(costValue) ? costValue : [costValue];
+			}
 
-            return result;
-        };
+			const note = noteInput.value.trim();
+			if (note) result.note = note;
 
-        return entry;
-    }
+			return result;
+		};
+
+		return entry;
+	}
 
 	refreshCollectsItemsEditor() {
 		this.refreshNodeSelects();
@@ -1376,152 +1692,152 @@ class StratEditor extends BaseEditor {
 	}
 
 	getValue() {
-        const name = this.nameInput.value.trim();
-        if (!name) return null;
+		const name = this.nameInput.value.trim();
+		if (!name) return null;
 
-        const result = {
-            ...this.initialData, // preserve unknown fields
-            name
-        };
-        
-        // Add link if both nodes are selected
-        const fromNode = parseInt(this.fromNodeSelect.value);
-        const toNode = parseInt(this.toNodeSelect.value);
-        if (!isNaN(fromNode) && !isNaN(toNode)) {
-            result.link = [fromNode, toNode];
-        }
+		const result = {
+			...this.initialData, // preserve unknown fields
+			name
+		};
+
+		// Add link if both nodes are selected
+		const fromNode = parseInt(this.fromNodeSelect.value);
+		const toNode = parseInt(this.toNodeSelect.value);
+		if (!isNaN(fromNode) && !isNaN(toNode)) {
+			result.link = [fromNode, toNode];
+		}
 
 		// 'requires' field must always be present (minimum [])
-        if (this._conditionEditorsReady && this.requiresEditor) {
-            const requiresValue = this.requiresEditor.getValue();
-            result.requires = this.flattenRequires(requiresValue);
-        } else {
-            result.requires = Array.isArray(this.initialData.requires)
-                ? this.initialData.requires
-                : [];
-        }
+		if (this._conditionEditorsReady && this.requiresEditor) {
+			const requiresValue = this.requiresEditor.getValue();
+			result.requires = this.flattenRequires(requiresValue);
+		} else {
+			result.requires = Array.isArray(this.initialData.requires) ?
+				this.initialData.requires :
+				[];
+		}
 
 		// Optional fields
-		 const note = this.noteInput.value.trim();
-        if (note) result.note = note;
-        
-        const devNote = this.devNoteInput.value.trim();
-        if (devNote) result.devNote = devNote;
+		const note = this.noteInput.value.trim();
+		if (note) result.note = note;
+
+		const devNote = this.devNoteInput.value.trim();
+		if (devNote) result.devNote = devNote;
 
 		// Entrance/Exit conditions - only add if not null
-        if (this._conditionEditorsReady) {
-            if (this.entranceConditionEditor) {
-                const entranceCondition = this.entranceConditionEditor.getValue();
-                if (entranceCondition && Object.keys(entranceCondition).length > 0) {
-                    result.entranceCondition = entranceCondition;
-                } else
-                    delete result.entranceCondition;
-            }
+		if (this._conditionEditorsReady) {
+			if (this.entranceConditionEditor) {
+				const entranceCondition = this.entranceConditionEditor.getValue();
+				if (entranceCondition && Object.keys(entranceCondition).length > 0) {
+					result.entranceCondition = entranceCondition;
+				} else
+					delete result.entranceCondition;
+			}
 
-            if (this.exitConditionEditor) {
-                const exitCondition = this.exitConditionEditor.getValue();
-                if (exitCondition && Object.keys(exitCondition).length > 0) {
-                    result.exitCondition = exitCondition;
-                } else
-                    delete result.exitCondition;
-            }
-        }
+			if (this.exitConditionEditor) {
+				const exitCondition = this.exitConditionEditor.getValue();
+				if (exitCondition && Object.keys(exitCondition).length > 0) {
+					result.exitCondition = exitCondition;
+				} else
+					delete result.exitCondition;
+			}
+		}
 
-        // Obstacle arrays
-        const clearsObstacles = this.clearsObstaclesList.getSelectedIds().filter(id => id);
-        if (clearsObstacles.length > 0) result.clearsObstacles = clearsObstacles;
+		// Obstacle arrays
+		const clearsObstacles = this.clearsObstaclesList.getSelectedIds().filter(id => id);
+		if (clearsObstacles.length > 0) result.clearsObstacles = clearsObstacles;
 
-        const resetsObstacles = this.resetsObstaclesList.getSelectedIds().filter(id => id);
-        if (resetsObstacles.length > 0) result.resetsObstacles = resetsObstacles;
+		const resetsObstacles = this.resetsObstaclesList.getSelectedIds().filter(id => id);
+		if (resetsObstacles.length > 0) result.resetsObstacles = resetsObstacles;
 
-        // Shinecharge properties - only include if true OR explicitly set in original data
-        if (this.startsWithShineCharge.getValue() || this.initialData.startsWithShineCharge === true) {
-            result.startsWithShineCharge = this.startsWithShineCharge.getValue();
-        }
-        if (this.endsWithShineCharge.getValue() || this.initialData.endsWithShineCharge === true) {
-            result.endsWithShineCharge = this.endsWithShineCharge.getValue();
-        }
+		// Shinecharge properties - only include if true OR explicitly set in original data
+		if (this.startsWithShineCharge.getValue() || this.initialData.startsWithShineCharge === true) {
+			result.startsWithShineCharge = this.startsWithShineCharge.getValue();
+		}
+		if (this.endsWithShineCharge.getValue() || this.initialData.endsWithShineCharge === true) {
+			result.endsWithShineCharge = this.endsWithShineCharge.getValue();
+		}
 
-        // Boolean fields - only include if true OR if explicitly set in original data
-        if (this.comesThroughToilet.getValue() || this.initialData.comesThroughToilet === true) {
-            result.comesThroughToilet = this.comesThroughToilet.getValue();
-        }
-        if (this.bypassesDoorShell.getValue() || this.initialData.bypassesDoorShell === true || this.initialData.bypassesDoorShell === 'free') {
-            result.bypassesDoorShell = this.bypassesDoorShell.getValue();
-        }
-        if (this.wallJumpAvoid.getValue() || this.initialData.wallJumpAvoid === true) {
-            result.wallJumpAvoid = this.wallJumpAvoid.getValue();
-        }
-        if (this.flashSuitChecked.getValue() || this.initialData.flashSuitChecked === true) {
-            result.flashSuitChecked = this.flashSuitChecked.getValue();
-        }
+		// Boolean fields - only include if true OR if explicitly set in original data
+		if (this.comesThroughToilet.getValue() || this.initialData.comesThroughToilet === true) {
+			result.comesThroughToilet = this.comesThroughToilet.getValue();
+		}
+		if (this.bypassesDoorShell.getValue() || this.initialData.bypassesDoorShell === true || this.initialData.bypassesDoorShell === 'free') {
+			result.bypassesDoorShell = this.bypassesDoorShell.getValue();
+		}
+		if (this.wallJumpAvoid.getValue() || this.initialData.wallJumpAvoid === true) {
+			result.wallJumpAvoid = this.wallJumpAvoid.getValue();
+		}
+		if (this.flashSuitChecked.getValue() || this.initialData.flashSuitChecked === true) {
+			result.flashSuitChecked = this.flashSuitChecked.getValue();
+		}
 
-        // Item/flag collections
-        const collectsItems = this.collectsItemsEditor.getValue().filter(id => id != null);
-        if (collectsItems.length > 0) result.collectsItems = collectsItems;
+		// Item/flag collections
+		const collectsItems = this.collectsItemsEditor.getValue().filter(id => id != null);
+		if (collectsItems.length > 0) result.collectsItems = collectsItems;
 
-        const setsFlags = this.setsFlagsEditor.getValue().filter(flag => flag && flag.trim());
-        if (setsFlags.length > 0) result.setsFlags = setsFlags;
+		const setsFlags = this.setsFlagsEditor.getValue().filter(flag => flag && flag.trim());
+		if (setsFlags.length > 0) result.setsFlags = setsFlags;
 
-        // Door unlocks
-        const unlocksDoors = this.unlocksDoors.getValue().filter(unlock => unlock !== null);
-        if (unlocksDoors.length > 0) result.unlocksDoors = unlocksDoors;
+		// Door unlocks
+		const unlocksDoors = this.unlocksDoors.getValue().filter(unlock => unlock !== null);
+		if (unlocksDoors.length > 0) result.unlocksDoors = unlocksDoors;
 
-        // Farm cycle drops
-        const farmCycleDrops = this.farmCycleDrops.getValue().filter(drop => drop !== null);
-        if (farmCycleDrops.length > 0) result.farmCycleDrops = farmCycleDrops;
+		// Farm cycle drops
+		const farmCycleDrops = this.farmCycleDrops.getValue().filter(drop => drop !== null);
+		if (farmCycleDrops.length > 0) result.farmCycleDrops = farmCycleDrops;
 
-        // Failures
-        const failures = this.failures.getValue().filter(failure => failure !== null);
-        if (failures.length > 0) result.failures = failures;
+		// Failures
+		const failures = this.failures.getValue().filter(failure => failure !== null);
+		if (failures.length > 0) result.failures = failures;
 
-        const cleaned = cleanObject(result);
+		const cleaned = cleanObject(result);
 
-        // Requires, entranceCondition, and exitCondition must be retained
-        if (!Array.isArray(cleaned.requires)) {
-            cleaned.requires = [];
-        }
-        if (result.entranceCondition != null) {
-            cleaned.entranceCondition = result.entranceCondition;
-        }
-        if (result.exitCondition != null) {
-            cleaned.exitCondition = result.exitCondition;
-        }
+		// Requires, entranceCondition, and exitCondition must be retained
+		if (!Array.isArray(cleaned.requires)) {
+			cleaned.requires = [];
+		}
+		if (result.entranceCondition != null) {
+			cleaned.entranceCondition = result.entranceCondition;
+		}
+		if (result.exitCondition != null) {
+			cleaned.exitCondition = result.exitCondition;
+		}
 
-        return cleaned;
+		return cleaned;
 	}
-    
-    remove() {
-        if (this.globalUnsubscribe) {
-            this.globalUnsubscribe();
-            this.globalUnsubscribe = null;
-        }
 
-        if (this.clearsObstaclesList && this.clearsObstaclesList._destroy) {
-            this.clearsObstaclesList._destroy();
-        }
-        if (this.resetsObstaclesList && this.resetsObstaclesList._destroy) {
-            this.resetsObstaclesList._destroy();
-        }
+	remove() {
+		if (this.globalUnsubscribe) {
+			this.globalUnsubscribe();
+			this.globalUnsubscribe = null;
+		}
 
-        if (this.collectsItemsCheckboxList && this.collectsItemsCheckboxList._destroy) {
-            this.collectsItemsCheckboxList._destroy();
-        }
-        if (this.setsFlagsCheckboxList && this.setsFlagsCheckboxList._destroy) {
-            this.setsFlagsCheckboxList._destroy();
-        }
+		if (this.clearsObstaclesList && this.clearsObstaclesList._destroy) {
+			this.clearsObstaclesList._destroy();
+		}
+		if (this.resetsObstaclesList && this.resetsObstaclesList._destroy) {
+			this.resetsObstaclesList._destroy();
+		}
 
-        // Clean up entrance/exit/requires editors properly
-        if (this.entranceConditionEditor && this.entranceConditionEditor.remove) {
-            this.entranceConditionEditor.remove();
-        }
-        if (this.exitConditionEditor && this.exitConditionEditor.remove) {
-            this.exitConditionEditor.remove();
-        }
-        if (this.requiresEditor && this.requiresEditor.remove) {
-            this.requiresEditor.remove();
-        }
+		if (this.collectsItemsCheckboxList && this.collectsItemsCheckboxList._destroy) {
+			this.collectsItemsCheckboxList._destroy();
+		}
+		if (this.setsFlagsCheckboxList && this.setsFlagsCheckboxList._destroy) {
+			this.setsFlagsCheckboxList._destroy();
+		}
 
-        super.remove();
-    }
+		// Clean up entrance/exit/requires editors properly
+		if (this.entranceConditionEditor && this.entranceConditionEditor.remove) {
+			this.entranceConditionEditor.remove();
+		}
+		if (this.exitConditionEditor && this.exitConditionEditor.remove) {
+			this.exitConditionEditor.remove();
+		}
+		if (this.requiresEditor && this.requiresEditor.remove) {
+			this.requiresEditor.remove();
+		}
+
+		super.remove();
+	}
 }

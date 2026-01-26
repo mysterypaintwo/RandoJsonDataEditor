@@ -136,7 +136,9 @@ class RandoJsonDataEditor {
 				state.nodes,
 				state.selectedNodes,
 				state.currentRect,
-				state.scale
+				state.scale,
+				this.state.currentRoomData?.strats,
+                this.state.hoveredGroupKeys
 			);
 		});
 		
@@ -175,7 +177,9 @@ class RandoJsonDataEditor {
             state.nodes,
             state.selectedNode,
             state.currentRect,
-            state.scale
+            state.scale,
+            state.currentRoomData?.strats,
+            state.hoveredGroupKeys
         );
     }
 
@@ -201,12 +205,14 @@ class RandoJsonDataEditor {
             state.getEventList(),
             state.getWeaponList(),
             state.getTechMap(),
-            state.getHelperMap()
+            state.getHelperMap(),
+            state.getStratPresets()
         );
     }
 }
 
 // Initialize the application when DOM is ready
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+    await state.initStratPresetsPath();
     new RandoJsonDataEditor();
 });

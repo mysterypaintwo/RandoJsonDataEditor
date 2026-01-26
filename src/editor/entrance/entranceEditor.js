@@ -826,14 +826,14 @@ class EntranceConditionEditor {
 
 	// getValue helper methods
 	getSpeedBoosterMinMaxTiles() {
-		const obj = {
-			speedBooster: this.speedBoosterSelect.value === 'any' ? 'any' : (this.speedBoosterSelect.value === 'true'),
-			minTiles: parseFloat(this.minTilesInput.value)
-		};
-		const maxTiles = parseFloat(this.maxTilesInput.value);
-		if (maxTiles) obj.maxTiles = maxTiles;
-		return obj;
-	}
+        const obj = {
+            speedBooster: this.speedBoosterSelect.value === 'any' ? 'any' : (this.speedBoosterSelect.value === 'true'),
+            minTiles: parseFloat(this.minTilesInput.value) || 0
+        };
+        const maxTiles = parseFloat(this.maxTilesInput.value);
+        if (maxTiles > 0) obj.maxTiles = maxTiles;
+        return obj;
+    }
 
 	getExtraRunSpeed() {
 		const obj = {};
@@ -842,21 +842,27 @@ class EntranceConditionEditor {
 		return obj;
 	}
 
-	getRunway(includeSpeed) {
-		const obj = {
-			length: parseFloat(this.lengthInput.value),
-			openEnd: parseInt(this.openEndInput.value)
-		};
-		if (this.gentleUpTilesInput.value) obj.gentleUpTiles = parseInt(this.gentleUpTilesInput.value);
-		if (this.gentleDownTilesInput.value) obj.gentleDownTiles = parseInt(this.gentleDownTilesInput.value);
-		if (this.steepUpTilesInput.value) obj.steepUpTiles = parseInt(this.steepUpTilesInput.value);
-		if (this.steepDownTilesInput.value) obj.steepDownTiles = parseInt(this.steepDownTilesInput.value);
-		if (includeSpeed) {
-			if (this.minExtraRunSpeedInput?.value) obj.minExtraRunSpeed = this.minExtraRunSpeedInput.value;
-			if (this.maxExtraRunSpeedInput?.value) obj.maxExtraRunSpeed = this.maxExtraRunSpeedInput.value;
-		}
-		return obj;
-	}
+    getRunway(includeSpeed) {
+        const obj = {
+            length: parseFloat(this.lengthInput.value) || 0,
+            openEnd: parseInt(this.openEndInput.value) || 0
+        };
+        const gentleUp = parseInt(this.gentleUpTilesInput.value);
+        const gentleDown = parseInt(this.gentleDownTilesInput.value);
+        const steepUp = parseInt(this.steepUpTilesInput.value);
+        const steepDown = parseInt(this.steepDownTilesInput.value);
+        
+        if (gentleUp > 0) obj.gentleUpTiles = gentleUp;
+        if (gentleDown > 0) obj.gentleDownTiles = gentleDown;
+        if (steepUp > 0) obj.steepUpTiles = steepUp;
+        if (steepDown > 0) obj.steepDownTiles = steepDown;
+        
+        if (includeSpeed) {
+            if (this.minExtraRunSpeedInput?.value) obj.minExtraRunSpeed = this.minExtraRunSpeedInput.value;
+            if (this.maxExtraRunSpeedInput?.value) obj.maxExtraRunSpeed = this.maxExtraRunSpeedInput.value;
+        }
+        return obj;
+    }
 
 	getSparkPosition() {
 		const obj = {};
