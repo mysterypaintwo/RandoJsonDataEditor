@@ -162,6 +162,13 @@ class BaseEditor {
                 dim: 'rgba(255, 220, 0, 0.15)'
             };
         }
+        if (this.stratContainsFrameType(strat, 'aqaWaterLevel')) {
+            return {
+                base: 'rgba(14, 17, 103, 0.7)',
+                hover: 'rgba(51, 55, 189, 0.7)',
+                dim: 'rgb(32, 32, 50)'
+            };
+        }
         if (this.stratContainsFrameType(strat, 'heatFrames') || 
             this.stratContainsFrameType(strat, 'gravitylessHeatFrames') ||
             this.stratContainsFrameType(strat, 'simpleHeatFrames') ||

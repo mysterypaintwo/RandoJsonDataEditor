@@ -120,10 +120,16 @@ const CONDITION_CONFIG = {
 			description: 'Acid damage without Gravity Suit'
 		},
 		'electricityFrames': {
-			label: 'Draygon turret electricity',
+			label: 'Electricity damage per frame',
 			icon: '⚡',
 			color: '#ffff66',
-			description: 'Electricity damage from Draygon turret'
+			description: 'Electricity damage from electric water (in AQA) and blue gerons'
+		},
+		'aqaWaterLevel': {
+			label: 'AQA Water Level',
+			icon: '⚡',
+			color: '#2227a2',
+			description: 'The water level of AQA, set to the specified height. 1 - FULL, 2 - PARTIAL, 3 - EMPTY'
 		},
 		'enemyDamage': {
 			label: 'Intentional enemy damage',
@@ -406,6 +412,7 @@ const CONDITION_PLACEHOLDERS = {
 	acidFrames: 'Frames in acid',
 	gravitylessAcidFrames: 'Frames in acid (no gravity)',
 	electricityFrames: 'Frames of electricity',
+	aqaWaterLevel: 'Water Level in Sector 4 (AQA). [0 - FULL, 1 - PARTIAL, 2 - EMPTY]',
 	shineChargeFrames: 'Shinecharge frames (0-180)',
 	coldFrames: 'Cold damage frames',
 	cycleFrames: 'Cycle time frames',

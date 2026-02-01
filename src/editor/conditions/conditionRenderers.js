@@ -1907,6 +1907,7 @@ ConditionRenderers.register([
 	'acidFrames',
 	'gravitylessAcidFrames',
 	'electricityFrames',
+	'aqaWaterLevel',
 	'shineChargeFrames',
 	'cycleFrames',
 	'simpleCycleFrames',
