@@ -220,10 +220,13 @@ class EnemyEditor extends BaseEditor {
 
 	getValue() {
 		if (!this.groupInput.value.trim() && !this.enemySelect.value) return null;
+		const enemyId = Number(this.enemySelect.value);
+
+		const enemy = window.EditorGlobals.enemyList.find(e => e.id === enemyId);
 
 		const result = {
 			groupName: this.groupInput.value.trim(),
-			enemyName: window.EditorGlobals.enemyList[this.enemySelect.value].name,
+			enemyName: enemy?.name,
 			quantity: parseInt(this.quantityInput.value) || 1,
 		};
 
