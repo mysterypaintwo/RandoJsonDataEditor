@@ -769,12 +769,13 @@ class SimpleNumberRenderer {
 		editor.childrenContainer.appendChild(container);
 		editor.inputs.simpleNumberInput = input;
 	}
-
+	
 	static getValue(editor, type) {
 		const numberValue = parseInt(editor.inputs.simpleNumberInput?.value);
-		return (numberValue > 0 || (type === 'shineChargeFrames' && numberValue >= 0)) ? {
-			[type]: numberValue
-		} : null;
+		if (!isNaN(numberValue)) {
+			return { [type]: numberValue };
+		}
+		return null;
 	}
 }
 
