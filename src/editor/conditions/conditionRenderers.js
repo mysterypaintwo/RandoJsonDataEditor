@@ -444,6 +444,48 @@ class SelectRenderer {
 	}
 }
 
+class DisableEquipmentRenderer {
+	static render(editor, type, initialCondition) {
+		const container = editor.createInputContainer();
+		const select = document.createElement('select');
+		select.style.width = '100%';
+
+		const emptyOption = document.createElement('option');
+		emptyOption.value = '';
+		emptyOption.textContent = '(select equipment)';
+		select.appendChild(emptyOption);
+
+		const options = (window.EditorGlobals.itemList || []).slice().sort();
+		options.forEach(option => {
+			const opt = document.createElement('option');
+			opt.value = option;
+			opt.textContent = option;
+			select.appendChild(opt);
+		});
+
+		// Set initial value
+		if (initialCondition && initialCondition[type]) {
+			select.value = initialCondition[type];
+		}
+
+		container.appendChild(select);
+		editor.childrenContainer.appendChild(container);
+		editor.inputs.select = select;
+	}
+
+	static getValue(editor, type) {
+		const selectValue = editor.inputs.select?.value?.trim();
+		return selectValue ? { [type]: selectValue } : null;
+	}
+
+	static restoreValue(editor, type, value) {
+		const actualValue = typeof value === 'string' ? value : value[type];
+		if (editor.inputs.select && actualValue) {
+			editor.inputs.select.value = actualValue;
+		}
+	}
+}
+
 // =============================================================================
 // Multi-Select Renderers (Tech/Helper)
 // =============================================================================
@@ -1132,7 +1174,7 @@ class EnemyKillRenderer {
 
 				(window.EditorGlobals.weaponList || []).forEach(weapon => {
 					const option = document.createElement('option');
-					option.value = weapon.id;
+					option.value = weapon.name;
 					option.textContent = weapon.name;
 					select.appendChild(option);
 				});
@@ -1180,7 +1222,7 @@ class EnemyKillRenderer {
 
 				(window.EditorGlobals.weaponList || []).forEach(weapon => {
 					const option = document.createElement('option');
-					option.value = weapon.id;
+					option.value = weapon.name;
 					option.textContent = weapon.name;
 					select.appendChild(option);
 				});
@@ -1379,8 +1421,8 @@ class ShinesparkRenderer {
 		excessInput.style.flex = '1';
 
 		if (initialCondition && initialCondition.shinespark) {
-			framesInput.value = initialCondition.shinespark.frames || '';
-			excessInput.value = initialCondition.shinespark.excessFrames || '';
+			framesInput.value = initialCondition.shinespark.frames || '0';
+			excessInput.value = initialCondition.shinespark.excessFrames || '0';
 		}
 
 		framesWrapper.appendChild(framesInput);
@@ -1870,7 +1912,8 @@ class DefaultRenderer {
 ConditionRenderers.register(['and', 'or', 'not'], LogicalRenderer);
 
 // Simple selections
-ConditionRenderers.register(['item', 'event', 'disableEquipment'], SelectRenderer);
+ConditionRenderers.register(['item', 'event'], SelectRenderer);
+ConditionRenderers.register('disableEquipment', DisableEquipmentRenderer);
 
 // Multi-select conditions
 ConditionRenderers.register(['tech', 'helper'], MultiSelectRenderer);
