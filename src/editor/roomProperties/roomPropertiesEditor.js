@@ -334,7 +334,7 @@ class RoomPropertiesEditor {
 
 		// Add buttons for each editor type
 		Object.keys(this.editorConfigs).forEach(type => {
-			switch(type) {
+			switch (type) {
 				default:
 					const addBtnId = `add${type.charAt(0).toUpperCase() + type.slice(1)}Btn`;
 					const addBtn = document.getElementById(addBtnId);
@@ -379,7 +379,7 @@ class RoomPropertiesEditor {
 		this.techMap = techMap || {};
 		this.helperMap = helperMap || {};
 		this.stratPresets = stratPresets || [];
-    	console.log('this.stratPresets after assignment:', this.stratPresets);
+		console.log('this.stratPresets after assignment:', this.stratPresets);
 
 		// Prepare node list for dropdowns - ALL nodes share same ID space
 		// Sort nodes: items first (by ID), then doors (by ID), then junctions (by ID)
@@ -408,7 +408,7 @@ class RoomPropertiesEditor {
 			this.enemyList,
 			this.validRoomNodes
 		);
-		
+
 		this.updateHeaderInfo();
 		this.updateMetadataDisplay();
 		this.populateEditors();
@@ -446,6 +446,16 @@ class RoomPropertiesEditor {
 			const element = document.getElementById(id);
 			if (element) element.textContent = value;
 		});
+	}
+
+	recalculateNextMetaIds() {
+		const stratCount = this.editorInstances.strats?.size || 0;
+		const notableCount = this.editorInstances.notables?.size || 0;
+
+		this.currentRoomData.nextStratId = stratCount + 1;
+		this.currentRoomData.nextNotableId = notableCount + 1;
+
+		this.updateMetadataDisplay();
 	}
 
 	updateMetadataDisplay() {
@@ -504,30 +514,30 @@ class RoomPropertiesEditor {
 				const h3 = section.querySelector('h3');
 				return h3 && h3.textContent.includes('📘 Strats');
 			});
-		
+
 		if (!stratsSection) {
 			console.error('Could not find strats section');
 			return;
 		}
-		
+
 		// Find and remove the default add button
 		const addStratsBtn = document.getElementById('addStratsBtn');
 		if (addStratsBtn) {
 			addStratsBtn.remove();
 		}
-		
+
 		// Create button group
 		const buttonGroup = document.createElement('div');
 		buttonGroup.id = 'stratsButtonGroup';
 		buttonGroup.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;';
-		
+
 		// Always add blank strat button
 		const addBlankBtn = document.createElement('button');
 		addBlankBtn.className = 'add-btn';
 		addBlankBtn.textContent = '+ Add Blank Strat';
 		addBlankBtn.addEventListener('click', () => this.addNewEditor('strats'));
 		buttonGroup.appendChild(addBlankBtn);
-		
+
 		// Add preset buttons if available
 		console.log('Setting up preset buttons, count:', this.stratPresets.length);
 		if (this.stratPresets && this.stratPresets.length > 0) {
@@ -554,15 +564,18 @@ class RoomPropertiesEditor {
 
 						// Scroll into view
 						setTimeout(() => {
-							editor.root.scrollIntoView({ behavior: 'smooth', block: 'center' });
+							editor.root.scrollIntoView({
+								behavior: 'smooth',
+								block: 'center'
+							});
 						}, 100);
 					}
 				});
-				
+
 				buttonGroup.appendChild(presetBtn);
 			});
 		}
-		
+
 		// Add "Jump to Top" button
 		const jumpToTopBtn = document.createElement('button');
 		jumpToTopBtn.className = 'secondary-btn';
@@ -572,11 +585,14 @@ class RoomPropertiesEditor {
 			const stratsHeader = Array.from(document.querySelectorAll('section h3'))
 				.find(h3 => h3.textContent?.includes('📘 Strats'));
 			if (stratsHeader) {
-				stratsHeader.scrollIntoView({ behavior: 'instant', block: 'start' });
+				stratsHeader.scrollIntoView({
+					behavior: 'instant',
+					block: 'start'
+				});
 			}
 		});
 		buttonGroup.appendChild(jumpToTopBtn);
-		
+
 		// Insert button group AFTER the strats container (at bottom of section)
 		const stratsContainer = document.getElementById('stratsContainer');
 		if (stratsContainer && stratsContainer.nextSibling) {
@@ -622,6 +638,9 @@ class RoomPropertiesEditor {
 
 		// Setup mapTileMask editor
 		this.setupMapTileMaskEditor();
+
+		// Recalculate the Next Meta IDs
+		this.recalculateNextMetaIds();
 
 		// Broadcast initial state
 		ObstacleEditor.broadcastObstaclesChanged();
@@ -781,6 +800,10 @@ class RoomPropertiesEditor {
 		editor.onRemove = () => {
 			this.editorInstances[type].delete(editor._uid);
 			this.renumberContainer(type);
+
+			if (type === 'strats' || type === 'notables') {
+				this.recalculateNextMetaIds();
+			}
 		};
 
 		// Attach to container
@@ -814,6 +837,10 @@ class RoomPropertiesEditor {
 		// Expand newly created editors so user can edit them
 		if (editor && editor.expand) {
 			editor.expand();
+		}
+
+		if (type === 'strats' || type === 'notables') {
+			this.recalculateNextMetaIds();
 		}
 
 		return editor;
@@ -890,7 +917,7 @@ class RoomPropertiesEditor {
 								};
 
 								// Remove editor-specific fields
-								delete validatedItem.id;	
+								delete validatedItem.id;
 								[
 									'startsWithShineCharge',
 									'bypassesDoorShell',
@@ -923,7 +950,7 @@ class RoomPropertiesEditor {
 								if (item.entranceCondition) {
 									validatedItem.entranceCondition = item.entranceCondition;
 								}
-								
+
 								if (item.exitCondition) {
 									validatedItem.exitCondition = item.exitCondition;
 								}
@@ -1048,6 +1075,24 @@ class RoomPropertiesEditor {
 				}
 			});
 
+			// ---------------------------------------------------------------------
+			// Recalculate nextStratId / nextNotableId based on current counts
+			// ---------------------------------------------------------------------
+			const stratCount = Array.isArray(collectedData.strats) ?
+				collectedData.strats.length :
+				0;
+
+			const notableCount = Array.isArray(collectedData.notables) ?
+				collectedData.notables.length :
+				0;
+
+			const nextStratId = stratCount + 1;
+			const nextNotableId = notableCount + 1;
+
+			// Also update the in-memory room data so UI stays in sync if needed
+			data.nextStratId = nextStratId;
+			data.nextNotableId = nextNotableId;
+
 			// Get mapTileMask value - ensure proper 2D array format
 			const mapTileMask = this.mapTileMaskEditor ? this.mapTileMaskEditor.getValue() : data.mapTileMask;
 
@@ -1077,8 +1122,8 @@ class RoomPropertiesEditor {
 			if (data.subsubarea) payload.subsubarea = data.subsubarea;
 			if (data.roomImageFile) payload.roomImageFile = data.roomImageFile;
 			if (data.roomAddress) payload.roomAddress = data.roomAddress;
-			if (data.nextStratId) payload.nextStratId = data.nextStratId;
-			if (data.nextNotableId) payload.nextNotableId = data.nextNotableId;
+			payload.nextStratId = nextStratId;
+			payload.nextNotableId = nextNotableId;
 			if (roomNote) payload.note = roomNote;
 			if (roomDevNote) payload.devNote = roomDevNote;
 

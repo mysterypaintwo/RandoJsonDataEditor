@@ -865,448 +865,199 @@ class SpecialValueRenderer {
 // Enemy Kill Renderer
 // =============================================================================
 class EnemyKillRenderer {
+
+	// -------------------------------------------------------------------------
+	// Utilities
+	// -------------------------------------------------------------------------
+
+	static _getEnemyList() {
+		return window.EditorGlobals?.enemyList || [];
+	}
+
+	static _expandRowsToArray(rows) {
+		const arr = [];
+		rows.forEach(r => {
+			const name = r.name?.trim();
+			const qty = Math.max(1, parseInt(r.qty) || 1);
+			for (let i = 0; i < qty; i++) arr.push(name);
+		});
+		return arr.filter(Boolean);
+	}
+
+	static _compressArrayToRows(arr) {
+		const counts = {};
+		arr.forEach(n => {
+			if (!n) return;
+			counts[n] = (counts[n] || 0) + 1;
+		});
+		return Object.entries(counts).map(([name, qty]) => ({ name, qty }));
+	}
+
+	// -------------------------------------------------------------------------
+	// Render
+	// -------------------------------------------------------------------------
+
 	static render(editor, type, initialCondition) {
 		const container = editor.createInputContainer();
-
-		// Create a more user-friendly interface
-		const enemyGroupsContainer = document.createElement('div');
-		enemyGroupsContainer.style.border = '1px solid #ddd';
-		enemyGroupsContainer.style.borderRadius = '6px';
-		enemyGroupsContainer.style.padding = '8px';
-		enemyGroupsContainer.style.marginBottom = '8px';
-
-		const label = document.createElement('div');
-		label.textContent = 'Enemy Group Sets (each group can be hit by same AOE attack):';
-		label.style.fontWeight = 'bold';
-		label.style.marginBottom = '8px';
-		enemyGroupsContainer.appendChild(label);
+		const wrapper = document.createElement('div');
 
 		const groupsWrapper = document.createElement('div');
-		enemyGroupsContainer.appendChild(groupsWrapper);
 
 		const addGroupBtn = document.createElement('button');
-		addGroupBtn.textContent = '+ Add Enemy Group Set';
+		addGroupBtn.textContent = '+ Add Group';
 		addGroupBtn.className = 'add-btn';
-		addGroupBtn.style.marginTop = '8px';
-		enemyGroupsContainer.appendChild(addGroupBtn);
 
-		// Get enemy groups from EnemyEditor instances - SAFELY
-		let availableEnemyGroups = [];
-		try {
-			availableEnemyGroups = getCurrentEnemyGroups() || [];
-		} catch (error) {
-			console.warn('Failed to get current enemy groups:', error);
-			availableEnemyGroups = [];
-		}
+		// -------------------------------------------------------------
+		// Enemy Row
+		// -------------------------------------------------------------
+		const createEnemyRow = (initial = { name: '', qty: 1 }) => {
+			const row = document.createElement('div');
+			row.style.display = 'flex';
+			row.style.gap = '8px';
+			row.style.marginBottom = '4px';
+			row.style.alignItems = 'center';
 
-		const updateAvailableGroups = () => {
-			try {
-				const previousGroups = [...availableEnemyGroups];
-				availableEnemyGroups = getCurrentEnemyGroups() || [];
+			const select = document.createElement('select');
+			select.style.flex = '1';
 
-				// Check if any previously selected groups are no longer available
-				const previousIds = new Set(previousGroups.map(g => g.id));
-				const currentIds = new Set(availableEnemyGroups.map(g => g.id));
-				const removedIds = [...previousIds].filter(id => !currentIds.has(id));
+			const emptyOpt = document.createElement('option');
+			emptyOpt.value = '';
+			emptyOpt.textContent = '(select enemy)';
+			select.appendChild(emptyOpt);
 
-				// Update all existing dropdowns and clear invalid selections
-				updateAllEnemySelects(removedIds);
-			} catch (error) {
-				console.warn('Error updating available groups:', error);
-			}
+			this._getEnemyList().forEach(e => {
+				const opt = document.createElement('option');
+				opt.value = e.name;
+				opt.textContent = e.name;
+				select.appendChild(opt);
+			});
+
+			select.value = initial.name || '';
+
+			const qtyInput = document.createElement('input');
+			qtyInput.type = 'number';
+			qtyInput.min = '1';
+			qtyInput.value = initial.qty || 1;
+			qtyInput.style.width = '64px';
+
+			const removeBtn = document.createElement('button');
+			removeBtn.textContent = '×';
+			removeBtn.className = 'remove-btn';
+			removeBtn.onclick = () => row.remove();
+
+			row.appendChild(select);
+			row.appendChild(qtyInput);
+			row.appendChild(removeBtn);
+
+			row.getValue = () => ({
+				name: select.value,
+				qty: parseInt(qtyInput.value) || 1
+			});
+
+			return row;
 		};
 
-		const updateAllEnemySelects = (removedIds = []) => {
-			try {
-				const allEnemySelects = groupsWrapper.querySelectorAll('select');
-				allEnemySelects.forEach(select => {
-					const currentValue = select.value;
-
-					// Clear selection if it was removed
-					const shouldClear = removedIds.includes(currentValue);
-
-					select.innerHTML = '';
-
-					const emptyOption = document.createElement('option');
-					emptyOption.value = '';
-					emptyOption.textContent = availableEnemyGroups.length > 0 ?
-						'(select enemy group)' :
-						'(no enemy groups defined - add enemies to this room first)';
-					select.appendChild(emptyOption);
-
-					availableEnemyGroups.forEach(group => {
-						const option = document.createElement('option');
-						option.value = group.id;
-						option.textContent = group.displayName;
-						select.appendChild(option);
-					});
-
-					// Restore value only if it's still valid
-					select.value = shouldClear ? '' : currentValue;
-				});
-			} catch (error) {
-				console.warn('Error updating enemy selects:', error);
-			}
-		};
-
-		const createEnemyGroup = (initialEnemies = []) => {
+		// -------------------------------------------------------------
+		// Group
+		// -------------------------------------------------------------
+		const createGroup = (initialArray = []) => {
 			const groupDiv = document.createElement('div');
 			groupDiv.style.border = '1px solid #ccc';
-			groupDiv.style.borderRadius = '4px';
 			groupDiv.style.padding = '8px';
 			groupDiv.style.marginBottom = '8px';
-			groupDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
 
-			const groupHeader = document.createElement('div');
-			groupHeader.style.display = 'flex';
-			groupHeader.style.justifyContent = 'space-between';
-			groupHeader.style.alignItems = 'center';
-			groupHeader.style.marginBottom = '8px';
+			const header = document.createElement('div');
+			header.style.display = 'flex';
+			header.style.justifyContent = 'space-between';
 
-			const groupTitle = document.createElement('strong');
-			groupTitle.textContent = 'Enemy Group';
+			const title = document.createElement('strong');
+			title.textContent = 'Enemy Group';
 
-			const removeGroupBtn = document.createElement('button');
-			removeGroupBtn.textContent = '× Remove Group';
-			removeGroupBtn.className = 'remove-btn';
-			removeGroupBtn.style.fontSize = '12px';
-			removeGroupBtn.style.padding = '4px 8px';
-			removeGroupBtn.onclick = () => groupDiv.remove();
+			const removeBtn = document.createElement('button');
+			removeBtn.textContent = '× Remove Group';
+			removeBtn.className = 'remove-btn';
+			removeBtn.onclick = () => groupDiv.remove();
 
-			groupHeader.appendChild(groupTitle);
-			groupHeader.appendChild(removeGroupBtn);
-			groupDiv.appendChild(groupHeader);
+			header.appendChild(title);
+			header.appendChild(removeBtn);
+			groupDiv.appendChild(header);
 
-			const enemiesWrapper = document.createElement('div');
-			groupDiv.appendChild(enemiesWrapper);
+			const rowsWrapper = document.createElement('div');
+			groupDiv.appendChild(rowsWrapper);
 
-			const addEnemyBtn = document.createElement('button');
-			addEnemyBtn.textContent = '+ Add Enemy Group';
-			addEnemyBtn.className = 'add-btn';
-			addEnemyBtn.style.fontSize = '12px';
-			addEnemyBtn.style.padding = '4px 8px';
-			groupDiv.appendChild(addEnemyBtn);
+			const addRowBtn = document.createElement('button');
+			addRowBtn.textContent = '+ Add Enemy';
+			addRowBtn.className = 'add-btn';
+			groupDiv.appendChild(addRowBtn);
 
-			const createEnemyEntry = (enemyGroup = '') => {
-				const enemyDiv = document.createElement('div');
-				enemyDiv.style.display = 'flex';
-				enemyDiv.style.gap = '8px';
-				enemyDiv.style.marginBottom = '4px';
-				enemyDiv.style.alignItems = 'center';
-
-				const enemySelect = document.createElement('select');
-				enemySelect.style.flex = '1';
-
-				const emptyOption = document.createElement('option');
-				emptyOption.value = '';
-				emptyOption.textContent = availableEnemyGroups.length > 0 ?
-					'(select enemy group)' :
-					'(no enemy groups defined - add enemies to this room first)';
-				enemySelect.appendChild(emptyOption);
-
-				availableEnemyGroups.forEach(group => {
-					const option = document.createElement('option');
-					option.value = group.id;
-					option.textContent = group.displayName;
-					enemySelect.appendChild(option);
-				});
-
-				if (enemyGroup) {
-					enemySelect.value = enemyGroup;
-				}
-
-				const removeEnemyBtn = document.createElement('button');
-				removeEnemyBtn.textContent = '×';
-				removeEnemyBtn.className = 'remove-btn';
-				removeEnemyBtn.style.fontSize = '12px';
-				removeEnemyBtn.style.width = '24px';
-				removeEnemyBtn.style.height = '24px';
-				removeEnemyBtn.onclick = () => enemyDiv.remove();
-
-				enemyDiv.appendChild(enemySelect);
-				enemyDiv.appendChild(removeEnemyBtn);
-				enemiesWrapper.appendChild(enemyDiv);
+			addRowBtn.onclick = () => {
+				rowsWrapper.appendChild(createEnemyRow());
 			};
 
-			// Add initial enemies
-			if (initialEnemies.length > 0) {
-				initialEnemies.forEach(enemy => createEnemyEntry(enemy));
+			// Load initial
+			if (initialArray.length > 0) {
+				const rows = EnemyKillRenderer._compressArrayToRows(initialArray);
+				rows.forEach(r => rowsWrapper.appendChild(createEnemyRow(r)));
 			} else {
-				createEnemyEntry(); // Add one empty entry
+				rowsWrapper.appendChild(createEnemyRow());
 			}
 
-			addEnemyBtn.onclick = () => createEnemyEntry();
-
-			groupDiv.getEnemies = () => {
-				return Array.from(enemiesWrapper.querySelectorAll('select'))
-					.map(select => select.value)
-					.filter(value => value.trim() !== '');
+			groupDiv.getValue = () => {
+				const rows = Array.from(rowsWrapper.children)
+					.map(r => r.getValue ? r.getValue() : null)
+					.filter(Boolean);
+				return EnemyKillRenderer._expandRowsToArray(rows);
 			};
 
 			return groupDiv;
 		};
 
-		// Initialize with existing data
-		const initialData = initialCondition?.enemyKill?.enemies || [];
-		if (initialData.length > 0) {
-			initialData.forEach(group => {
-				const groupDiv = createEnemyGroup(group);
-				groupsWrapper.appendChild(groupDiv);
+		// -------------------------------------------------------------
+		// Initial Load
+		// -------------------------------------------------------------
+		const initialGroups = initialCondition?.enemyKill?.enemies || [];
+
+		if (initialGroups.length > 0) {
+			initialGroups.forEach(arr => {
+				groupsWrapper.appendChild(createGroup(arr));
 			});
 		} else {
-			// Add one empty group by default
-			const groupDiv = createEnemyGroup();
-			groupsWrapper.appendChild(groupDiv);
+			groupsWrapper.appendChild(createGroup());
 		}
 
 		addGroupBtn.onclick = () => {
-			const groupDiv = createEnemyGroup();
-			groupsWrapper.appendChild(groupDiv);
+			groupsWrapper.appendChild(createGroup());
 		};
 
-		// Subscribe to enemy changes - listen to DOM mutations in enemies container
-		// Make this more defensive to prevent freezing
-		let mutationObserver = null;
-		try {
-			const enemiesContainer = document.getElementById('enemiesContainer');
-			if (enemiesContainer) {
-				mutationObserver = new MutationObserver((mutations) => {
-					let shouldUpdate = false;
-					try {
-						mutations.forEach(mutation => {
-							if (mutation.type === 'childList' ||
-								(mutation.type === 'characterData' &&
-									mutation.target.parentElement?.matches('input[placeholder*="Group Name"]'))) {
-								shouldUpdate = true;
-							}
-						});
-						if (shouldUpdate) {
-							// Debounce the update to prevent excessive calls
-							clearTimeout(updateAvailableGroups.timeout);
-							updateAvailableGroups.timeout = setTimeout(updateAvailableGroups, 100);
-						}
-					} catch (error) {
-						console.warn('Error in mutation observer:', error);
-					}
-				});
-
-				mutationObserver.observe(enemiesContainer, {
-					childList: true,
-					subtree: true,
-					characterData: true
-				});
-			}
-		} catch (error) {
-			console.warn('Failed to set up mutation observer:', error);
-		}
-
-		// Store observer for cleanup - make sure it exists before storing
-		if (mutationObserver) {
-			editor.subscriptions.push(() => {
-				try {
-					mutationObserver.disconnect();
-				} catch (error) {
-					console.warn('Error disconnecting mutation observer:', error);
-				}
-			});
-		}
-
-		// Also listen for input changes on enemy name fields - more defensive
-		const handleEnemyNameChange = () => {
-			clearTimeout(handleEnemyNameChange.timeout);
-			handleEnemyNameChange.timeout = setTimeout(updateAvailableGroups, 100); // Debounced
-		};
-
-		// Add event delegation for input changes - make it safer
-		try {
-			const enemiesContainer = document.getElementById('enemiesContainer');
-			if (enemiesContainer) {
-				const inputHandler = (e) => {
-					if (e.target.matches('input[placeholder*="Group Name"]')) {
-						handleEnemyNameChange();
-					}
-				};
-
-				enemiesContainer.addEventListener('input', inputHandler);
-
-				// Store cleanup for input handler too
-				editor.subscriptions.push(() => {
-					try {
-						enemiesContainer.removeEventListener('input', inputHandler);
-					} catch (error) {
-						console.warn('Error removing input handler:', error);
-					}
-				});
-			}
-		} catch (error) {
-			console.warn('Failed to set up input handler:', error);
-		}
-
-		// Optional properties section - create once to avoid duplication
-		const optionsContainer = document.createElement('div');
-		optionsContainer.style.marginTop = '12px';
-		optionsContainer.style.border = '1px solid #ddd';
-		optionsContainer.style.borderRadius = '6px';
-		optionsContainer.style.padding = '8px';
-
-		const optionsTitle = document.createElement('div');
-		optionsTitle.textContent = 'Optional Properties:';
-		optionsTitle.style.fontWeight = 'bold';
-		optionsTitle.style.marginBottom = '8px';
-		optionsContainer.appendChild(optionsTitle);
-
-		// Explicit weapons - with remove functionality
-		const explicitWeaponsContainer = createDynamicList(
-			'Explicit Weapons',
-			(weaponData = null) => {
-				const wrapper = document.createElement('div');
-				wrapper.style.display = 'flex';
-				wrapper.style.gap = '8px';
-				wrapper.style.alignItems = 'center';
-				wrapper.style.marginBottom = '4px';
-
-				const select = document.createElement('select');
-				select.style.flex = '1';
-
-				const emptyOption = document.createElement('option');
-				emptyOption.value = '';
-				emptyOption.textContent = '(select weapon)';
-				select.appendChild(emptyOption);
-
-				(window.EditorGlobals.weaponList || []).forEach(weapon => {
-					const option = document.createElement('option');
-					option.value = weapon.name;
-					option.textContent = weapon.name;
-					select.appendChild(option);
-				});
-
-				if (weaponData && weaponData.value) {
-					select.value = weaponData.value;
-				}
-
-				const removeBtn = document.createElement('button');
-				removeBtn.textContent = '×';
-				removeBtn.className = 'remove-btn';
-				removeBtn.style.fontSize = '12px';
-				removeBtn.style.width = '24px';
-				removeBtn.style.height = '24px';
-				removeBtn.onclick = () => wrapper.remove();
-
-				wrapper.appendChild(select);
-				wrapper.appendChild(removeBtn);
-
-				wrapper.getValue = () => select.value.trim() || null;
-				return wrapper;
-			},
-			(initialCondition?.enemyKill?.explicitWeapons || []).map(w => ({
-				value: w
-			}))
-		);
-
-		// Excluded weapons - with remove functionality
-		const excludedWeaponsContainer = createDynamicList(
-			'Excluded Weapons',
-			(weaponData = null) => {
-				const wrapper = document.createElement('div');
-				wrapper.style.display = 'flex';
-				wrapper.style.gap = '8px';
-				wrapper.style.alignItems = 'center';
-				wrapper.style.marginBottom = '4px';
-
-				const select = document.createElement('select');
-				select.style.flex = '1';
-
-				const emptyOption = document.createElement('option');
-				emptyOption.value = '';
-				emptyOption.textContent = '(select weapon)';
-				select.appendChild(emptyOption);
-
-				(window.EditorGlobals.weaponList || []).forEach(weapon => {
-					const option = document.createElement('option');
-					option.value = weapon.name;
-					option.textContent = weapon.name;
-					select.appendChild(option);
-				});
-
-				if (weaponData && weaponData.value) {
-					select.value = weaponData.value;
-				}
-
-				const removeBtn = document.createElement('button');
-				removeBtn.textContent = '×';
-				removeBtn.className = 'remove-btn';
-				removeBtn.style.fontSize = '12px';
-				removeBtn.style.width = '24px';
-				removeBtn.style.height = '24px';
-				removeBtn.onclick = () => wrapper.remove();
-
-				wrapper.appendChild(select);
-				wrapper.appendChild(removeBtn);
-
-				wrapper.getValue = () => select.value.trim() || null;
-				return wrapper;
-			},
-			(initialCondition?.enemyKill?.excludedWeapons || []).map(w => ({
-				value: w
-			}))
-		);
-
-		// Farmable ammo using unified checkbox list
-		const farmableAmmoContainer = createUnifiedCheckboxList(
-			AMMO_TYPES,
-			'Farmable Ammo',
-			initialCondition?.enemyKill?.farmableAmmo || [], {
-				showToggleButton: false,
-				columns: ['Enabled', 'Ammo Type']
-			}
-		);
-
-		optionsContainer.appendChild(explicitWeaponsContainer);
-		optionsContainer.appendChild(excludedWeaponsContainer);
-		optionsContainer.appendChild(farmableAmmoContainer);
-
-		container.appendChild(enemyGroupsContainer);
-		container.appendChild(optionsContainer);
+		wrapper.appendChild(groupsWrapper);
+		wrapper.appendChild(addGroupBtn);
+		container.appendChild(wrapper);
 		editor.childrenContainer.appendChild(container);
 
 		editor.inputs.enemyKillGroupsWrapper = groupsWrapper;
-		editor.inputs.explicitWeaponsContainer = explicitWeaponsContainer;
-		editor.inputs.excludedWeaponsContainer = excludedWeaponsContainer;
-		editor.inputs.farmableAmmoContainer = farmableAmmoContainer;
 	}
 
-	static getValue(editor, type) {
-		const groups = Array.from(editor.inputs.enemyKillGroupsWrapper?.children || [])
-			.map(groupDiv => groupDiv.getEnemies ? groupDiv.getEnemies() : [])
-			.filter(group => group.length > 0);
+	// -------------------------------------------------------------------------
+	// Get Value
+	// -------------------------------------------------------------------------
+
+	static getValue(editor) {
+		const groups = Array.from(editor.inputs.enemyKillGroupsWrapper.children)
+			.map(g => g.getValue ? g.getValue() : [])
+			.filter(arr => arr.length > 0);
 
 		if (groups.length === 0) return null;
 
-		const result = {
+		return {
 			enemyKill: {
 				enemies: groups
 			}
 		};
-
-		// Add optional properties if they have values
-		const explicitWeapons = (editor.inputs.explicitWeaponsContainer?.getValue() || []).filter(w => w);
-		if (explicitWeapons.length > 0) {
-			result.enemyKill.explicitWeapons = explicitWeapons;
-		}
-
-		const excludedWeapons = (editor.inputs.excludedWeaponsContainer?.getValue() || []).filter(w => w);
-		if (excludedWeapons.length > 0) {
-			result.enemyKill.excludedWeapons = excludedWeapons;
-		}
-
-		const farmableAmmo = editor.inputs.farmableAmmoContainer?.getSelectedValues() || [];
-		if (farmableAmmo.length > 0) {
-			result.enemyKill.farmableAmmo = farmableAmmo;
-		}
-
-		return result;
 	}
 }
+
+window.EnemyKillRenderer = EnemyKillRenderer;
+
 
 // =============================================================================
 // Refill Renderer
