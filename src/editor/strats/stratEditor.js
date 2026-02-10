@@ -349,10 +349,8 @@ class StratEditor extends BaseEditor {
 			if (this.requiresEditor) {
 				const requiresValue = this.requiresEditor.getValue();
 				// If requiresValue is already wrapped, use it; otherwise wrap it
-				if (requiresValue !== null && requiresValue !== undefined) {
-					result.requires = Array.isArray(requiresValue) ? requiresValue : [requiresValue];
-				} else {
-					result.requires = [];
+				if (requiresValue && Object.keys(requiresValue).length > 0) {
+					result.requires = requiresValue;
 				}
 			} else {
 				result.requires = [];
@@ -1292,10 +1290,10 @@ class StratEditor extends BaseEditor {
 			}
 
 			const requiresValue = requiresEditor.getValue();
-			if (requiresValue !== null) {
-				result.requires = Array.isArray(requiresValue) ? requiresValue : [requiresValue];
+			if (requiresValue && Object.keys(requiresValue).length > 0) {
+				result.requires = requiresValue;
 			}
-
+			
 			if (!useImplicitCheckbox.checked) {
 				result.useImplicitRequires = false;
 			}
